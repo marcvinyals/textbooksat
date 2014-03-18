@@ -99,7 +99,7 @@ ostream& operator << (ostream& o, const list<clause>& v) {
 }
 ostream& operator << (ostream&o , const vector<int>& a) {
   char what[] = "-?+";
-  for (int i=0;i<a.size();++i) o << what[a[i]+1] << i+1 << " ";
+  for (uint i=0;i<a.size();++i) o << what[a[i]+1] << i+1 << " ";
   return o;
 }
 
@@ -129,15 +129,19 @@ struct propagation_queue_ {
 class cdcl {
  public:
   void solve(const cnf& f);
-  function<void(cdcl&)> decide;
 
-  void decide_fixed();
-  void decide_ask();
+  function<literal(cdcl&)> decide_plugin;
+  static const bool backjump = true;
+
+  literal decide_fixed();
+  literal decide_ask();
+  literal decide_reverse();
 
 private:
 
   void unit_propagate();
   void learn();
+  void decide();
   
   void unassign(literal l);
   
@@ -185,7 +189,7 @@ void cdcl::solve(const cnf& f) {
         }
       }
     }
-    decide(*this);
+    decide();
     if (solved) cout << "SAT" << endl;
   }
 }
@@ -271,12 +275,25 @@ void cdcl::learn() {
     cerr << "I learned the following clauses:" << endl << learnt_clauses << endl;
     return;
   }
-  
-  // Complete backtrack to first decision level. We may want to
-  // backtrack more as long as the clause is unit, but we do not do
-  // this.
-  branching_seq.erase(--first_decision.base(),branching_seq.end());
 
+  // Now keep backtracking while the clause is unit
+  auto backtrack_limit = first_decision;
+  for (++backtrack_limit; backtrack_limit != branching_seq.rend(); ++backtrack_limit) {
+    if (not backjump) break;
+    bool found = false;
+    for (auto l:c.literals) if (l.opposite(backtrack_limit->to)) found = true;
+    if (found) break;
+  }
+
+  // But always backtrack to a decision
+  while(backtrack_limit.base()->reason) --backtrack_limit;
+
+  // Complete backtracking
+  for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
+    unassign(it->to);
+  }
+  branching_seq.erase(backtrack_limit.base(),branching_seq.end());
+  
   // Add the learnt clause to working clauses and immediately start
   // propagating
   cerr << "Learning clause " << c << endl;
@@ -290,38 +307,49 @@ void cdcl::learn() {
   conflict = NULL;
 }
 
-void cdcl::decide_fixed() {
+void cdcl::decide() {
   cerr << "Deciding something" << endl;
   if (decision_order.empty()) {
     solved=true;
     return;
   }
-  int decision_variable = *decision_order.begin();
-  decision_order.erase(decision_order.begin());
-  literal decision(decision_variable,decision_polarity[decision_variable]);
+  literal decision = decide_plugin(*this);
   decision_seq.push_back(decision);
   propagation_queue.decide(decision);
 }
 
-void cdcl::decide_ask() {
+literal cdcl::decide_fixed() {
+  int decision_variable = *decision_order.begin();
+  decision_order.erase(decision_order.begin());
+  return literal(decision_variable,decision_polarity[decision_variable]);
+}
+
+literal cdcl::decide_reverse() {
+  auto back = --decision_order.end();
+  int decision_variable = *back;
+  decision_order.erase(back);
+  return literal(decision_variable,decision_polarity[decision_variable]);
+}
+
+literal cdcl::decide_ask() {
   cout << "Good day oracle, would you mind giving me some advice?" << endl;
   cout << "This is the branching sequence so far: " << branching_seq << endl;
   cout << "I learned the following clauses:" << endl << learnt_clauses << endl;
   cout << "Therefore these are the restricted clauses I have in mind:" << endl << working_clauses << endl;
   int dimacs_decision = 0;
   while (not dimacs_decision) {
+    if (not cin) exit(1);
     cout << "Please input a literal in dimacs format." << endl;
     cin >> dimacs_decision;
   }
-  literal decision = from_dimacs(dimacs_decision);
-  decision_seq.push_back(decision);
-  propagation_queue.decide(decision);
+  return from_dimacs(dimacs_decision);
 }
 
 void cdcl_solver::solve(const cnf& f) {
   cdcl solver;
-  if (decide == "fixed") solver.decide = &cdcl::decide_fixed;
-  else if (decide == "ask") solver.decide = &cdcl::decide_ask;
+  if (decide == "fixed") solver.decide_plugin = &cdcl::decide_fixed;
+  else if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;
+  else if (decide == "reverse") solver.decide_plugin = &cdcl::decide_reverse;
   else {
     cerr << "Invalid decision procedure" << endl;
     exit(1);

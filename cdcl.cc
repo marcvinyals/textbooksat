@@ -3,6 +3,7 @@
 #include <vector>
 #include <set>
 #include <deque>
+#include <queue>
 #include <list>
 #include <algorithm>
 
@@ -131,11 +132,15 @@ class cdcl {
   void solve(const cnf& f);
 
   function<literal(cdcl&)> decide_plugin;
+  function<clause(cdcl&, const clause&, const vector<literal>::reverse_iterator&)> learn_plugin;
   static const bool backjump = true;
 
   literal decide_fixed();
   literal decide_ask();
   literal decide_reverse();
+
+  clause learn_fuip(const clause& conflict, const vector<literal>::reverse_iterator& first_decision);
+  clause learn_dfs(const clause& conflict, const vector<literal>::reverse_iterator& first_decision);
 
 private:
 
@@ -144,21 +149,28 @@ private:
   void decide();
   
   void unassign(literal l);
+  vector<branch> build_branching_seq() const;
   
   bool solved; // Done
   const clause* conflict; // Conflict
 
   list<clause> learnt_clauses; // learnt clause db
   vector<restricted_clause> working_clauses; // clauses restricted to the current assignment
-  vector<literal> decision_seq;
 
-  vector<branch> branching_seq;
+  vector<literal> branching_seq;
+  vector<list<const clause*>> reasons;
   propagation_queue_ propagation_queue;
   vector<int> assignment;
   
   set<int> decision_order;
   vector<bool> decision_polarity;
 };
+
+vector<branch> cdcl::build_branching_seq() const {
+  vector<branch> ret;
+  for (auto b:branching_seq) ret.push_back({b,(const clause*)reasons[b.l].size()});
+  return ret;
+}
 
 void cdcl::solve(const cnf& f) {
   cerr << f << endl;
@@ -168,6 +180,7 @@ void cdcl::solve(const cnf& f) {
   decision_polarity.assign(f.variables,false);
 
   assignment.assign(f.variables,0);
+  reasons.resize(f.variables*2);
   for (auto& c : f.clauses) {
     working_clauses.push_back(c);
   }
@@ -201,29 +214,31 @@ void cdcl::unit_propagate() {
     cerr << " because of " << *propagation_queue.front().reason;
   cerr << endl;
   auto& al = assignment[l.variable()];
+  if (propagation_queue.front().reason)
+    reasons[l.l].push_back(propagation_queue.front().reason);
+  propagation_queue.pop();
   if (al) {
     // A literal may be propagated more than once for different
-    // reasons. We just keep the first.
+    // reasons. We keep a list of them.
     assert(l.polarity()==(al==1));
-    propagation_queue.pop();
     return;
   }
   al = (l.polarity()?1:-1);
  
   decision_order.erase(l.variable());
-  branching_seq.push_back(propagation_queue.front());
-  propagation_queue.pop();
-  cerr << "Branching " << branching_seq << endl;
+  branching_seq.push_back(l);
+  cerr << "Branching " << build_branching_seq() << endl;
 
   // Restrict unit clauses and check for conflicts and new unit
   // propagations.
   for (auto& c : working_clauses) {
+    bool wasunit = c.unit();
     c.restrict(l);
     if (c.contradiction()) {
       cerr << "Conflict" << endl;
       conflict=c.source;
     }
-    if (c.unit()) {
+    if (c.unit() and not wasunit) {
       cerr << c << " is now unit" << endl;
       propagation_queue.propagate(c);
     }
@@ -244,33 +259,62 @@ void cdcl::unassign(literal l) {
   decision_order.insert(l.variable());
 }
 
+clause cdcl::learn_fuip(const clause& conflict, const vector<literal>::reverse_iterator& first_decision) {
+  vector<clause> q;
+  q.push_back(conflict);
+  for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
+    literal l = *it;
+    vector<clause> qq;
+    for (auto& c:q) {
+      for (auto d:reasons[l.l]) {
+        qq.push_back(resolve(c,*d,l.variable()));
+        cerr << "Resolved " << c << " with " << *d << " and got " << qq.back() << endl;
+        restricted_clause r(qq.back());
+        r.restrict(assignment);
+        if ((solved and r.contradiction()) or (not solved and r.unit())) return qq.back();
+      }
+    }
+    swap(q,qq);
+  }
+  assert(false);
+}
+
+// Find the learnt clause by resolving the conflict clause with
+// reasons for propagation until the result becomes asserting (unit
+// after restriction). The result is an input regular resolution
+// proof.
+clause cdcl::learn_dfs(const clause& conflict, const vector<literal>::reverse_iterator& first_decision) {
+  clause c(conflict);
+  cerr << "Conflict clause " << c << endl;
+  cerr << "Assignment " << assignment << endl;
+  for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
+    literal l = *it;
+    restricted_clause d(c);
+    d.restrict(assignment);
+    if (not solved and d.unit()) break;
+    c = resolve(c, *reasons[l.l].front(), l.variable());
+    cerr << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
+  }
+  return c;
+}
+  
 void cdcl::learn() {
+  cerr << "Branching " << build_branching_seq() << endl;
   // Backtrack to first decision level.
   auto first_decision = branching_seq.rbegin();
   for (;first_decision != branching_seq.rend(); ++first_decision) {
-    unassign(first_decision->to);
-    if (not first_decision->reason) break;
+    unassign(*first_decision);
+    if (reasons[first_decision->l].empty()) break;
   }
+  cerr << "Branching " << build_branching_seq() << endl;
 
   // If there is no decision on the stack, the formula is unsat.
   if (first_decision == branching_seq.rend()) solved = true;
 
-  // Find the learnt clause by resolving the conflict clause with
-  // reasons for propagation until the result becomes asserting (unit
-  // after restriction). The result is an input regular resolution
-  // proof.
-  clause c(*conflict);
-  cerr << "Conflict clause " << c << endl;
-  cerr << "Assignment " << assignment << endl;
-  for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
-    auto& branch = *it;
-    restricted_clause d(c);
-    d.restrict(assignment);
-    if (not solved and d.unit()) break;
-    c = resolve(c, *branch.reason, branch.to.variable());
-    cerr << "Resolved with " << *branch.reason << " and got " << c << endl;
-  }
-
+  clause learnt_clause = learn_plugin(*this, *conflict, first_decision);
+  cerr << "Learning clause " << learnt_clause << endl;
+  learnt_clauses.push_back(learnt_clause);
+  
   if (solved) {
     cerr << "I learned the following clauses:" << endl << learnt_clauses << endl;
     return;
@@ -281,27 +325,28 @@ void cdcl::learn() {
   for (++backtrack_limit; backtrack_limit != branching_seq.rend(); ++backtrack_limit) {
     if (not backjump) break;
     bool found = false;
-    for (auto l:c.literals) if (l.opposite(backtrack_limit->to)) found = true;
+    for (auto l:learnt_clause.literals) if (l.opposite(*backtrack_limit)) found = true;
     if (found) break;
   }
 
   // But always backtrack to a decision
-  while(backtrack_limit.base()->reason) --backtrack_limit;
+  while(not reasons[backtrack_limit.base()->l].empty()) --backtrack_limit;
 
   // Complete backtracking
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
-    unassign(it->to);
+    unassign(*it);
+  }
+  for (auto it=backtrack_limit.base(); it!=branching_seq.end(); ++it) {
+    reasons[it->l].clear();
   }
   branching_seq.erase(backtrack_limit.base(),branching_seq.end());
   
   // Add the learnt clause to working clauses and immediately start
   // propagating
-  cerr << "Learning clause " << c << endl;
-  learnt_clauses.push_back(c);
   working_clauses.push_back(learnt_clauses.back());
   working_clauses.back().restrict(assignment);
   assert(working_clauses.back().unit());
-  cerr << "Branching " << branching_seq << endl;
+  cerr << "Branching " << build_branching_seq() << endl;
   propagation_queue.clear();
   propagation_queue.propagate(working_clauses.back());
   conflict = NULL;
@@ -314,7 +359,6 @@ void cdcl::decide() {
     return;
   }
   literal decision = decide_plugin(*this);
-  decision_seq.push_back(decision);
   propagation_queue.decide(decision);
 }
 
@@ -333,7 +377,7 @@ literal cdcl::decide_reverse() {
 
 literal cdcl::decide_ask() {
   cout << "Good day oracle, would you mind giving me some advice?" << endl;
-  cout << "This is the branching sequence so far: " << branching_seq << endl;
+  cout << "This is the branching sequence so far: " << build_branching_seq() << endl;
   cout << "I learned the following clauses:" << endl << learnt_clauses << endl;
   cout << "Therefore these are the restricted clauses I have in mind:" << endl << working_clauses << endl;
   int dimacs_decision = 0;
@@ -352,6 +396,12 @@ void cdcl_solver::solve(const cnf& f) {
   else if (decide == "reverse") solver.decide_plugin = &cdcl::decide_reverse;
   else {
     cerr << "Invalid decision procedure" << endl;
+    exit(1);
+  }
+  if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
+  else if (learn == "dfs") solver.learn_plugin = &cdcl::learn_dfs;
+  else {
+    cerr << "Invalid learning scheme" << endl;
     exit(1);
   }
   solver.solve(f);

@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
   }
   cdcl_solver solver;
   if (argc>2) solver.decide = argv[2];
+  if (argc>3) solver.learn = argv[3];
   cerr << "Start solving" << endl;
   solver.solve(f);
 }

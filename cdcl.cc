@@ -97,6 +97,11 @@ ostream& operator << (ostream& o, const list<clause>& v) {
   for (auto& i:v) o << "   " << i << endl;
   return o;
 }
+ostream& operator << (ostream&o , const vector<int>& a) {
+  char what[] = "-?+";
+  for (int i=0;i<a.size();++i) o << what[a[i]+1] << i+1 << " ";
+  return o;
+}
 
 struct propagation_queue_ {
   deque<branch> q;
@@ -134,7 +139,7 @@ private:
   void unit_propagate();
   void learn();
   
-  bool assertive(const clause& c);
+  void unassign(literal l);
   
   bool solved; // Done
   const clause* conflict; // Conflict
@@ -187,7 +192,10 @@ void cdcl::solve(const cnf& f) {
 
 void cdcl::unit_propagate() {
   literal l = propagation_queue.front().to;
-  cerr << "Unit propagating " << l << endl;
+  cerr << "Unit propagating " << l;
+  if (propagation_queue.front().reason)
+    cerr << " because of " << *propagation_queue.front().reason;
+  cerr << endl;
   auto& al = assignment[l.variable()];
   if (al) {
     // A literal may be propagated more than once for different
@@ -225,21 +233,23 @@ clause resolve(const clause& c, const clause& d, int x) {
   return clause({vector<literal>(ret.begin(), ret.end())});
 }
 
+void cdcl::unassign(literal l) {
+  cerr << "Backtracking " << l << endl;
+  for (auto& c : working_clauses) c.loosen(l);
+  assignment[l.variable()] = 0;
+  decision_order.insert(l.variable());
+}
+
 void cdcl::learn() {
   // Backtrack to first decision level.
   auto first_decision = branching_seq.rbegin();
-  for (;first_decision != branching_seq.rend() and first_decision->reason; ++first_decision) {
-    auto& branch = *first_decision;
-    for (auto& c : working_clauses) c.loosen(branch.to);
-    assignment[branch.to.variable()] = 0;
-    decision_order.insert(branch.to.variable());
+  for (;first_decision != branching_seq.rend(); ++first_decision) {
+    unassign(first_decision->to);
+    if (not first_decision->reason) break;
   }
 
   // If there is no decision on the stack, the formula is unsat.
-  if (first_decision == branching_seq.rend()) {
-    solved = true;
-    return;
-  }
+  if (first_decision == branching_seq.rend()) solved = true;
 
   // Find the learnt clause by resolving the conflict clause with
   // reasons for propagation until the result becomes asserting (unit
@@ -247,15 +257,21 @@ void cdcl::learn() {
   // proof.
   clause c(*conflict);
   cerr << "Conflict clause " << c << endl;
+  cerr << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     auto& branch = *it;
     restricted_clause d(c);
     d.restrict(assignment);
-    if (d.unit()) break;
+    if (not solved and d.unit()) break;
     c = resolve(c, *branch.reason, branch.to.variable());
     cerr << "Resolved with " << *branch.reason << " and got " << c << endl;
   }
 
+  if (solved) {
+    cerr << "I learned the following clauses:" << endl << learnt_clauses << endl;
+    return;
+  }
+  
   // Complete backtrack to first decision level. We may want to
   // backtrack more as long as the clause is unit, but we do not do
   // this.

@@ -12,8 +12,10 @@ void parse_header(istream& in, int& nvars, int& nclauses) {
   char p;
   string t;
   ss >> p >> t >> nvars >> nclauses;
-  assert(p=='p');
-  assert(t=="cnf");
+  if (p!='p' or t!="cnf") {
+    cerr << "Not a dimacs file" << endl;
+    exit(1);
+  }
 }
 
 cnf parse_dimacs(istream& in) {
@@ -28,7 +30,10 @@ cnf parse_dimacs(istream& in) {
     while(ss >> x and x) {
       c.literals.push_back(from_dimacs(x));
     }
-    assert(x==0);
+    if (x!=0) {
+      cerr << "Not a zero-terminated line" << endl;
+      exit(1);
+    }
     f.clauses.push_back(c);
   }
   return f;

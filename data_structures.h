@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 struct literal {
   int l;
@@ -10,7 +11,7 @@ struct literal {
   bool operator == (const literal& a) const { return l==a.l; }
   bool opposite(const literal& a) const { return (l^a.l) == 1; }
   literal operator ~ () const { return l^1; }
-  int variable() const { return l >> 1; }
+  uint variable() const { return l >> 1; }
   bool polarity() const { return l&1; }
   bool operator < (const literal& a) const { return l < a.l; }
 protected:
@@ -41,4 +42,5 @@ clause resolve(const clause& c, const clause& d, int x);
 struct cnf {
   std::vector<clause> clauses;
   int variables;
+  std::vector<std::string> variable_names;
 };

@@ -9,12 +9,38 @@
 #include <list>
 #include <algorithm>
 
+#include <sstream>
 #include <cassert>
 #include <iostream>
 using namespace std;
 
+struct pretty_ {
+  vector<string> variable_names;
+  ostream* o;
+  pretty_() {}
+  pretty_(const cnf& f) : variable_names(f.variable_names) {
+    if (variable_names.empty()) {
+      for (int i=0; i<f.variables; ++i) {
+        stringstream ss;
+        ss << "cthulu_" << i+1;
+        variable_names.push_back(ss.str());
+      }
+    }
+  }
+  ostream& operator << (uint x) {
+    assert(x<variable_names.size());
+    return (*o) << variable_names[x];
+  }
+  ostream& operator << (literal l) {
+    assert(l.variable()<variable_names.size());
+    return (*o) << (l.polarity()?' ':'~') << variable_names[l.variable()];
+  }
+};
+pretty_& operator << (ostream& o, pretty_& p) { p.o=&o; return p; }
+pretty_ pretty;
+
 ostream& operator << (ostream& o, literal l) {
-  return o << (l.polarity()?' ':'~') << l.variable()+1;
+  return o << pretty << l;
 }
 ostream& operator << (ostream& o, const clause& c) {
   for (auto l:c.literals) o << l;
@@ -27,7 +53,7 @@ ostream& operator << (ostream& o, const cnf& f) {
 
 ostream& operator << (ostream&o , const vector<int>& a) {
   char what[] = "-?+";
-  for (uint i=0;i<a.size();++i) o << what[a[i]+1] << i+1 << " ";
+  for (uint i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
   return o;
 }
 
@@ -50,7 +76,7 @@ struct branch {
   const proof_clause* reason;
 };
 ostream& operator << (ostream& o, const branch& b) {
-  return o << b.to.variable()+1 << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
+  return o << pretty << b.to.variable() << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
 
 struct restricted_clause {
@@ -147,7 +173,7 @@ class cdcl {
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
 
   static const bool config_backjump = false;
-  static const bool config_minimize = true;
+  static const bool config_minimize = false;
 
   literal decide_fixed();
   literal decide_ask();
@@ -183,6 +209,8 @@ private:
   
   set<int> decision_order;
   vector<bool> decision_polarity;
+
+  pretty_ pretty;
 };
 
 vector<branch> cdcl::build_branching_seq() const {
@@ -441,6 +469,7 @@ literal cdcl::decide_ask() {
 }
 
 void cdcl_solver::solve(const cnf& f) {
+  pretty = pretty_(f);
   cdcl solver;
   if (decide == "fixed") solver.decide_plugin = &cdcl::decide_fixed;
   else if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;

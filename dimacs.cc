@@ -5,9 +5,20 @@
 #include <iostream>
 using namespace std;
 
-void parse_header(istream& in, int& nvars, int& nclauses) {
+void parse_header(istream& in, int& nvars, int& nclauses, vector<string>& variable_names) {
   string s;
-  while(getline(in, s) and (s.empty() or s[0] == 'c'));
+  while(getline(in, s)) {
+    if (s.empty()) continue;
+    if (s[0]=='c') {
+      stringstream ss(s);
+      char c;
+      int varnum;
+      string label,varname;
+      ss >> c >> label >> varnum >> varname;
+      if (label=="varname") variable_names.push_back(varname);
+    }
+    else break;
+  }
   istringstream ss(s);
   char p;
   string t;
@@ -21,7 +32,7 @@ void parse_header(istream& in, int& nvars, int& nclauses) {
 cnf parse_dimacs(istream& in) {
   cnf f;
   int nclauses;
-  parse_header(in, f.variables, nclauses);
+  parse_header(in, f.variables, nclauses, f.variable_names);
   string s;
   while(getline(in, s)) {
     istringstream ss(s);

@@ -79,6 +79,13 @@ ostream& operator << (ostream& o, const branch& b) {
   return o << pretty << b.to.variable() << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
 
+struct literal_or_restart {
+  literal l;
+  bool restart;
+  literal_or_restart(literal l_) : l(l_), restart(false) {}
+  literal_or_restart(bool restart_) : l(0,0), restart(restart_) {}
+};
+
 struct restricted_clause {
   vector<literal> literals;
   const proof_clause* source;
@@ -169,15 +176,15 @@ class cdcl {
  public:
   void solve(const cnf& f);
 
-  function<literal(cdcl&)> decide_plugin;
+  function<literal_or_restart(cdcl&)> decide_plugin;
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
 
   static const bool config_backjump = false;
   static const bool config_minimize = true;
 
-  literal decide_fixed();
-  literal decide_ask();
-  literal decide_reverse();
+  literal_or_restart decide_fixed();
+  literal_or_restart decide_ask();
+  literal_or_restart decide_reverse();
 
   proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
@@ -187,6 +194,7 @@ private:
   void unit_propagate();
   void learn();
   void decide();
+  void restart();
   
   void unassign(literal l);
   vector<branch> build_branching_seq() const;
@@ -221,19 +229,15 @@ void cdcl::solve(const cnf& f) {
   cerr << f << endl;
   cerr << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
 
+  for (const auto& c : f.clauses) formula.push_back(c);
+  
   for (int i=0; i<f.variables; ++i) decision_order.insert(i);
   decision_polarity.assign(f.variables,false);
 
-  assignment.assign(f.variables,0);
+  assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
   formula.reserve(f.clauses.size());
-  for (auto& c : f.clauses) {
-    formula.push_back(c);
-    working_clauses.push_back(formula.back());
-  }
-  for (auto& c : working_clauses) {
-    if (c.unit()) propagation_queue.propagate(c);
-  }
+  restart();
 
   // Main loop
   solved = false;
@@ -435,24 +439,25 @@ void cdcl::decide() {
     solved=true;
     return;
   }
-  literal decision = decide_plugin(*this);
-  propagation_queue.decide(decision);
+  literal_or_restart decision = decide_plugin(*this);
+  if (decision.restart) restart();
+  else propagation_queue.decide(decision.l);
 }
 
-literal cdcl::decide_fixed() {
+literal_or_restart cdcl::decide_fixed() {
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
-literal cdcl::decide_reverse() {
+literal_or_restart cdcl::decide_reverse() {
   auto back = --decision_order.end();
   int decision_variable = *back;
   decision_order.erase(back);
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
-literal cdcl::decide_ask() {
+literal_or_restart cdcl::decide_ask() {
   cout << "Good day oracle, would you mind giving me some advice?" << endl;
   cout << "This is the branching sequence so far: " << build_branching_seq() << endl;
   cout << "I learned the following clauses:" << endl << learnt_clauses << endl;
@@ -463,9 +468,13 @@ literal cdcl::decide_ask() {
       cerr << "No more input?" << endl;
       exit(1);
     }
-    cout << "Please input a literal either in dimacs format or as 'varname {0,1}'." << endl;
+    cout << "Please input either of:" << endl;
+    cout << " * a literal in dimacs format" << endl;
+    cout << " * an assignment <varname> {0,1}" << endl;
+    cout << " * the keyword 'restart'" << endl;
     string in;
     cin >> in;
+    if (in == "restart") return true;
     stringstream ss(in);
     ss >> dimacs_decision;
     if (dimacs_decision) break;
@@ -479,6 +488,24 @@ literal cdcl::decide_ask() {
   }
   return from_dimacs(dimacs_decision);
 }
+
+void cdcl::restart() {
+  cerr << "Restarting" << endl;
+  for (auto l:branching_seq) decision_order.insert(l.variable());
+  fill(assignment.begin(), assignment.end(), 0);
+  fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
+  branching_seq.clear();
+  propagation_queue.clear();
+  working_clauses.clear();
+
+  for (auto& c : formula) working_clauses.push_back(c);
+  for (auto& c : learnt_clauses) working_clauses.push_back(c);
+  for (auto& c : working_clauses) {
+    if (c.unit()) propagation_queue.propagate(c);
+  }
+}
+
+
 
 void cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);

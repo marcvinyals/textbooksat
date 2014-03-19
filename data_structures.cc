@@ -9,7 +9,7 @@ bool clause::subsumes(const clause& c) const {
   return true;
 }
 
-clause resolve(const clause& c, const clause& d, int x) {
+clause resolve(const clause& c, const clause& d, uint x) {
   unordered_set<literal> ret;
   for (auto l:c.literals) if(l.variable()!=x) ret.insert(l);
   for (auto l:d.literals) if(l.variable()!=x) ret.insert(l);

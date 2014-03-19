@@ -22,7 +22,7 @@ struct pretty_ {
     if (variable_names.empty()) {
       for (int i=0; i<f.variables; ++i) {
         stringstream ss;
-        ss << "cthulu_" << i+1;
+        ss << i+1;
         variable_names.push_back(ss.str());
       }
     }
@@ -37,7 +37,7 @@ struct pretty_ {
   }
 };
 pretty_& operator << (ostream& o, pretty_& p) { p.o=&o; return p; }
-pretty_ pretty;
+static pretty_ pretty;
 
 ostream& operator << (ostream& o, literal l) {
   return o << pretty << l;
@@ -173,7 +173,7 @@ class cdcl {
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
 
   static const bool config_backjump = false;
-  static const bool config_minimize = false;
+  static const bool config_minimize = true;
 
   literal decide_fixed();
   literal decide_ask();
@@ -209,8 +209,6 @@ private:
   
   set<int> decision_order;
   vector<bool> decision_polarity;
-
-  pretty_ pretty;
 };
 
 vector<branch> cdcl::build_branching_seq() const {
@@ -461,9 +459,23 @@ literal cdcl::decide_ask() {
   cout << "Therefore these are the restricted clauses I have in mind:" << endl << working_clauses << endl;
   int dimacs_decision = 0;
   while (not dimacs_decision) {
-    if (not cin) exit(1);
-    cout << "Please input a literal in dimacs format." << endl;
-    cin >> dimacs_decision;
+    if (not cin) {
+      cerr << "No more input?" << endl;
+      exit(1);
+    }
+    cout << "Please input a literal either in dimacs format or as 'varname {0,1}'." << endl;
+    string in;
+    cin >> in;
+    stringstream ss(in);
+    ss >> dimacs_decision;
+    if (dimacs_decision) break;
+    int polarity;
+    cin >> polarity;
+    polarity = polarity*2-1;
+    if (abs(polarity)>1) continue;
+    auto it = find(pretty.variable_names.begin(), pretty.variable_names.end(), in);
+    if (it == pretty.variable_names.end()) continue;
+    dimacs_decision = polarity*((it-pretty.variable_names.begin())+1);
   }
   return from_dimacs(dimacs_decision);
 }

@@ -1,5 +1,7 @@
 #include "cdcl.h"
 
+#include "color.h"
+
 #include <vector>
 #include <set>
 #include <deque>
@@ -27,13 +29,6 @@ ostream& operator << (ostream&o , const vector<int>& a) {
   char what[] = "-?+";
   for (uint i=0;i<a.size();++i) o << what[a[i]+1] << i+1 << " ";
   return o;
-}
-
-clause resolve(const clause& c, const clause& d, int x) {
-  set<literal> ret;
-  for (auto l:c.literals) if(l.variable()!=x) ret.insert(l);
-  for (auto l:d.literals) if(l.variable()!=x) ret.insert(l);
-  return clause({vector<literal>(ret.begin(), ret.end())});
 }
 
 struct proof_clause {
@@ -150,7 +145,9 @@ class cdcl {
 
   function<literal(cdcl&)> decide_plugin;
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
-  static const bool backjump = true;
+
+  static const bool config_backjump = false;
+  static const bool config_minimize = true;
 
   literal decide_fixed();
   literal decide_ask();
@@ -167,6 +164,10 @@ private:
   
   void unassign(literal l);
   vector<branch> build_branching_seq() const;
+  void backjump(const proof_clause& learnt_clause,
+                const vector<literal>::reverse_iterator& first_decision,
+                vector<literal>::reverse_iterator& backtrack_limit);
+  void minimize(proof_clause& c) const;
   
   bool solved; // Done
   const proof_clause* conflict; // Conflict
@@ -272,6 +273,8 @@ void cdcl::unassign(literal l) {
   decision_order.insert(l.variable());
 }
 
+// This is currently equivalent to 1UIP. It can be hacked to prompt
+// the user for a choice.
 proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first_decision) {
   vector<clause> q;
   q.push_back(conflict->c);
@@ -311,7 +314,50 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
   }
   return c;
 }
-  
+
+// Clause minimization. Try eliminating literals from the clause by
+// resolving them with a reason.
+void cdcl::minimize(proof_clause& c) const {
+  cerr << Color::Modifier(Color::FG_RED) << "Minimize:" << Color::Modifier(Color::FG_DEFAULT) << endl;
+  restricted_clause d(c.c);
+  d.restrict(assignment);
+  if (d.contradiction()) return;
+  literal asserting = d.literals.front();
+  for (auto l:c.c.literals) {
+    // We do not minimize asserting literals. We could be a bit bolder
+    // here, but then we would require backjumps.
+    if (l==asserting) continue;
+    for (auto d:reasons[(~l).l]) {
+      proof_clause cc(c);
+      cc.resolve(*d,l.variable());
+      cerr << "        Minimize? " << c.c << " vs " << *d << endl;
+      if (cc.c.subsumes(c.c)) {
+        cerr << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
+        c=cc;
+      }
+    }
+  }
+}
+
+void cdcl::backjump(const proof_clause& learnt_clause,
+                    const vector<literal>::reverse_iterator& first_decision,
+                    vector<literal>::reverse_iterator& backtrack_limit) {
+  // We want to backtrack while the clause is unit
+  for (; backtrack_limit != branching_seq.rend(); ++backtrack_limit) {
+    bool found = false;
+    for (auto l:learnt_clause.c.literals) if (l.opposite(*backtrack_limit)) found = true;
+    if (found) break;
+  }
+
+  // But always backtrack to a decision
+  while(not reasons[backtrack_limit.base()->l].empty()) --backtrack_limit;
+
+  // Actually backtrack
+  for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
+    unassign(*it);
+  }
+}
+
 void cdcl::learn() {
   cerr << "Branching " << build_branching_seq() << endl;
   // Backtrack to first decision level.
@@ -326,6 +372,9 @@ void cdcl::learn() {
   if (first_decision == branching_seq.rend()) solved = true;
 
   proof_clause learnt_clause = learn_plugin(*this, first_decision);
+
+  if (config_minimize) minimize(learnt_clause);
+  
   cerr << "Learning clause " << learnt_clause << endl;
   learnt_clauses.push_back(learnt_clause);
   
@@ -334,22 +383,10 @@ void cdcl::learn() {
     return;
   }
 
-  // Now keep backtracking while the clause is unit
-  auto backtrack_limit = first_decision;
-  for (++backtrack_limit; backtrack_limit != branching_seq.rend(); ++backtrack_limit) {
-    if (not backjump) break;
-    bool found = false;
-    for (auto l:learnt_clause.c.literals) if (l.opposite(*backtrack_limit)) found = true;
-    if (found) break;
-  }
-
-  // But always backtrack to a decision
-  while(not reasons[backtrack_limit.base()->l].empty()) --backtrack_limit;
-
   // Complete backtracking
-  for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
-    unassign(*it);
-  }
+  auto backtrack_limit = first_decision;
+  backtrack_limit++;
+  if (config_backjump) backjump(learnt_clause, first_decision, backtrack_limit);
   for (auto it=backtrack_limit.base(); it!=branching_seq.end(); ++it) {
     reasons[it->l].clear();
   }

@@ -18,6 +18,14 @@ protected:
   literal(int l_) : l(l_) {}
   friend literal from_dimacs(int);
 };
+namespace std {
+  template<>
+    struct hash<literal> {
+    size_t operator () (literal key) const {
+      return hash<int>()(key.l);
+    }
+  };
+};
 
 inline literal from_dimacs(int x) {
   if (x>0) return literal(x-1,true);
@@ -26,7 +34,9 @@ inline literal from_dimacs(int x) {
 
 struct clause {
   std::vector<literal> literals;
+  bool subsumes(const clause& c) const;
 };
+clause resolve(const clause& c, const clause& d, int x);
 
 struct cnf {
   std::vector<clause> clauses;

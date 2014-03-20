@@ -1,4 +1,6 @@
 #include "cdcl.h"
+#include "formatting.h"
+#include "analysis.h"
 
 #include "color.h"
 
@@ -15,63 +17,10 @@
 #include <iostream>
 using namespace std;
 
-struct pretty_ {
-  vector<string> variable_names;
-  ostream* o;
-  pretty_() {}
-  pretty_(const cnf& f) : variable_names(f.variable_names) {
-    if (variable_names.empty()) {
-      variable_names.reserve(f.variables);
-      for (int i=0; i<f.variables; ++i) {
-        stringstream ss;
-        ss << i+1;
-        variable_names.push_back(ss.str());
-      }
-    }
-  }
-  ostream& operator << (uint x) {
-    assert(x<variable_names.size());
-    return (*o) << variable_names[x];
-  }
-  ostream& operator << (literal l) {
-    assert(l.variable()<variable_names.size());
-    return (*o) << (l.polarity()?' ':'~') << variable_names[l.variable()];
-  }
-};
-pretty_& operator << (ostream& o, pretty_& p) { p.o=&o; return p; }
-static pretty_ pretty;
-
-ostream& operator << (ostream& o, literal l) {
-  return o << pretty << l;
-}
-ostream& operator << (ostream& o, const clause& c) {
-  for (auto l:c.literals) o << l;
-  return o;
-}
-ostream& operator << (ostream& o, const cnf& f) {
-  for (auto& c:f.clauses) o << c << endl;
-  return o;
-}
-
-ostream& operator << (ostream&o , const vector<int>& a) {
-  char what[] = "-?+";
-  for (uint i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
-  return o;
-}
-
-struct proof_clause {
-  clause c;
-  vector<const proof_clause*> derivation;
-  proof_clause(clause c_) : c(c_) {}
-  void resolve(const proof_clause& d, int x) {
-    c = ::resolve(c, d.c, x);
-    derivation.push_back(&d);
-  }
-};
 ostream& operator << (ostream& o, const list<proof_clause>& v) {
   for (auto& i:v) o << "   " << i.c << endl;
   return o;
-}
+};
 
 struct branch {
   literal to;
@@ -204,8 +153,6 @@ private:
                 vector<literal>::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
 
-  void analize() const;
-  void draw() const;
   vector<branch> build_branching_seq() const;
   
   bool solved; // Done
@@ -254,8 +201,8 @@ void cdcl::solve(const cnf& f) {
         learn();
         if (solved) {
           cerr << "UNSAT" << endl;
-          analize();
-          draw();
+          measure(formula, learnt_clauses);
+          draw(cout, formula, learnt_clauses);
           return;
         }
       }
@@ -510,51 +457,6 @@ void cdcl::restart() {
   for (auto& c : working_clauses) {
     if (c.unit()) propagation_queue.propagate(c);
   }
-}
-
-void cdcl::analize() const {
-  int length=0;
-  unordered_map<const proof_clause*, int> last_used;
-  int t=0;
-  for (auto& c:learnt_clauses) {
-    length+=c.derivation.size();
-    for (auto d:c.derivation) last_used[d]=t;
-    ++t;
-  }
-  for (auto& c:formula) last_used.erase(&c);
-  vector<int> remove_n(t);
-  for (auto& kv:last_used) remove_n[kv.second]++;
-  int space=0;
-  int in_use=0;
-  t=0;
-  for (auto& c:learnt_clauses) {
-    in_use += last_used.count(&c);
-    space = max(space, in_use);
-    in_use -= remove_n[t];
-    ++t;
-  }
-  assert(in_use==0);
-  cerr << "Length " << length << endl;
-  cerr << "Space " << space << endl;
-}
-
-void cdcl::draw() const {
-  cout << "digraph G {" << endl;
-  for (auto& c:learnt_clauses) {
-    vector<string> lemma_names;
-    for (int i=0;i<c.derivation.size()-1;++i) {
-      stringstream ss;
-      ss << "lemma" << uint64_t(&c);
-      if (i<c.derivation.size()-2) ss << "d" << i;
-      if (i) cout << lemma_names.back() << " -> " << ss.str() << endl;
-      lemma_names.push_back(ss.str());
-    }
-    int i=-1;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      cout << "lemma" << uint64_t(*it) << " -> " << lemma_names[max(i,0)] << endl;      
-    }
-  }
-  cout << "}" << endl;
 }
 
 void cdcl_solver::solve(const cnf& f) {

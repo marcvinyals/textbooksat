@@ -44,3 +44,13 @@ struct cnf {
   int variables;
   std::vector<std::string> variable_names;
 };
+
+struct proof_clause {
+  clause c;
+  std::vector<const proof_clause*> derivation;
+  proof_clause(clause c_) : c(c_) {}
+  void resolve(const proof_clause& d, int x) {
+    c = ::resolve(c, d.c, x);
+    derivation.push_back(&d);
+  }
+};

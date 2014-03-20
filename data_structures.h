@@ -38,6 +38,7 @@ struct clause {
   bool subsumes(const clause& c) const;
 };
 clause resolve(const clause& c, const clause& d, uint x);
+clause resolve(const clause& c, const clause& d);
 
 struct cnf {
   std::vector<clause> clauses;

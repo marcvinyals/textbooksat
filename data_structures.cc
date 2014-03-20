@@ -15,3 +15,13 @@ clause resolve(const clause& c, const clause& d, uint x) {
   for (auto l:d.literals) if(l.variable()!=x) ret.insert(l);
   return clause({vector<literal>(ret.begin(), ret.end())});
 }
+
+clause resolve(const clause& c, const clause& d) {
+  unordered_set<literal> ret(c.literals.begin(), c.literals.end());
+  for (auto l:d.literals) {
+    auto it=ret.find(~l);
+    if (it!=ret.end()) ret.erase(it);
+    else ret.insert(l);
+  }
+  return clause({vector<literal>(ret.begin(), ret.end())});  
+}

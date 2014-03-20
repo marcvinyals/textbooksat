@@ -1,5 +1,7 @@
 #include "analysis.h"
+#include "formatting.h"
 
+#include <unordered_set>
 #include <unordered_map>
 #include <cassert>
 #include <sstream>
@@ -37,8 +39,14 @@ void measure(const vector<proof_clause>& formula,
 void draw(std::ostream& out,
           const vector<proof_clause>& formula,
           const list<proof_clause>& proof) {
+  unordered_set<const proof_clause*> axioms;
+  for (auto& c:formula) axioms.insert(&c);
   out << "digraph G {" << endl;
   for (auto& c:proof) {
+    out << "subgraph cluster" << uint64_t(&c) << " {";
+    out << "style=filled;" << endl;
+    out << "color=lightgrey;" << endl;
+    out << "node [style=filled,color=white];" << endl;
     vector<string> lemma_names;
     for (int i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
@@ -48,9 +56,20 @@ void draw(std::ostream& out,
       lemma_names.push_back(ss.str());
     }
     int i=-1;
+    clause d = c.derivation.front()->c;
     for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      out << "lemma" << uint64_t(*it) << " -> " << lemma_names[max(i,0)] << endl;      
+      if (i>=0) {
+        d = resolve(d,(*it)->c);
+        out << lemma_names[i] << " [label=\"" << d << "\"];" << endl;
+      }
+      if (axioms.count(*it)) {
+        out << "axiom" << uint64_t(&c) << "d" << i+1 << " [label=\"" << (*it)->c << "\"];" << endl;
+        out << "axiom" << uint64_t(&c) << "d" << i+1;
+      }
+      else out << "lemma" << uint64_t(*it);
+      out << " -> " << lemma_names[max(i,0)] << endl;
     }
+    out << "}" << endl; // cluster
   }
-  out << "}" << endl;
+  out << "}" << endl; // digraph
 }

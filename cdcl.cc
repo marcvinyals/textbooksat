@@ -144,6 +144,7 @@ private:
 
   void unit_propagate();
   void learn();
+  void forget(int m);
   void decide();
   void restart();
   
@@ -173,7 +174,7 @@ private:
 
 vector<branch> cdcl::build_branching_seq() const {
   vector<branch> ret;
-  for (auto b:branching_seq) ret.push_back({b,(const proof_clause*)reasons[b.l].size()});
+  for (auto b:branching_seq) ret.push_back({b,reasons[b.l].empty()?NULL:reasons[b.l].front()});
   return ret;
 }
 
@@ -426,19 +427,28 @@ literal_or_restart cdcl::decide_ask() {
     cout << " * a literal in dimacs format" << endl;
     cout << " * an assignment <varname> {0,1}" << endl;
     cout << " * the keyword 'restart'" << endl;
+    cout << " * the keyword 'forget' and a clause number" << endl;
     string in;
     cin >> in;
     if (in == "restart") return true;
-    stringstream ss(in);
-    ss >> dimacs_decision;
-    if (dimacs_decision) break;
-    int polarity;
-    cin >> polarity;
-    polarity = polarity*2-1;
-    if (abs(polarity)>1) continue;
+    if (in == "forget") {
+      int m;
+      cin >> m;
+      forget(m+formula.size());
+      return decide_ask();
+    }
     auto it = find(pretty.variable_names.begin(), pretty.variable_names.end(), in);
-    if (it == pretty.variable_names.end()) continue;
-    dimacs_decision = polarity*((it-pretty.variable_names.begin())+1);
+    if (it == pretty.variable_names.end()) {
+      stringstream ss(in);
+      ss >> dimacs_decision;
+    }
+    else {
+      int polarity;
+      cin >> polarity;
+      polarity = polarity*2-1;
+      if (abs(polarity)>1) continue;
+      dimacs_decision = polarity*((it-pretty.variable_names.begin())+1);
+    }
   }
   return from_dimacs(dimacs_decision);
 }
@@ -457,6 +467,21 @@ void cdcl::restart() {
   for (auto& c : working_clauses) {
     if (c.unit()) propagation_queue.propagate(c);
   }
+}
+
+void cdcl::forget(int m) {
+  assert (m>=formula.size());
+  assert (m<working_clauses.size());
+  auto& target = working_clauses[m];
+  cerr << "Forgetting " << target << endl;
+  auto branch_seq = build_branching_seq();
+  for (auto& branch : build_branching_seq()) {
+    if (branch.reason == target.source) {
+      cerr << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
+      return;
+    }
+  }
+  working_clauses.erase(working_clauses.begin()+m);
 }
 
 void cdcl_solver::solve(const cnf& f) {

@@ -15,6 +15,9 @@
 #include <sstream>
 #include <cassert>
 #include <iostream>
+
+#include <readline/readline.h>
+#include <readline/history.h>
 using namespace std;
 
 ostream& operator << (ostream& o, const list<proof_clause>& v) {
@@ -419,21 +422,25 @@ literal_or_restart cdcl::decide_ask() {
   cout << "Therefore these are the restricted clauses I have in mind:" << endl << working_clauses << endl;
   int dimacs_decision = 0;
   while (not dimacs_decision) {
-    if (not cin) {
-      cerr << "No more input?" << endl;
-      exit(1);
-    }
     cout << "Please input either of:" << endl;
     cout << " * a literal in dimacs format" << endl;
     cout << " * an assignment <varname> {0,1}" << endl;
     cout << " * the keyword 'restart'" << endl;
-    cout << " * the keyword 'forget' and a clause number" << endl;
+    cout << " * the keyword 'forget' and a (learnt) clause number" << endl;
+    char* line = readline("");
+    if (not line) {
+      cerr << "No more input?" << endl;
+      exit(1);
+    }
+    add_history(line);
+    stringstream linein(line);
+    free(line);
     string in;
-    cin >> in;
+    linein >> in;
     if (in == "restart") return true;
     if (in == "forget") {
       int m;
-      cin >> m;
+      linein >> m;
       forget(m+formula.size());
       return decide_ask();
     }
@@ -444,7 +451,7 @@ literal_or_restart cdcl::decide_ask() {
     }
     else {
       int polarity;
-      cin >> polarity;
+      linein >> polarity;
       polarity = polarity*2-1;
       if (abs(polarity)>1) continue;
       dimacs_decision = polarity*((it-pretty.variable_names.begin())+1);

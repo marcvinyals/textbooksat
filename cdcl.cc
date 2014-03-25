@@ -15,6 +15,7 @@
 #include <sstream>
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 ostream& operator << (ostream& o, const list<proof_clause>& v) {
@@ -95,7 +96,7 @@ ostream& operator << (ostream& o, const vector<T>& v) {
 }
 template<>
 ostream& operator << (ostream& o, const vector<restricted_clause>& v) {
-  for (auto& i:v) o << "   " << i << endl;
+  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
 
@@ -427,14 +428,22 @@ literal_or_restart cdcl::decide_ask() {
     cout << " * a literal in dimacs format" << endl;
     cout << " * an assignment <varname> {0,1}" << endl;
     cout << " * the keyword 'restart'" << endl;
-    cout << " * the keyword 'forget' and a clause number" << endl;
+    cout << " * the keyword 'forget' and a restricted clause number" << endl;
     string in;
     cin >> in;
     if (in == "restart") return true;
     if (in == "forget") {
       int m;
       cin >> m;
-      forget(m+formula.size());
+      if (m < formula.size()) {
+        cerr << "Refusing to forget an axiom" << endl;
+        continue;
+      }
+      if (m >= working_clauses.size()) {
+        cerr << "I cannot forget something I have not learnt yet" << endl;
+        continue;
+      }
+      forget(m);
       return decide_ask();
     }
     auto it = find(pretty.variable_names.begin(), pretty.variable_names.end(), in);

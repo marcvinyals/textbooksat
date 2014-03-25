@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <list>
 
 struct literal {
   int l;
@@ -54,4 +55,9 @@ struct proof_clause {
     c = ::resolve(c, d.c, x);
     derivation.push_back(&d);
   }
+};
+
+struct proof {
+  const std::vector<proof_clause>& formula;
+  const std::list<proof_clause>& proof;
 };

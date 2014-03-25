@@ -1,5 +1,6 @@
 #include "dimacs.h"
 #include "cdcl.h"
+#include "analysis.h"
 
 #include <iostream>
 #include <fstream>
@@ -7,9 +8,20 @@
 using namespace std;
 
 static argp_option options[] = {
-  {"in", 'i', "INPUT", 0, "Read formula in dimacs format from INPUT"},
-  {"decide", 'd', "DECIDE", 0, "Use the decision procedure DECIDE"},
-  {"learn", 'l', "LEARN", 0, "Use the learning schema LEARN"},
+  {"in", 'i', "FILE", 0,
+   "Read formula in dimacs format from FILE (default: stdin)"},
+  {"decide", 'd', "{1uip,1uip-all}", 0,
+   "Use the specified decision procedure (default: 1uip"},
+  {"learn", 'l', "{fixed,reverse,ask}", 0,
+   "Use the specified learning schema (default: fixed"},
+  {"backjump", 'b', "BOOL", 0,
+   "On a conflict, backtrack deeper than the decision level as long as the "
+   "learnt clause is unit (default: 0)"},
+  {"minimize", 'm', "BOOL", 0,
+   "Try to subsume the learnt clause by resolving it with some other "
+   "clause in the database (default: 0)"},
+  {"proof-dag", 'p', "FILE", 0,
+   "Output the proof dag to FILE (default: null)"},
   { 0 }
 };
 
@@ -17,6 +29,9 @@ struct arguments {
   string in;
   string decide;
   string learn;
+  bool backjump;
+  bool minimize;
+  string dag;
 };
 
 static error_t parse_opt (int key, char *arg, argp_state *state) {
@@ -30,6 +45,15 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 'l':
     arguments->learn = arg;
+    break;
+  case 'b':
+    arguments->backjump = atoi(arg);
+    break;
+  case 'm':
+    arguments->minimize = atoi(arg);
+    break;
+  case 'p':
+    arguments->dag = arg;
     break;
   default:
     return ARGP_ERR_UNKNOWN;
@@ -56,9 +80,19 @@ int main(int argc, char** argv) {
     cerr << "Parsing from stdin" << endl;
     f = parse_dimacs(cin);
   }
+
   cdcl_solver solver;
   solver.decide = arguments.decide;
   solver.learn = arguments.learn;
+  solver.backjump = arguments.backjump;
+  solver.minimize = arguments.minimize;
+
   cerr << "Start solving" << endl;
-  solver.solve(f);
+  proof proof = solver.solve(f);
+
+  if (not arguments.dag.empty()) {
+    ofstream dag(arguments.dag);
+    draw(dag, proof);
+  }
+  measure(proof);
 }

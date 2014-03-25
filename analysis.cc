@@ -9,23 +9,22 @@
 
 using namespace std;
 
-void measure(const vector<proof_clause>& formula,
-             const list<proof_clause>& proof) {
+void measure(const proof& proof) {
   int length=0;
   unordered_map<const proof_clause*, int> last_used;
   int t=0;
-  for (auto& c:proof) {
+  for (auto& c:proof.proof) {
     length+=c.derivation.size();
     for (auto d:c.derivation) last_used[d]=t;
     ++t;
   }
-  for (auto& c:formula) last_used.erase(&c);
+  for (auto& c:proof.formula) last_used.erase(&c);
   vector<int> remove_n(t);
   for (auto& kv:last_used) remove_n[kv.second]++;
   int space=0;
   int in_use=0;
   t=0;
-  for (auto& c:proof) {
+  for (auto& c:proof.proof) {
     in_use += last_used.count(&c);
     space = max(space, in_use);
     in_use -= remove_n[t];
@@ -36,19 +35,17 @@ void measure(const vector<proof_clause>& formula,
   cerr << "Space " << space << endl;
 }
 
-void draw(std::ostream& out,
-          const vector<proof_clause>& formula,
-          const list<proof_clause>& proof) {
+void draw(std::ostream& out, const proof& proof) {
   unordered_set<const proof_clause*> axioms;
-  for (auto& c:formula) axioms.insert(&c);
+  for (auto& c:proof.formula) axioms.insert(&c);
   out << "digraph G {" << endl;
-  for (auto& c:proof) {
+  for (auto& c:proof.proof) {
     out << "subgraph cluster" << uint64_t(&c) << " {";
     out << "style=filled;" << endl;
     out << "color=lightgrey;" << endl;
     out << "node [style=filled,color=white];" << endl;
     vector<string> lemma_names;
-    for (int i=0;i<c.derivation.size()-1;++i) {
+    for (uint i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
       ss << "lemma" << uint64_t(&c);
       if (i<c.derivation.size()-2) ss << "d" << i;

@@ -1,6 +1,5 @@
 #include "cdcl.h"
 #include "formatting.h"
-#include "analysis.h"
 
 #include "color.h"
 
@@ -126,13 +125,13 @@ struct propagation_queue_ {
 
 class cdcl {
  public:
-  void solve(const cnf& f);
+  proof solve(const cnf& f);
 
   function<literal_or_restart(cdcl&)> decide_plugin;
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
 
-  static const bool config_backjump = false;
-  static const bool config_minimize = true;
+  bool config_backjump;
+  bool config_minimize;
 
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
@@ -145,7 +144,7 @@ private:
 
   void unit_propagate();
   void learn();
-  void forget(int m);
+  void forget(uint m);
   void decide();
   void restart();
   
@@ -179,7 +178,7 @@ vector<branch> cdcl::build_branching_seq() const {
   return ret;
 }
 
-void cdcl::solve(const cnf& f) {
+proof cdcl::solve(const cnf& f) {
   cerr << f << endl;
   cerr << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
 
@@ -203,15 +202,14 @@ void cdcl::solve(const cnf& f) {
         learn();
         if (solved) {
           cerr << "UNSAT" << endl;
-          measure(formula, learnt_clauses);
-          draw(cout, formula, learnt_clauses);
-          return;
+          return {formula,learnt_clauses};
         }
       }
     }
     decide();
     if (solved) cout << "SAT" << endl;
   }
+  assert(false);
 }
 
 void cdcl::unit_propagate() {
@@ -433,7 +431,7 @@ literal_or_restart cdcl::decide_ask() {
     cin >> in;
     if (in == "restart") return true;
     if (in == "forget") {
-      int m;
+      uint m;
       cin >> m;
       if (m < formula.size()) {
         cerr << "Refusing to forget an axiom" << endl;
@@ -478,7 +476,7 @@ void cdcl::restart() {
   }
 }
 
-void cdcl::forget(int m) {
+void cdcl::forget(uint m) {
   assert (m>=formula.size());
   assert (m<working_clauses.size());
   auto& target = working_clauses[m];
@@ -493,9 +491,9 @@ void cdcl::forget(int m) {
   working_clauses.erase(working_clauses.begin()+m);
 }
 
-void cdcl_solver::solve(const cnf& f) {
+proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
-  cdcl solver;
+  static cdcl solver;
   if (decide == "fixed") solver.decide_plugin = &cdcl::decide_fixed;
   else if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;
   else if (decide == "reverse") solver.decide_plugin = &cdcl::decide_reverse;
@@ -509,5 +507,7 @@ void cdcl_solver::solve(const cnf& f) {
     cerr << "Invalid learning scheme" << endl;
     exit(1);
   }
-  solver.solve(f);
+  solver.config_backjump = backjump;
+  solver.config_minimize = minimize;
+  return solver.solve(f);
 }

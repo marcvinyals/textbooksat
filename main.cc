@@ -68,6 +68,9 @@ int main(int argc, char** argv) {
   arguments.in = "-";
   arguments.decide = "fixed";
   arguments.learn = "1uip";
+  arguments.backjump = false;
+  arguments.minimize = false;
+  arguments.dag = "";
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   
   cnf f;

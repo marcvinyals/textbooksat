@@ -99,7 +99,7 @@ ostream& operator << (ostream& o, const vector<restricted_clause>& v) {
   return o;
 }
 
-struct propagation_queue_ {
+struct propagation_queue {
   deque<branch> q;
   void propagate(const restricted_clause& c) {
     assert(c.unit());
@@ -155,6 +155,7 @@ private:
   void minimize(proof_clause& c) const;
 
   vector<branch> build_branching_seq() const;
+  bool consistent() const;
   
   bool solved; // Done
   const proof_clause* conflict; // Conflict
@@ -175,7 +176,7 @@ private:
   // before being propagated; we choose the first as the main reason.
   vector<list<const proof_clause*>> reasons;
   // Queue of literals waiting to be unit-propagated.
-  propagation_queue_ propagation_queue;
+  struct propagation_queue propagation_queue;
   // Assignment induced by the branching sequence, indexed by variable
   // number. Possible values are 1 (true), -1 (false) or 0
   // (unassigned).
@@ -192,6 +193,22 @@ vector<branch> cdcl::build_branching_seq() const {
   vector<branch> ret;
   for (auto b:branching_seq) ret.push_back({b,reasons[b.l].empty()?NULL:reasons[b.l].front()});
   return ret;
+}
+
+bool cdcl::consistent() const {
+  for (auto l:branching_seq) {
+    int al = assignment[l.variable()];
+    assert(al and l.polarity()==(al==1));
+  }
+  for (auto branch:propagation_queue.q) {
+    int al = assignment[branch.to.variable()];
+    assert((not al) or branch.to.polarity()==(al==1));
+  }
+  for (auto v:decision_order) {
+    assert(not assignment[v]);
+  }
+  assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
+  return true;
 }
 
 proof cdcl::solve(const cnf& f) {
@@ -212,6 +229,7 @@ proof cdcl::solve(const cnf& f) {
   solved = false;
   while(not solved) {
     conflict = NULL;
+    assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
       if (conflict) {

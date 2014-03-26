@@ -159,16 +159,32 @@ private:
   bool solved; // Done
   const proof_clause* conflict; // Conflict
 
+  // Copy of the formula.
   vector<proof_clause> formula;
-  list<proof_clause> learnt_clauses; // learnt clause db
-  vector<restricted_clause> working_clauses; // clauses restricted to the current assignment
+  // Learnt clauses, in order. We will pointers to proof clauses, so
+  // they should not be erased or reallocated.
+  list<proof_clause> learnt_clauses;
+  // Clauses restricted to the current assignment.
+  vector<restricted_clause> working_clauses;
 
+  // List of unit propagations, in chronological order.
   vector<literal> branching_seq;
+  // Reasons for propagation, indexed by literal number. If a
+  // propagated literal does not have any reason, then it was
+  // decided. It is possible for a literal to have multiple reasons
+  // before being propagated; we choose the first as the main reason.
   vector<list<const proof_clause*>> reasons;
+  // Queue of literals waiting to be unit-propagated.
   propagation_queue_ propagation_queue;
+  // Assignment induced by the branching sequence, indexed by variable
+  // number. Possible values are 1 (true), -1 (false) or 0
+  // (unassigned).
   vector<int> assignment;
-  
+
+  // Queue of variables waiting to be decided.
   set<int> decision_order;
+  // Value a decided variable should be set to, indexed by variable
+  // number.
   vector<bool> decision_polarity;
 };
 

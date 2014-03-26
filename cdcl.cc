@@ -429,6 +429,9 @@ literal_or_restart cdcl::decide_ask() {
     cout << " * the keyword 'forget' and a restricted clause number" << endl;
     string in;
     cin >> in;
+    if (in[0] == '#') {
+      cin.ignore(numeric_limits<streamsize>::max(),'\n');
+      continue; }
     if (in == "restart") return true;
     if (in == "forget") {
       uint m;

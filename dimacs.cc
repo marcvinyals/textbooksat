@@ -1,7 +1,8 @@
 #include "dimacs.h"
+
 #include <sstream>
 #include <cassert>
-
+#include <set>
 #include <iostream>
 using namespace std;
 
@@ -36,16 +37,16 @@ cnf parse_dimacs(istream& in) {
   string s;
   while(getline(in, s)) {
     istringstream ss(s);
-    clause c;
+    set<literal> c;
     int x;
     while(ss >> x and x) {
-      c.literals.push_back(from_dimacs(x));
+      c.insert(from_dimacs(x));
     }
     if (x!=0) {
       cerr << "Not a zero-terminated line" << endl;
       exit(1);
     }
-    f.clauses.push_back(c);
+    f.clauses.push_back(clause({vector<literal>(c.begin(), c.end())}));
   }
   return f;
 }

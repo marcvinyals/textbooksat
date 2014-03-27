@@ -4,6 +4,8 @@
 #include <string>
 #include <list>
 
+#include <boost/functional/hash.hpp>
+
 struct literal {
   int l;
   literal(int variable, bool polarity) : l(variable<<1) {
@@ -28,6 +30,14 @@ namespace std {
     }
   };
 };
+namespace boost {
+  template<>
+    struct hash<literal> {
+    size_t operator () (literal key) const {
+      return hash<int>()(key.l);
+    }
+  };
+};
 
 inline literal from_dimacs(int x) {
   if (x>0) return literal(x-1,true);
@@ -35,11 +45,23 @@ inline literal from_dimacs(int x) {
 }
 
 struct clause {
+  // Sorted vector
   std::vector<literal> literals;
   bool subsumes(const clause& c) const;
+  bool operator == (const clause& c) const { return literals == c.literals; }
+  bool contains(literal l) const;
 };
 clause resolve(const clause& c, const clause& d, uint x);
 clause resolve(const clause& c, const clause& d);
+namespace std {
+  template<>
+    struct hash<clause> {
+    size_t operator () (const clause& key) const {
+      return boost::hash<vector<literal>>()(key.literals);
+    }
+  };
+};
+
 
 struct cnf {
   std::vector<clause> clauses;

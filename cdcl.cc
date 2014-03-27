@@ -294,21 +294,35 @@ void cdcl::unassign(literal l) {
 // This is currently equivalent to 1UIP. It can be hacked to prompt
 // the user for a choice.
 proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first_decision) {
-  vector<clause> q;
+  deque<clause> q;
   q.push_back(conflict->c);
-  for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
-    literal l = *it;
-    vector<clause> qq;
-    for (auto& c:q) {
+  unordered_map<clause,pair<const clause*, const proof_clause*>> parent;
+  parent[conflict->c]={NULL,conflict};
+  while(not q.empty()) {
+    clause c=q.front();q.pop_front();
+    for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
+      literal l = *it;
+      if (not c.contains(~l)) continue;
       for (auto d:reasons[l.l]) {
-        qq.push_back(resolve(c,d->c,l.variable()));
-        cerr << "Resolved " << c << " with " << *d << " and got " << qq.back() << endl;
-        restricted_clause r(qq.back());
+        clause e = resolve(c, d->c, l.variable());
+        if (parent.count(e)) continue;
+        //cerr << "Resolved " << c << " with " << *d << " and got " << q.back() << endl;
+        restricted_clause r(e);
         r.restrict(assignment);
-        if ((solved and r.contradiction()) or (not solved and r.unit())) return qq.back();
+        q.push_back(e);
+        parent[e]={&(parent.find(c)->first), d};
+        if ((solved and r.contradiction()) or (not solved and r.unit())) {
+          proof_clause ret(e);
+          const clause* p = &e;
+          while(p) {
+            ret.derivation.push_back(parent[*p].second);
+            p = parent[*p].first;
+          }
+          reverse(ret.derivation.begin(), ret.derivation.end());
+          return ret;
+        }
       }
     }
-    swap(q,qq);
   }
   assert(false);
 }
@@ -324,6 +338,7 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
   cerr << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = *it;
+    assert (c.c.contains(~l));
     restricted_clause d(c);
     d.restrict(assignment);
     if (not solved and d.unit()) break;
@@ -389,11 +404,15 @@ void cdcl::learn() {
   // If there is no decision on the stack, the formula is unsat.
   if (first_decision == branching_seq.rend()) solved = true;
 
+  assert(first_decision != branching_seq.rbegin());
   proof_clause learnt_clause = learn_plugin(*this, first_decision);
 
   if (config_minimize) minimize(learnt_clause);
   
   cerr << "Learning clause " << learnt_clause << endl;
+  assert(find_if(learnt_clauses.begin(), learnt_clauses.end(),
+                 [learnt_clause] (const proof_clause& i) { return i.c == learnt_clause.c; }
+                 ) == learnt_clauses.end());
   learnt_clauses.push_back(learnt_clause);
   
   if (solved) {
@@ -416,8 +435,14 @@ void cdcl::learn() {
   working_clauses.back().restrict(assignment);
   assert(working_clauses.back().unit());
   cerr << "Branching " << build_branching_seq() << endl;
+  // There may be a more efficient way to do this.
   propagation_queue.clear();
-  propagation_queue.propagate(working_clauses.back());
+  for (auto& c : working_clauses) {
+    if (c.unit() and not assignment[c.literals.front().variable()]) {
+      propagation_queue.propagate(c);
+    }
+  }
+  
   conflict = NULL;
 }
 

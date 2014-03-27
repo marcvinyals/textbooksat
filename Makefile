@@ -1,6 +1,6 @@
 CPPFLAGS = -std=c++0x -Wall -g
-OBJS = cdcl.o dimacs.o data_structures.o formatting.o analysis.o
-HEADERS = cdcl.h dimacs.h data_structures.h formatting.h analysis.h
+OBJS = cdcl.o dimacs.o data_structures.o formatting.o analysis.o log.o
+HEADERS = cdcl.h dimacs.h data_structures.h formatting.h analysis.h log.h
 
 all: sat test
 	./test

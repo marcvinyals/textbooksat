@@ -1,7 +1,4 @@
 #include "cdcl.h"
-#include "formatting.h"
-
-#include "color.h"
 
 #include <vector>
 #include <set>
@@ -10,11 +7,15 @@
 #include <list>
 #include <algorithm>
 #include <unordered_map>
-
 #include <sstream>
 #include <cassert>
 #include <iostream>
 #include <iomanip>
+
+#include "formatting.h"
+#include "color.h"
+#include "log.h"
+
 using namespace std;
 
 ostream& operator << (ostream& o, const list<proof_clause>& v) {
@@ -212,8 +213,8 @@ bool cdcl::consistent() const {
 }
 
 proof cdcl::solve(const cnf& f) {
-  cerr << f << endl;
-  cerr << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
+  LOG(LOG_STATE) << f << endl;
+  LOG(LOG_ACTIONS) << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
 
   for (const auto& c : f.clauses) formula.push_back(c);
   
@@ -235,7 +236,7 @@ proof cdcl::solve(const cnf& f) {
       if (conflict) {
         learn();
         if (solved) {
-          cerr << "UNSAT" << endl;
+          LOG(LOG_ACTIONS) << "UNSAT" << endl;
           return {formula,learnt_clauses};
         }
       }
@@ -248,10 +249,10 @@ proof cdcl::solve(const cnf& f) {
 
 void cdcl::unit_propagate() {
   literal l = propagation_queue.front().to;
-  cerr << "Unit propagating " << l;
+  LOG(1) << "Unit propagating " << l;
   if (propagation_queue.front().reason)
-    cerr << " because of " << *propagation_queue.front().reason;
-  cerr << endl;
+    LOG(1) << " because of " << *propagation_queue.front().reason;
+  LOG(LOG_ACTIONS) << endl;
   auto& al = assignment[l.variable()];
   if (propagation_queue.front().reason)
     reasons[l.l].push_back(propagation_queue.front().reason);
@@ -266,7 +267,7 @@ void cdcl::unit_propagate() {
  
   decision_order.erase(l.variable());
   branching_seq.push_back(l);
-  cerr << "Branching " << build_branching_seq() << endl;
+  LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
 
   // Restrict unit clauses and check for conflicts and new unit
   // propagations.
@@ -274,18 +275,18 @@ void cdcl::unit_propagate() {
     bool wasunit = c.unit();
     c.restrict(l);
     if (c.contradiction()) {
-      cerr << "Conflict" << endl;
+      LOG(LOG_STATE) << "Conflict" << endl;
       conflict=c.source;
     }
     if (c.unit() and not wasunit) {
-      cerr << c << " is now unit" << endl;
+      LOG(LOG_STATE) << c << " is now unit" << endl;
       propagation_queue.propagate(c);
     }
   }
 }
 
 void cdcl::unassign(literal l) {
-  cerr << "Backtracking " << l << endl;
+  LOG(LOG_STATE) << "Backtracking " << l << endl;
   for (auto& c : working_clauses) c.loosen(l);
   assignment[l.variable()] = 0;
   decision_order.insert(l.variable());
@@ -334,8 +335,8 @@ proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first
 proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_decision) {
   proof_clause c(*conflict);
   c.derivation.push_back(conflict);
-  cerr << "Conflict clause " << c << endl;
-  cerr << "Assignment " << assignment << endl;
+  LOG(LOG_STATE) << "Conflict clause " << c << endl;
+  LOG(LOG_STATE) << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = *it;
     assert (c.c.contains(~l));
@@ -343,7 +344,7 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
     d.restrict(assignment);
     if (not solved and d.unit()) break;
     c.resolve(*reasons[l.l].front(), l.variable());
-    cerr << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
+    LOG(LOG_DETAIL) << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
   }
   return c;
 }
@@ -351,7 +352,7 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
 // Clause minimization. Try eliminating literals from the clause by
 // resolving them with a reason.
 void cdcl::minimize(proof_clause& c) const {
-  cerr << Color::Modifier(Color::FG_RED) << "Minimize:" << Color::Modifier(Color::FG_DEFAULT) << endl;
+  LOG(LOG_DETAIL) << Color::Modifier(Color::FG_RED) << "Minimize:" << Color::Modifier(Color::FG_DEFAULT) << endl;
   restricted_clause d(c.c);
   d.restrict(assignment);
   if (d.contradiction()) return;
@@ -363,9 +364,9 @@ void cdcl::minimize(proof_clause& c) const {
     for (auto d:reasons[(~l).l]) {
       proof_clause cc(c);
       cc.resolve(*d,l.variable());
-      cerr << "        Minimize? " << c.c << " vs " << *d << endl;
+      LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
       if (cc.c.subsumes(c.c)) {
-        cerr << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
+        LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
         c=cc;
       }
     }
@@ -392,14 +393,14 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 }
 
 void cdcl::learn() {
-  cerr << "Branching " << build_branching_seq() << endl;
+  LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
   // Backtrack to first decision level.
   auto first_decision = branching_seq.rbegin();
   for (;first_decision != branching_seq.rend(); ++first_decision) {
     unassign(*first_decision);
     if (reasons[first_decision->l].empty()) break;
   }
-  cerr << "Branching " << build_branching_seq() << endl;
+  LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
 
   // If there is no decision on the stack, the formula is unsat.
   if (first_decision == branching_seq.rend()) solved = true;
@@ -409,14 +410,14 @@ void cdcl::learn() {
 
   if (config_minimize) minimize(learnt_clause);
   
-  cerr << "Learning clause " << learnt_clause << endl;
+  LOG(LOG_ACTIONS) << "Learning clause " << learnt_clause << endl;
   assert(find_if(learnt_clauses.begin(), learnt_clauses.end(),
                  [learnt_clause] (const proof_clause& i) { return i.c == learnt_clause.c; }
                  ) == learnt_clauses.end());
   learnt_clauses.push_back(learnt_clause);
   
   if (solved) {
-    cerr << "I learned the following clauses:" << endl << learnt_clauses << endl;
+    LOG(LOG_ACTIONS) << "I learned the following clauses:" << endl << learnt_clauses << endl;
     return;
   }
 
@@ -434,7 +435,7 @@ void cdcl::learn() {
   working_clauses.push_back(learnt_clauses.back());
   working_clauses.back().restrict(assignment);
   assert(working_clauses.back().unit());
-  cerr << "Branching " << build_branching_seq() << endl;
+  LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
   for (auto& c : working_clauses) {
@@ -447,7 +448,7 @@ void cdcl::learn() {
 }
 
 void cdcl::decide() {
-  cerr << "Deciding something" << endl;
+  LOG(LOG_ACTIONS) << "Deciding something" << endl;
   if (decision_order.empty()) {
     solved=true;
     return;
@@ -523,7 +524,7 @@ literal_or_restart cdcl::decide_ask() {
 }
 
 void cdcl::restart() {
-  cerr << "Restarting" << endl;
+  LOG(LOG_ACTIONS) << "Restarting" << endl;
   for (auto l:branching_seq) decision_order.insert(l.variable());
   fill(assignment.begin(), assignment.end(), 0);
   fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
@@ -542,11 +543,11 @@ void cdcl::forget(uint m) {
   assert (m>=formula.size());
   assert (m<working_clauses.size());
   auto& target = working_clauses[m];
-  cerr << "Forgetting " << target << endl;
+  LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
   auto branch_seq = build_branching_seq();
   for (auto& branch : build_branching_seq()) {
     if (branch.reason == target.source) {
-      cerr << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
+      LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
       return;
     }
   }

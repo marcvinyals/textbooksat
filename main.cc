@@ -1,10 +1,12 @@
-#include "dimacs.h"
-#include "cdcl.h"
-#include "analysis.h"
-
 #include <iostream>
 #include <fstream>
 #include <argp.h>
+
+#include "dimacs.h"
+#include "cdcl.h"
+#include "analysis.h"
+#include "log.h"
+
 using namespace std;
 
 static argp_option options[] = {
@@ -22,6 +24,8 @@ static argp_option options[] = {
    "clause in the database (default: 0)"},
   {"proof-dag", 'p', "FILE", 0,
    "Output the proof dag to FILE (default: null)"},
+  {"verbose", 'v', "[0..3]", 0,
+   "Verbosity level"},
   { 0 }
 };
 
@@ -32,6 +36,7 @@ struct arguments {
   bool backjump;
   bool minimize;
   string dag;
+  int verbose;
 };
 
 static error_t parse_opt (int key, char *arg, argp_state *state) {
@@ -55,6 +60,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 'p':
     arguments->dag = arg;
     break;
+  case 'v':
+    arguments->verbose = atoi(arg);
+    break;
   default:
     return ARGP_ERR_UNKNOWN;
   }
@@ -71,16 +79,18 @@ int main(int argc, char** argv) {
   arguments.backjump = false;
   arguments.minimize = false;
   arguments.dag = "";
+  arguments.verbose = LOG_ACTIONS;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
+  max_log_level = log_level(arguments.verbose);
   
   cnf f;
   if (arguments.in != string("-")) {
-    cerr << "Parsing from " << arguments.in << endl;
+    LOG(LOG_ACTIONS) << "Parsing from " << arguments.in << endl;
     ifstream in(arguments.in);
     f = parse_dimacs(in);
   }
   else {
-    cerr << "Parsing from stdin" << endl;
+    LOG(LOG_ACTIONS) << "Parsing from stdin" << endl;
     f = parse_dimacs(cin);
   }
 
@@ -90,7 +100,7 @@ int main(int argc, char** argv) {
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
 
-  cerr << "Start solving" << endl;
+  LOG(LOG_ACTIONS) << "Start solving" << endl;
   proof proof = solver.solve(f);
 
   if (not arguments.dag.empty()) {

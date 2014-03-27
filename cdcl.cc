@@ -43,7 +43,7 @@ struct restricted_clause {
   const proof_clause* source;
   int satisfied;
   restricted_clause(const proof_clause& c) :
-    literals(c.c.literals), source(&c), satisfied(0) {}
+    literals(c.begin(), c.end()), source(&c), satisfied(0) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
   bool contradiction() const { return not satisfied and literals.empty(); }
   
@@ -61,7 +61,7 @@ struct restricted_clause {
   }
 
   void loosen(literal l) {
-    for (auto a : source->c.literals) {
+    for (auto a : source->c) {
       if (a==l) {
         satisfied--;
         break;
@@ -357,7 +357,7 @@ void cdcl::minimize(proof_clause& c) const {
   d.restrict(assignment);
   if (d.contradiction()) return;
   literal asserting = d.literals.front();
-  for (auto l:c.c.literals) {
+  for (auto l:c) {
     // We do not minimize asserting literals. We could be a bit bolder
     // here, but then we would require backjumps.
     if (l==asserting) continue;
@@ -379,7 +379,7 @@ void cdcl::backjump(const proof_clause& learnt_clause,
   // We want to backtrack while the clause is unit
   for (; backtrack_limit != branching_seq.rend(); ++backtrack_limit) {
     bool found = false;
-    for (auto l:learnt_clause.c.literals) if (l.opposite(*backtrack_limit)) found = true;
+    for (auto l:learnt_clause) if (l.opposite(*backtrack_limit)) found = true;
     if (found) break;
   }
 

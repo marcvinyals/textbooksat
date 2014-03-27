@@ -8,7 +8,7 @@ class ClauseTest : public testing::Test {};
   
 TEST_F(ClauseTest, subsumes) {
   clause c;
-  clause d({vector<literal>({from_dimacs(1)})});
+  clause d(vector<literal>({from_dimacs(1)}));
   EXPECT_TRUE(c.subsumes(d));
   EXPECT_FALSE(d.subsumes(c));
 }

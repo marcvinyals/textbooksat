@@ -40,7 +40,7 @@ inline std::ostream& operator << (std::ostream& o, literal l) {
   return o << pretty << l;
 }
 inline std::ostream& operator << (std::ostream& o, const clause& c) {
-  for (auto l:c.literals) o << l;
+  for (auto l:c) o << l;
   return o;
 }
 inline std::ostream& operator << (std::ostream& o, const cnf& f) {

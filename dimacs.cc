@@ -46,7 +46,7 @@ cnf parse_dimacs(istream& in) {
       cerr << "Not a zero-terminated line" << endl;
       exit(1);
     }
-    f.clauses.push_back(clause({vector<literal>(c.begin(), c.end())}));
+    f.clauses.push_back(vector<literal>(c.begin(), c.end()));
   }
   return f;
 }

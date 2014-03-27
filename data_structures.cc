@@ -20,23 +20,23 @@ clause resolve(const clause& c, const clause& d, uint x) {
   // TODO: make linear
   set<literal> ret;
   int found = 0;
-  for (auto l:c.literals) {
+  for (auto l:c) {
     if(l.variable()!=x) ret.insert(l);
     else found += l.polarity()+1;
   }
-  for (auto l:d.literals) {
+  for (auto l:d) {
     if(l.variable()!=x) ret.insert(l);
     else found += l.polarity()+1;
   }
   assert(found==3);
-  return clause({vector<literal>(ret.begin(), ret.end())});
+  return vector<literal>(ret.begin(), ret.end());
 }
 
 clause resolve(const clause& c, const clause& d) {
   // TODO: make linear
-  set<literal> ret(c.literals.begin(), c.literals.end());
+  set<literal> ret(c.begin(), c.end());
   int found = 0;
-  for (auto l:d.literals) {
+  for (auto l:d) {
     auto it=ret.find(~l);
     if (it!=ret.end()) {
       ret.erase(it);
@@ -47,5 +47,5 @@ clause resolve(const clause& c, const clause& d) {
     }
   }
   assert(found==1);
-  return clause({vector<literal>(ret.begin(), ret.end())});  
+  return vector<literal>(ret.begin(), ret.end());
 }

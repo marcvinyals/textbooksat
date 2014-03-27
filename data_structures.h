@@ -47,10 +47,16 @@ inline literal from_dimacs(int x) {
 
 struct clause {
   // Sorted vector
-  std::vector<literal> literals;
+  clause() {}
+  clause(std::vector<literal> literals) : literals(literals) {}
   bool subsumes(const clause& c) const;
   bool operator == (const clause& c) const { return literals == c.literals; }
   bool contains(literal l) const;
+  std::vector<literal>::const_iterator begin() const { return literals.begin(); }
+  std::vector<literal>::const_iterator end() const { return literals.end(); }
+private:
+  std::vector<literal> literals;
+  friend struct std::hash<clause>;
 };
 clause resolve(const clause& c, const clause& d, uint x);
 clause resolve(const clause& c, const clause& d);
@@ -78,6 +84,8 @@ struct proof_clause {
     c = ::resolve(c, d.c, x);
     derivation.push_back(&d);
   }
+  std::vector<literal>::const_iterator begin() const { return c.begin(); }
+  std::vector<literal>::const_iterator end() const { return c.end(); }
 };
 
 struct proof {

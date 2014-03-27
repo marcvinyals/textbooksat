@@ -6,7 +6,7 @@
 #include <iostream>
 using namespace std;
 
-void parse_header(istream& in, int& nvars, int& nclauses, vector<string>& variable_names) {
+void parse_header(istream& in, int& nvars, int& nclauses, map<int,string>& variable_names) {
   string s;
   while(getline(in, s)) {
     if (s.empty()) continue;
@@ -16,7 +16,7 @@ void parse_header(istream& in, int& nvars, int& nclauses, vector<string>& variab
       int varnum;
       string label,varname;
       ss >> c >> label >> varnum >> varname;
-      if (label=="varname") variable_names.push_back(varname);
+      if (label=="varname") variable_names[varnum-1]=varname;
     }
     else break;
   }

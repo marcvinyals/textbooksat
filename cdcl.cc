@@ -149,6 +149,7 @@ private:
   void decide();
   void restart();
   
+  void assign(literal l);
   void unassign(literal l);
   void backjump(const proof_clause& learnt_clause,
                 const vector<literal>::reverse_iterator& first_decision,
@@ -253,6 +254,7 @@ void cdcl::unit_propagate() {
   if (propagation_queue.front().reason)
     LOG(1) << " because of " << *propagation_queue.front().reason;
   LOG(LOG_ACTIONS) << endl;
+
   auto& al = assignment[l.variable()];
   if (propagation_queue.front().reason)
     reasons[l.l].push_back(propagation_queue.front().reason);
@@ -263,11 +265,17 @@ void cdcl::unit_propagate() {
     assert(l.polarity()==(al==1));
     return;
   }
-  al = (l.polarity()?1:-1);
  
-  decision_order.erase(l.variable());
   branching_seq.push_back(l);
   LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
+
+  assign(l);
+}
+
+void cdcl::assign(literal l) {
+  auto& al = assignment[l.variable()];
+  assert(not al);
+  al = (l.polarity()?1:-1);
 
   // Restrict unit clauses and check for conflicts and new unit
   // propagations.
@@ -283,12 +291,17 @@ void cdcl::unit_propagate() {
       propagation_queue.propagate(c);
     }
   }
+  
+  decision_order.erase(l.variable());
 }
 
 void cdcl::unassign(literal l) {
   LOG(LOG_STATE) << "Backtracking " << l << endl;
+  auto& al = assignment[l.variable()];
+  assert(al);
+  al = 0;
+
   for (auto& c : working_clauses) c.loosen(l);
-  assignment[l.variable()] = 0;
   decision_order.insert(l.variable());
 }
 

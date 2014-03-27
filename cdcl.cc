@@ -19,7 +19,7 @@
 using namespace std;
 
 ostream& operator << (ostream& o, const list<proof_clause>& v) {
-  for (auto& i:v) o << "   " << i.c << endl;
+  for (const auto& i:v) o << "   " << i.c << endl;
   return o;
 };
 
@@ -91,7 +91,7 @@ ostream& operator << (ostream& o, const restricted_clause& c) {
 }
 template<typename T>
 ostream& operator << (ostream& o, const vector<T>& v) {
-  for (auto& i:v) o << i;
+  for (const auto& i:v) o << i;
   return o;
 }
 template<>
@@ -439,7 +439,7 @@ void cdcl::learn() {
   LOG(LOG_STATE) << "Branching " << build_branching_seq() << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
-  for (auto& c : working_clauses) {
+  for (const auto& c : working_clauses) {
     if (c.unit() and not assignment[c.literals.front().variable()]) {
       propagation_queue.propagate(c);
     }
@@ -533,9 +533,9 @@ void cdcl::restart() {
   propagation_queue.clear();
   working_clauses.clear();
 
-  for (auto& c : formula) working_clauses.push_back(c);
-  for (auto& c : learnt_clauses) working_clauses.push_back(c);
-  for (auto& c : working_clauses) {
+  for (const auto& c : formula) working_clauses.push_back(c);
+  for (const auto& c : learnt_clauses) working_clauses.push_back(c);
+  for (const auto& c : working_clauses) {
     if (c.unit()) propagation_queue.propagate(c);
   }
 }
@@ -546,7 +546,7 @@ void cdcl::forget(uint m) {
   auto& target = working_clauses[m];
   LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
   auto branch_seq = build_branching_seq();
-  for (auto& branch : build_branching_seq()) {
+  for (const auto& branch : build_branching_seq()) {
     if (branch.reason == target.source) {
       LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
       return;

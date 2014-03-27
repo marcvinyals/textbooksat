@@ -481,8 +481,8 @@ literal_or_restart cdcl::decide_ask() {
       forget(m);
       return decide_ask();
     }
-    auto it = find(pretty.variable_names.begin(), pretty.variable_names.end(), in);
-    if (it == pretty.variable_names.end()) {
+    auto it= pretty.name_variables.find(in);
+    if (it == pretty.name_variables.end()) {
       stringstream ss(in);
       ss >> dimacs_decision;
     }
@@ -491,7 +491,7 @@ literal_or_restart cdcl::decide_ask() {
       cin >> polarity;
       polarity = polarity*2-1;
       if (abs(polarity)>1) continue;
-      dimacs_decision = polarity*((it-pretty.variable_names.begin())+1);
+      dimacs_decision = polarity*( it->second + 1 );
     }
   }
   return from_dimacs(dimacs_decision);

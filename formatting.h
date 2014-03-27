@@ -4,19 +4,24 @@
 #include <string>
 #include <sstream>
 #include <cassert>
+#include <map>
 
 struct pretty_ {
-  std::vector<std::string> variable_names;
+  std::map<int,std::string> variable_names;
+  std::map<std::string,int> name_variables;
+  
   std::ostream* o;
   pretty_() {}
   pretty_(const cnf& f) : variable_names(f.variable_names) {
-    if (variable_names.empty()) {
-      variable_names.reserve(f.variables);
-      for (int i=0; i<f.variables; ++i) {
+    for (int i=0; i<f.variables; ++i) {
+      if (variable_names.count(i)==0) {
         std::stringstream ss;
         ss << i+1;
-        variable_names.push_back(ss.str());
+        variable_names[i]=ss.str();
       }
+    }
+    for(const auto& it: variable_names) {
+      name_variables[it.second]=it.first;
     }
   }
   std::ostream& operator << (uint x) {

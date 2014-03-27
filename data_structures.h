@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <list>
+#include <map>
 
 struct literal {
   int l;
@@ -44,7 +45,7 @@ clause resolve(const clause& c, const clause& d);
 struct cnf {
   std::vector<clause> clauses;
   int variables;
-  std::vector<std::string> variable_names;
+  std::map<int,std::string> variable_names;
 };
 
 struct proof_clause {
@@ -61,3 +62,7 @@ struct proof {
   const std::vector<proof_clause>& formula;
   const std::list<proof_clause>& proof;
 };
+
+
+
+

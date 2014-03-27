@@ -411,7 +411,8 @@ void cdcl::learn() {
   if (config_minimize) minimize(learnt_clause);
   
   LOG(LOG_ACTIONS) << "Learning clause " << learnt_clause << endl;
-  assert(find_if(learnt_clauses.begin(), learnt_clauses.end(),
+  assert(not config_backjump or
+         find_if(learnt_clauses.begin(), learnt_clauses.end(),
                  [learnt_clause] (const proof_clause& i) { return i.c == learnt_clause.c; }
                  ) == learnt_clauses.end());
   learnt_clauses.push_back(learnt_clause);

@@ -18,7 +18,10 @@ static argp_option options[] = {
    "Use the specified learning schema (default: 1uip"},
   {"backjump", 'b', "BOOL", 0,
    "On a conflict, backtrack deeper than the decision level as long as the "
-   "learnt clause is unit (default: 0)"},
+   "learnt clause is unit (default: 1)\nNote that disabling backjumps may "
+   "result in learning the same clause repeatedly if the learnt clause "
+   "does not have any literal in the second-to-last decision "
+   "level. Therefore it is recommended to leave this option alone."},
   {"minimize", 'm', "BOOL", 0,
    "Try to subsume the learnt clause by resolving it with some other "
    "clause in the database (default: 0)"},
@@ -76,7 +79,7 @@ int main(int argc, char** argv) {
   arguments.in = "-";
   arguments.decide = "fixed";
   arguments.learn = "1uip";
-  arguments.backjump = false;
+  arguments.backjump = true;
   arguments.minimize = false;
   arguments.dag = "";
   arguments.verbose = LOG_ACTIONS;
@@ -97,7 +100,7 @@ int main(int argc, char** argv) {
   cdcl_solver solver;
   solver.decide = arguments.decide;
   solver.learn = arguments.learn;
-  solver.backjump = arguments.backjump;
+  solver.backjump = solver.backjump;
   solver.minimize = arguments.minimize;
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;

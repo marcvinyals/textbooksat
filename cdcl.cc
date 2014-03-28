@@ -222,6 +222,7 @@ proof cdcl::solve(const cnf& f) {
   LOG(LOG_STATE) << f << endl;
   LOG(LOG_ACTIONS) << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
 
+  formula.reserve(f.clauses.size());
   for (const auto& c : f.clauses) formula.push_back(c);
   
   for (int i=0; i<f.variables; ++i) decision_order.insert(i);
@@ -229,7 +230,7 @@ proof cdcl::solve(const cnf& f) {
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
-  formula.reserve(f.clauses.size());
+  for (const auto& c : formula) working_clauses.push_back(c);
   restart();
 
   // Main loop

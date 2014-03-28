@@ -33,6 +33,7 @@ void measure(const proof& proof) {
   assert(in_use==0);
   cerr << "Length " << length << endl;
   cerr << "Space " << space << endl;
+  cerr << "Non-trivial length " << proof.proof.size() << endl;
 }
 
 void draw(std::ostream& out, const proof& proof) {

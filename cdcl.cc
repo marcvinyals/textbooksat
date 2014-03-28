@@ -256,9 +256,9 @@ proof cdcl::solve(const cnf& f) {
 
 void cdcl::unit_propagate() {
   literal l = propagation_queue.front().to;
-  LOG(1) << "Unit propagating " << l;
+  LOG(LOG_ACTIONS) << "Unit propagating " << l;
   if (propagation_queue.front().reason)
-    LOG(1) << " because of " << *propagation_queue.front().reason;
+    LOG(LOG_ACTIONS) << " because of " << *propagation_queue.front().reason;
   LOG(LOG_ACTIONS) << endl;
 
   auto& al = assignment[l.variable()];
@@ -427,7 +427,7 @@ void cdcl::learn() {
 
   if (config_minimize) minimize(learnt_clause);
   
-  LOG(LOG_ACTIONS) << "Learning clause " << learnt_clause << endl;
+  LOG(LOG_EFFECTS) << "Learnt: " << learnt_clause << endl;
   assert(not config_backjump or
          find_if(working_clauses.begin(), working_clauses.end(),
                  [learnt_clause] (const restricted_clause& i) {
@@ -436,7 +436,7 @@ void cdcl::learn() {
   learnt_clauses.push_back(learnt_clause);
   
   if (solved) {
-    LOG(LOG_ACTIONS) << "I learned the following clauses:" << endl << learnt_clauses << endl;
+    LOG(LOG_EFFECTS) << "I learned the following clauses:" << endl << learnt_clauses << endl;
     return;
   }
 
@@ -467,14 +467,16 @@ void cdcl::learn() {
 }
 
 void cdcl::decide() {
-  LOG(LOG_ACTIONS) << "Deciding something" << endl;
   if (decision_order.empty()) {
     solved=true;
     return;
   }
   literal_or_restart decision = decide_plugin(*this);
   if (decision.restart) restart();
-  else propagation_queue.decide(decision.l);
+  else {
+    LOG(LOG_DECISIONS) << "Deciding " << decision.l << endl;
+    propagation_queue.decide(decision.l);
+  }
 }
 
 literal_or_restart cdcl::decide_fixed() {

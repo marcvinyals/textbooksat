@@ -84,6 +84,11 @@ struct restricted_clause {
                                return false;
                              }), literals.end());
   }
+
+  void reset() {
+    literals.assign(source->begin(), source->end());
+    satisfied = 0;
+  }
 };
 ostream& operator << (ostream& o, const restricted_clause& c) {
   for (auto l:c.literals) o << l;
@@ -217,6 +222,7 @@ proof cdcl::solve(const cnf& f) {
   LOG(LOG_STATE) << f << endl;
   LOG(LOG_ACTIONS) << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
 
+  formula.reserve(f.clauses.size());
   for (const auto& c : f.clauses) formula.push_back(c);
   
   for (int i=0; i<f.variables; ++i) decision_order.insert(i);
@@ -224,7 +230,7 @@ proof cdcl::solve(const cnf& f) {
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
-  formula.reserve(f.clauses.size());
+  for (const auto& c : formula) working_clauses.push_back(c);
   restart();
 
   // Main loop
@@ -425,9 +431,10 @@ void cdcl::learn() {
   
   LOG(LOG_ACTIONS) << "Learning clause " << learnt_clause << endl;
   assert(not config_backjump or
-         find_if(learnt_clauses.begin(), learnt_clauses.end(),
-                 [learnt_clause] (const proof_clause& i) { return i.c == learnt_clause.c; }
-                 ) == learnt_clauses.end());
+         find_if(working_clauses.begin(), working_clauses.end(),
+                 [learnt_clause] (const restricted_clause& i) {
+                   return i.source->c == learnt_clause.c;
+                 }) == working_clauses.end());
   learnt_clauses.push_back(learnt_clause);
   
   if (solved) {
@@ -544,11 +551,9 @@ void cdcl::restart() {
   fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
   branching_seq.clear();
   propagation_queue.clear();
-  working_clauses.clear();
 
-  for (const auto& c : formula) working_clauses.push_back(c);
-  for (const auto& c : learnt_clauses) working_clauses.push_back(c);
-  for (const auto& c : working_clauses) {
+  for (auto& c : working_clauses) {
+    c.reset();
     if (c.unit()) propagation_queue.propagate(c);
   }
 }

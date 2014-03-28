@@ -8,5 +8,5 @@ struct cdcl_solver {
  public:
   proof solve(const cnf& f);
   std::string decide, learn;
-  bool backjump, minimize;
+  bool backjump, minimize, phase_saving;
 };

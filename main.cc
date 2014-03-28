@@ -25,6 +25,9 @@ static argp_option options[] = {
   {"minimize", 'm', "BOOL", 0,
    "Try to subsume the learnt clause by resolving it with some other "
    "clause in the database (default: 0)"},
+  {"phase-saving", 's', "BOOL", 0,
+   "When deciding a variable, set it to the polarity it was last assigned "
+   "to. (default: 1)"},
   {"proof-dag", 'p', "FILE", 0,
    "Output the proof dag to FILE (default: null)"},
   {"verbose", 'v', "[0..3]", 0,
@@ -38,6 +41,7 @@ struct arguments {
   string learn;
   bool backjump;
   bool minimize;
+  bool phase_saving;
   string dag;
   int verbose;
 };
@@ -60,6 +64,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 'm':
     arguments->minimize = atoi(arg);
     break;
+  case 's':
+    arguments->phase_saving = atoi(arg);
+    break;
   case 'p':
     arguments->dag = arg;
     break;
@@ -81,6 +88,7 @@ int main(int argc, char** argv) {
   arguments.learn = "1uip";
   arguments.backjump = true;
   arguments.minimize = false;
+  arguments.phase_saving = true;
   arguments.dag = "";
   arguments.verbose = LOG_ACTIONS;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);

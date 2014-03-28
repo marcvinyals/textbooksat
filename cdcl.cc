@@ -138,6 +138,7 @@ class cdcl {
 
   bool config_backjump;
   bool config_minimize;
+  bool config_phase_saving;
 
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
@@ -299,6 +300,7 @@ void cdcl::assign(literal l) {
   }
   
   decision_order.erase(l.variable());
+  if (config_phase_saving) decision_polarity[l.variable()] = l.polarity();
 }
 
 void cdcl::unassign(literal l) {
@@ -591,5 +593,6 @@ proof cdcl_solver::solve(const cnf& f) {
   }
   solver.config_backjump = backjump;
   solver.config_minimize = minimize;
+  solver.config_phase_saving = phase_saving;
   return solver.solve(f);
 }

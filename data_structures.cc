@@ -11,6 +11,20 @@ bool clause::subsumes(const clause& c) const {
   return includes(c.literals.begin(), c.literals.end(), literals.begin(), literals.end());
 }
 
+bool clause::subsumes(const clause& c, literal l) const {
+  assert(is_sorted(literals.begin(), literals.end()));
+  assert(is_sorted(c.literals.begin(), c.literals.end()));
+  for (auto it = c.begin(), jt = begin(); jt!=end(); ++it) {
+    if (*jt==l) {
+      ++jt;
+      continue;
+    }
+    if (it == c.end() or *jt < *it) return false;
+    if (not (*it < *jt)) ++jt;
+  }
+  return true;
+}
+
 bool clause::contains(literal l) const {
   assert(is_sorted(literals.begin(), literals.end()));
   return binary_search(literals.begin(), literals.end(), l);

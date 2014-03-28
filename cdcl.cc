@@ -381,12 +381,10 @@ void cdcl::minimize(proof_clause& c) const {
     // here, but then we would require backjumps.
     if (l==asserting) continue;
     for (auto d:reasons[(~l).l]) {
-      proof_clause cc(c);
-      cc.resolve(*d,l.variable());
       LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
-      if (cc.c.subsumes(c.c)) {
+      if (d->c.subsumes(c.c, ~l)) {
+        c.resolve(*d, l.variable());
         LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
-        c=cc;
       }
     }
   }

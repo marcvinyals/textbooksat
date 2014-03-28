@@ -50,6 +50,7 @@ struct clause {
   clause() {}
   clause(std::vector<literal> literals) : literals(literals) {}
   bool subsumes(const clause& c) const;
+  bool subsumes(const clause& c, literal l) const;
   bool operator == (const clause& c) const { return literals == c.literals; }
   bool contains(literal l) const;
   std::vector<literal>::const_iterator begin() const { return literals.begin(); }

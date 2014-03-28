@@ -84,6 +84,11 @@ struct restricted_clause {
                                return false;
                              }), literals.end());
   }
+
+  void reset() {
+    literals.assign(source->begin(), source->end());
+    satisfied = 0;
+  }
 };
 ostream& operator << (ostream& o, const restricted_clause& c) {
   for (auto l:c.literals) o << l;
@@ -545,11 +550,9 @@ void cdcl::restart() {
   fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
   branching_seq.clear();
   propagation_queue.clear();
-  working_clauses.clear();
 
-  for (const auto& c : formula) working_clauses.push_back(c);
-  for (const auto& c : learnt_clauses) working_clauses.push_back(c);
-  for (const auto& c : working_clauses) {
+  for (auto& c : working_clauses) {
+    c.reset();
     if (c.unit()) propagation_queue.propagate(c);
   }
 }

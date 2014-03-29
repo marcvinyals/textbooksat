@@ -108,8 +108,9 @@ int main(int argc, char** argv) {
   cdcl_solver solver;
   solver.decide = arguments.decide;
   solver.learn = arguments.learn;
-  solver.backjump = solver.backjump;
+  solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
+  solver.phase_saving = arguments.phase_saving;
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;
   proof proof = solver.solve(f);

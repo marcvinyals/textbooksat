@@ -360,7 +360,7 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
   LOG(LOG_STATE) << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = *it;
-    assert (c.c.contains(~l));
+    if (not c.c.contains(~l)) continue;
     restricted_clause d(c);
     d.restrict(assignment);
     if (not solved and d.unit()) break;

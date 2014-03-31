@@ -135,18 +135,23 @@ class cdcl {
 
   function<literal_or_restart(cdcl&)> decide_plugin;
   function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
+  function<bool(const cdcl&, int, int)> variable_order_plugin;
 
   bool config_backjump;
   bool config_minimize;
   bool config_phase_saving;
+  double config_activity_decay;
 
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
-  literal_or_restart decide_reverse();
 
   proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
 
+  bool variable_cmp_vsids(int, int) const;
+  bool variable_cmp_fixed(int, int) const;
+  bool variable_cmp_reverse(int, int) const;
+  
 private:
 
   void unit_propagate();
@@ -161,6 +166,7 @@ private:
                 const vector<literal>::reverse_iterator& first_decision,
                 vector<literal>::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
+  void bump_activity(const clause& c);
 
   vector<branch> build_branching_seq() const;
   bool consistent() const;
@@ -191,11 +197,27 @@ private:
   vector<int> assignment;
 
   // Queue of variables waiting to be decided.
-  set<int> decision_order;
+  typedef function<bool(int, int)> int_cmp;
+  set<int, int_cmp> decision_order;
   // Value a decided variable should be set to, indexed by variable
   // number.
   vector<bool> decision_polarity;
+  vector<double> variable_activity;
 };
+
+bool cdcl::variable_cmp_vsids(int x, int y) const {
+  double d = variable_activity[y] - variable_activity[x];
+  if (d) return d<0;
+  return x < y;
+}
+
+bool cdcl::variable_cmp_fixed(int x, int y) const {
+  return x < y;
+}
+
+bool cdcl::variable_cmp_reverse(int x, int y) const {
+  return x > y;
+}
 
 vector<branch> cdcl::build_branching_seq() const {
   vector<branch> ret;
@@ -226,8 +248,14 @@ proof cdcl::solve(const cnf& f) {
   formula.reserve(f.clauses.size());
   for (const auto& c : f.clauses) formula.push_back(c);
   
-  for (int i=0; i<f.variables; ++i) decision_order.insert(i);
   decision_polarity.assign(f.variables,false);
+  variable_activity.assign(f.variables, 0.);
+  decision_order = set<int, int_cmp>
+    (bind(variable_order_plugin,
+          cref(*this),
+          std::placeholders::_1,
+          std::placeholders::_2));
+  for (int i=0; i<f.variables; ++i) decision_order.insert(i);
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
@@ -450,6 +478,8 @@ void cdcl::learn() {
     reasons[it->l].clear();
   }
   branching_seq.erase(backtrack_limit.base(),branching_seq.end());
+
+  bump_activity(learnt_clause.c);
   
   // Add the learnt clause to working clauses and immediately start
   // propagating
@@ -476,7 +506,8 @@ void cdcl::decide() {
   literal_or_restart decision = decide_plugin(*this);
   if (decision.restart) restart();
   else {
-    LOG(LOG_DECISIONS) << "Deciding " << decision.l << endl;
+    LOG(LOG_DECISIONS) << "Deciding " << decision.l <<
+      " with activity " << variable_activity[decision.l.variable()] << endl;
     propagation_queue.decide(decision.l);
   }
 }
@@ -484,13 +515,6 @@ void cdcl::decide() {
 literal_or_restart cdcl::decide_fixed() {
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
-  return literal(decision_variable,decision_polarity[decision_variable]);
-}
-
-literal_or_restart cdcl::decide_reverse() {
-  auto back = --decision_order.end();
-  int decision_variable = *back;
-  decision_order.erase(back);
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
@@ -575,15 +599,36 @@ void cdcl::forget(uint m) {
   working_clauses.erase(working_clauses.begin()+m);
 }
 
+void cdcl::bump_activity(const clause& c) {
+  for (auto& x : variable_activity) x *= config_activity_decay;
+  list<int> attach;
+  for (auto l : c) {
+    auto it = decision_order.find(l.variable());
+    if (it != decision_order.end()) {
+      attach.push_back(*it);
+      decision_order.erase(it);
+    }
+    variable_activity[l.variable()] ++;
+  }
+  decision_order.insert(attach.begin(), attach.end());
+}
+
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
   static cdcl solver;
-  if (decide == "fixed") solver.decide_plugin = &cdcl::decide_fixed;
-  else if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;
-  else if (decide == "reverse") solver.decide_plugin = &cdcl::decide_reverse;
+  if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;
   else {
-    cerr << "Invalid decision procedure" << endl;
-    exit(1);
+    solver.decide_plugin = &cdcl::decide_fixed;
+    if (decide == "fixed")
+      solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
+    else if (decide == "reverse")
+      solver.variable_order_plugin = &cdcl::variable_cmp_reverse;
+    else if (decide == "vsids")
+      solver.variable_order_plugin = &cdcl::variable_cmp_vsids;
+    else {
+      cerr << "Invalid decision procedure" << endl;
+      exit(1);
+    }
   }
   if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
   else if (learn == "1uip-all") solver.learn_plugin = &cdcl::learn_fuip_all;
@@ -594,5 +639,6 @@ proof cdcl_solver::solve(const cnf& f) {
   solver.config_backjump = backjump;
   solver.config_minimize = minimize;
   solver.config_phase_saving = phase_saving;
+  solver.config_activity_decay = 1.-1./32.;
   return solver.solve(f);
 }

@@ -20,7 +20,7 @@ test: test.o $(OBJS)
 	g++ $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
 
 release/%.o: %.cc $(HEADERS)
-	g++ -std=c++0x -O2 -c -o $@ $<
+	g++ -std=c++0x -O2 -DNDEBUG -c -o $@ $<
 
 satr: release/main.o $(ROBJS)
 	g++ -std=c++0x -O2 -o $@ $+

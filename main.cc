@@ -12,7 +12,7 @@ using namespace std;
 static argp_option options[] = {
   {"in", 'i', "FILE", 0,
    "Read formula in dimacs format from FILE (default: stdin)"},
-  {"decide", 'd', "{fixed,reverse,ask}", 0,
+  {"decide", 'd', "{fixed,reverse,vsids,ask}", 0,
    "Use the specified decision procedure (default: fixed"},
   {"learn", 'l', "{1uip,1uip-all}", 0,
    "Use the specified learning schema (default: 1uip"},

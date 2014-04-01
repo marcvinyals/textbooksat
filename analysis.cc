@@ -74,6 +74,7 @@ void draw(std::ostream& out, const proof& proof) {
 }
 
 void tikz(std::ostream& out, const proof& proof) {
+  pretty.latex = true;
   unordered_set<const proof_clause*> axioms;
   for (auto& c:proof.formula) axioms.insert(&c);
   out << "\\documentclass{standalone}" << endl;

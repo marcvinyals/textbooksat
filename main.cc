@@ -80,7 +80,11 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
 }
 
 static struct argp argp = { options, parse_opt, 0, 0 };
-  
+
+bool endswith(string s, string t) {
+  return mismatch(t.rbegin(), t.rend(), s.rbegin()).first == t.rend();
+}
+
 int main(int argc, char** argv) {
   arguments arguments;
   arguments.in = "-";
@@ -117,7 +121,12 @@ int main(int argc, char** argv) {
 
   if (not arguments.dag.empty()) {
     ofstream dag(arguments.dag);
-    draw(dag, proof);
+    if (endswith(arguments.dag, ".dot")) draw(dag, proof);
+    else if (endswith(arguments.dag, ".tex")) tikz(dag, proof);
+    else {
+      cerr << "Unknown output format" << endl;
+      exit(1);
+    }
   }
   measure(proof);
 }

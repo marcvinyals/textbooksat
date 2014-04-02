@@ -22,12 +22,14 @@ sat: main.o $(OBJS)
 	g++ $(CPPFLAGS) -o $@ $+ $(ARGP)
 
 clean:
-	rm -f sat *.o release/satr release/*.o
+	rm -f sat *.o satr release/*.o
+	rm -fr release/
 
 test: test.o $(OBJS)
 	g++ $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
 
 release/%.o: %.cc $(HEADERS)
+	@-mkdir -p release/
 	g++ -std=c++0x -O2 -DNDEBUG -c -o $@ $<
 
 satr: release/main.o $(ROBJS)

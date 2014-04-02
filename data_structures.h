@@ -15,7 +15,7 @@ struct literal {
   bool operator == (const literal& a) const { return l==a.l; }
   bool opposite(const literal& a) const { return (l^a.l) == 1; }
   literal operator ~ () const { return l^1; }
-  uint variable() const { return l >> 1; }
+  unsigned int variable() const { return l >> 1; }
   bool polarity() const { return l&1; }
   bool operator < (const literal& a) const { return l < a.l; }
 protected:
@@ -59,7 +59,7 @@ private:
   std::vector<literal> literals;
   friend struct std::hash<clause>;
 };
-clause resolve(const clause& c, const clause& d, uint x);
+clause resolve(const clause& c, const clause& d, unsigned int x);
 clause resolve(const clause& c, const clause& d);
 namespace std {
   template<>

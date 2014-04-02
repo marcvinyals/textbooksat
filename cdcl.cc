@@ -156,7 +156,7 @@ private:
 
   void unit_propagate();
   void learn();
-  void forget(uint m);
+  void forget(unsigned int m);
   void decide();
   void restart();
   
@@ -545,7 +545,7 @@ literal_or_restart cdcl::decide_ask() {
       continue; }
     if (in == "restart") return true;
     if (in == "forget") {
-      uint m;
+      unsigned int m;
       cin >> m;
       if (m < formula.size()) {
         cerr << "Refusing to forget an axiom" << endl;
@@ -588,7 +588,7 @@ void cdcl::restart() {
   }
 }
 
-void cdcl::forget(uint m) {
+void cdcl::forget(unsigned int m) {
   assert (m>=formula.size());
   assert (m<working_clauses.size());
   auto& target = working_clauses[m];

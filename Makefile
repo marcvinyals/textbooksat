@@ -1,26 +1,38 @@
-CPPFLAGS = -std=c++0x -Wall -g
+CXX = g++
+CPPFLAGS = -std=c++0x -Wall
 SOURCES = cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
 HEADERS = cdcl.h dimacs.h data_structures.h formatting.h analysis.h log.h
 
-all: sat test
-	./test
+ifeq ($(shell uname -s),Darwin)
+ARGP=/opt/local/lib/libargp.a
+CPPFLAGS+=-I/opt/local/include/
+else
+ARGP=
+endif
+
+
+
+all: sat satr
 
 %.o : %.cc $(HEADERS)
-	g++ $(CPPFLAGS) -c -o $@ $<
+	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
 
 sat: main.o $(OBJS)
-	g++ $(CPPFLAGS) -o $@ $+
+	$(CXX) $(CPPFLAGS) -g -o $@ $+ $(ARGP)
 
 clean:
-	rm -f sat *.o
+	rm -f sat *.o satr release/*.o
+	rm -fr release/
 
 test: test.o $(OBJS)
-	g++ $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
+	$(CXX) $(CPPFLAGS) -g -o $@ $+ -lgtest -lpthread
+	./test
 
 release/%.o: %.cc $(HEADERS)
-	g++ -std=c++0x -O2 -DNDEBUG -c -o $@ $<
+	@-mkdir -p release/
+	$(CXX) $(CPPFLAGS) -O2 -DNDEBUG -c -o $@ $<
 
 satr: release/main.o $(ROBJS)
-	g++ -std=c++0x -O2 -o $@ $+
+	$(CXX) $(CPPFLAGS) -O2 -o $@ $+ $(ARGP)

@@ -28,7 +28,7 @@ struct branch {
   const proof_clause* reason;
 };
 ostream& operator << (ostream& o, const branch& b) {
-  return o << pretty << b.to.variable() << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
+  return o << pretty << variable(b.to) << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
 
 struct literal_or_restart {
@@ -76,7 +76,7 @@ struct restricted_clause {
   void restrict(const vector<int>& assignment) {
     literals.erase(remove_if(literals.begin(), literals.end(),
                              [this,&assignment](literal a) {
-                               int al = assignment[a.variable()];
+                               int al = assignment[variable(a)];
                                if (al) {
                                  if ((al==1)==a.polarity()) satisfied++;
                                  else return true;
@@ -148,9 +148,9 @@ class cdcl {
   proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
 
-  bool variable_cmp_vsids(int, int) const;
-  bool variable_cmp_fixed(int, int) const;
-  bool variable_cmp_reverse(int, int) const;
+  bool variable_cmp_vsids(variable, variable) const;
+  bool variable_cmp_fixed(variable, variable) const;
+  bool variable_cmp_reverse(variable, variable) const;
   
 private:
 
@@ -197,25 +197,25 @@ private:
   vector<int> assignment;
 
   // Queue of variables waiting to be decided.
-  typedef function<bool(int, int)> int_cmp;
-  set<int, int_cmp> decision_order;
+  typedef function<bool(variable, variable)> variable_cmp;
+  set<variable, variable_cmp> decision_order;
   // Value a decided variable should be set to, indexed by variable
   // number.
   vector<bool> decision_polarity;
   vector<double> variable_activity;
 };
 
-bool cdcl::variable_cmp_vsids(int x, int y) const {
+bool cdcl::variable_cmp_vsids(variable x, variable y) const {
   double d = variable_activity[y] - variable_activity[x];
   if (d) return d<0;
   return x < y;
 }
 
-bool cdcl::variable_cmp_fixed(int x, int y) const {
+bool cdcl::variable_cmp_fixed(variable x, variable y) const {
   return x < y;
 }
 
-bool cdcl::variable_cmp_reverse(int x, int y) const {
+bool cdcl::variable_cmp_reverse(variable x, variable y) const {
   return x > y;
 }
 
@@ -227,11 +227,11 @@ vector<branch> cdcl::build_branching_seq() const {
 
 bool cdcl::consistent() const {
   for (auto l:branching_seq) {
-    int al = assignment[l.variable()];
+    int al = assignment[variable(l)];
     assert(al and l.polarity()==(al==1));
   }
   for (auto branch:propagation_queue.q) {
-    int al = assignment[branch.to.variable()];
+    int al = assignment[variable(branch.to)];
     assert((not al) or branch.to.polarity()==(al==1));
   }
   for (auto v:decision_order) {
@@ -250,7 +250,7 @@ proof cdcl::solve(const cnf& f) {
   
   decision_polarity.assign(f.variables,false);
   variable_activity.assign(f.variables, 0.);
-  decision_order = set<int, int_cmp>
+  decision_order = set<variable, variable_cmp>
     (bind(variable_order_plugin,
           cref(*this),
           std::placeholders::_1,
@@ -290,7 +290,7 @@ void cdcl::unit_propagate() {
     LOG(LOG_ACTIONS) << " because of " << *propagation_queue.front().reason;
   LOG(LOG_ACTIONS) << endl;
 
-  auto& al = assignment[l.variable()];
+  auto& al = assignment[variable(l)];
   if (propagation_queue.front().reason)
     reasons[l.l].push_back(propagation_queue.front().reason);
   propagation_queue.pop();
@@ -308,7 +308,7 @@ void cdcl::unit_propagate() {
 }
 
 void cdcl::assign(literal l) {
-  auto& al = assignment[l.variable()];
+  auto& al = assignment[variable(l)];
   assert(not al);
   al = (l.polarity()?1:-1);
 
@@ -327,18 +327,18 @@ void cdcl::assign(literal l) {
     }
   }
   
-  decision_order.erase(l.variable());
-  if (config_phase_saving) decision_polarity[l.variable()] = l.polarity();
+  decision_order.erase(variable(l));
+  if (config_phase_saving) decision_polarity[variable(l)] = l.polarity();
 }
 
 void cdcl::unassign(literal l) {
   LOG(LOG_STATE) << "Backtracking " << l << endl;
-  auto& al = assignment[l.variable()];
+  auto& al = assignment[variable(l)];
   assert(al);
   al = 0;
 
   for (auto& c : working_clauses) c.loosen(l);
-  decision_order.insert(l.variable());
+  decision_order.insert(variable(l));
 }
 
 // This is currently equivalent to 1UIP. It can be hacked to prompt
@@ -354,7 +354,7 @@ proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first
       literal l = *it;
       if (not c.contains(~l)) continue;
       for (auto d:reasons[l.l]) {
-        clause e = resolve(c, d->c, l.variable());
+        clause e = resolve(c, d->c, variable(l));
         if (parent.count(e)) continue;
         //cerr << "Resolved " << c << " with " << *d << " and got " << q.back() << endl;
         restricted_clause r(e);
@@ -392,7 +392,7 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
     restricted_clause d(c);
     d.restrict(assignment);
     if (not solved and d.unit()) break;
-    c.resolve(*reasons[l.l].front(), l.variable());
+    c.resolve(*reasons[l.l].front(), variable(l));
     LOG(LOG_DETAIL) << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
   }
   return c;
@@ -413,7 +413,7 @@ void cdcl::minimize(proof_clause& c) const {
     for (auto d:reasons[(~l).l]) {
       LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
       if (d->c.subsumes(c.c, ~l)) {
-        c.resolve(*d, l.variable());
+        c.resolve(*d, variable(l));
         LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
       }
     }
@@ -494,7 +494,7 @@ void cdcl::learn() {
   // There may be a more efficient way to do this.
   propagation_queue.clear();
   for (const auto& c : working_clauses) {
-    if (c.unit() and not assignment[c.literals.front().variable()]) {
+    if (c.unit() and not assignment[variable(c.literals.front())]) {
       propagation_queue.propagate(c);
     }
   }
@@ -511,7 +511,7 @@ void cdcl::decide() {
   if (decision.restart) restart();
   else {
     LOG(LOG_DECISIONS) << "Deciding " << decision.l <<
-      " with activity " << variable_activity[decision.l.variable()] << endl;
+      " with activity " << variable_activity[variable(decision.l)] << endl;
     propagation_queue.decide(decision.l);
   }
 }
@@ -576,7 +576,7 @@ literal_or_restart cdcl::decide_ask() {
 
 void cdcl::restart() {
   LOG(LOG_ACTIONS) << "Restarting" << endl;
-  for (auto l:branching_seq) decision_order.insert(l.variable());
+  for (auto l:branching_seq) decision_order.insert(variable(l));
   fill(assignment.begin(), assignment.end(), 0);
   fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
   branching_seq.clear();
@@ -607,12 +607,12 @@ void cdcl::bump_activity(const clause& c) {
   for (auto& x : variable_activity) x *= config_activity_decay;
   list<int> attach;
   for (auto l : c) {
-    auto it = decision_order.find(l.variable());
+    auto it = decision_order.find(variable(l));
     if (it != decision_order.end()) {
       attach.push_back(*it);
       decision_order.erase(it);
     }
-    variable_activity[l.variable()] ++;
+    variable_activity[variable(l)] ++;
   }
   decision_order.insert(attach.begin(), attach.end());
 }

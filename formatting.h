@@ -27,21 +27,21 @@ struct pretty_ {
       name_variables[it.second]=it.first;
     }
   }
-  std::ostream& operator << (unsigned int x) {
+  std::ostream& operator << (variable x) {
     assert(x<variable_names.size());
     if (mode == UGLY) return (*o) << x;
     return (*o) << variable_names[x];
   }
   std::ostream& operator << (literal l) {
-    assert(l.variable()<variable_names.size());
+    assert(variable(l)<variable_names.size());
     if (mode == LATEX) {
       if (not l.polarity()) (*o) << "\\overline{";
-      (*this) << l.variable();
+      (*this) << variable(l);
       if (not l.polarity()) (*o) << "}";
     }
     else {
       (*o) << (l.polarity()?' ':'~');
-      (*this) << l.variable();
+      (*this) << variable(l);
     }
     return (*o);
   }
@@ -67,6 +67,6 @@ inline std::ostream& operator << (std::ostream& o, const cnf& f) {
 }
 inline std::ostream& operator << (std::ostream&o , const std::vector<int>& a) {
   char what[] = "-?+";
-  for (unsigned int i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
+  for (size_t i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
   return o;
 }

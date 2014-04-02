@@ -47,7 +47,7 @@ void draw(std::ostream& out, const proof& proof) {
     out << "color=lightgrey;" << endl;
     out << "node [style=filled,color=white];" << endl;
     vector<string> lemma_names;
-    for (unsigned int i=0;i<c.derivation.size()-1;++i) {
+    for (size_t i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
       ss << "lemma" << uint64_t(&c);
       if (i<c.derivation.size()-2) ss << "d" << i;
@@ -86,7 +86,7 @@ void tikz(std::ostream& out, const proof& proof) {
   for (auto& c:proof.proof) {
     // cluster
     vector<string> lemma_names;
-    for (unsigned int i=0;i<c.derivation.size()-1;++i) {
+    for (size_t i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
       ss << "lemma" << uint64_t(&c);
       if (i<c.derivation.size()-2) ss << "d" << i;
@@ -109,7 +109,7 @@ void tikz(std::ostream& out, const proof& proof) {
         d = resolve(d,(*it)->c);
         stringstream ss;
         ss << "\\node (" << lemma_names[i] << ") [lemma,";
-        if (i+1<lemma_names.size()) ss << "below=of " << lemma_names[i+1] << ",yshift=-1cm";
+        if (i+1<int(lemma_names.size())) ss << "below=of " << lemma_names[i+1] << ",yshift=-1cm";
         else if (not previous_lemma.empty()) ss << "right=of " << previous_lemma << ",xshift=3cm";
         ss <<"] {" << d << "};";
         lines.push(ss.str());
@@ -122,7 +122,7 @@ void tikz(std::ostream& out, const proof& proof) {
     }
     out << "\\begin{scope}[on background layer]" << endl;
     out << "\\graph [use existing nodes] {" << endl;
-    for (unsigned int i=1;i<c.derivation.size()-1;++i) {
+    for (size_t i=1;i<c.derivation.size()-1;++i) {
       out << lemma_names[i-1] << " -> " << lemma_names[i] << ";" << endl;
     }
     i=-1;

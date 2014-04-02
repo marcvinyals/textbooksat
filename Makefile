@@ -14,8 +14,7 @@ endif
 
 
 
-all: sat test
-	./test
+all: sat satr
 
 %.o : %.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
@@ -29,6 +28,7 @@ clean:
 
 test: test.o $(OBJS)
 	$(CXX) $(CPPFLAGS) -g -o $@ $+ -lgtest -lpthread
+	./test
 
 release/%.o: %.cc $(HEADERS)
 	@-mkdir -p release/

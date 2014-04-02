@@ -80,7 +80,9 @@ struct cnf {
 struct proof_clause {
   clause c;
   std::vector<const proof_clause*> derivation;
-  proof_clause(clause c_) : c(c_) {}
+  proof_clause(const clause& c) : c(c) {}
+  proof_clause(const proof_clause&) = delete;
+  proof_clause(proof_clause&&) = default;
   void resolve(const proof_clause& d, int x) {
     c = ::resolve(c, d.c, x);
     derivation.push_back(&d);

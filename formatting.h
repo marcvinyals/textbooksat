@@ -9,8 +9,12 @@
 struct pretty_ {
   std::map<int,std::string> variable_names;
   std::map<std::string,int> name_variables;
-  bool latex;
-  pretty_() : latex(false) {}
+  enum {
+    TERMINAL,
+    LATEX,
+    UGLY,
+  } mode;
+  pretty_() {}
   pretty_(const cnf& f) : variable_names(f.variable_names) {
     for (int i=0; i<f.variables; ++i) {
       if (variable_names.count(i)==0) {
@@ -25,17 +29,21 @@ struct pretty_ {
   }
   std::ostream& operator << (uint x) {
     assert(x<variable_names.size());
+    if (mode == UGLY) return (*o) << x;
     return (*o) << variable_names[x];
   }
   std::ostream& operator << (literal l) {
     assert(l.variable()<variable_names.size());
-    if (latex) {
+    if (mode == LATEX) {
       if (not l.polarity()) (*o) << "\\overline{";
-      (*o) << variable_names[l.variable()];
+      (*this) << l.variable();
       if (not l.polarity()) (*o) << "}";
-      return (*o);
     }
-    return (*o) << (l.polarity()?' ':'~') << variable_names[l.variable()];
+    else {
+      (*o) << (l.polarity()?' ':'~');
+      (*this) << l.variable();
+    }
+    return (*o);
   }
 private:
   std::ostream* o;
@@ -48,9 +56,9 @@ inline std::ostream& operator << (std::ostream& o, literal l) {
   return o << pretty << l;
 }
 inline std::ostream& operator << (std::ostream& o, const clause& c) {
-  if (pretty.latex) o << '$';
+  if (pretty.mode == pretty.LATEX) o << '$';
   for (auto l:c) o << l;
-  if (pretty.latex) o << '$';
+  if (pretty.mode == pretty.LATEX) o << '$';
   return o;
 }
 inline std::ostream& operator << (std::ostream& o, const cnf& f) {

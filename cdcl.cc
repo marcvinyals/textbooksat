@@ -382,7 +382,7 @@ proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first
 // after restriction). The result is an input regular resolution
 // proof.
 proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_decision) {
-  proof_clause c(*conflict);
+  proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
   LOG(LOG_STATE) << "Conflict clause " << c << endl;
   LOG(LOG_STATE) << "Assignment " << assignment << endl;
@@ -453,17 +453,21 @@ void cdcl::learn() {
   if (first_decision == branching_seq.rend()) solved = true;
 
   assert(first_decision != branching_seq.rbegin());
-  proof_clause learnt_clause = learn_plugin(*this, first_decision);
+  learnt_clauses.emplace_back(learn_plugin(*this, first_decision));
+  proof_clause& learnt_clause = learnt_clauses.back();
 
   if (config_minimize) minimize(learnt_clause);
   
   LOG(LOG_EFFECTS) << "Learnt: " << learnt_clause << endl;
+  clause d = learnt_clause.derivation.front()->c;
+  for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {
+    d = resolve(d,(*it)->c);
+  }
   assert(not config_backjump or
          find_if(working_clauses.begin(), working_clauses.end(),
-                 [learnt_clause] (const restricted_clause& i) {
+                 [&learnt_clause] (const restricted_clause& i) {
                    return i.source->c == learnt_clause.c;
                  }) == working_clauses.end());
-  learnt_clauses.push_back(learnt_clause);
   
   if (solved) {
     LOG(LOG_EFFECTS) << "I learned the following clauses:" << endl << learnt_clauses << endl;

@@ -23,7 +23,7 @@ struct pretty_ {
       name_variables[it.second]=it.first;
     }
   }
-  std::ostream& operator << (uint x) {
+  std::ostream& operator << (unsigned int x) {
     assert(x<variable_names.size());
     return (*o) << variable_names[x];
   }
@@ -59,6 +59,6 @@ inline std::ostream& operator << (std::ostream& o, const cnf& f) {
 }
 inline std::ostream& operator << (std::ostream&o , const std::vector<int>& a) {
   char what[] = "-?+";
-  for (uint i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
+  for (unsigned int i=0;i<a.size();++i) o << what[a[i]+1] << pretty << i << " ";
   return o;
 }

@@ -30,7 +30,7 @@ bool clause::contains(literal l) const {
   return binary_search(literals.begin(), literals.end(), l);
 }
 
-clause resolve(const clause& c, const clause& d, uint x) {
+clause resolve(const clause& c, const clause& d, unsigned int x) {
   // TODO: make linear
   set<literal> ret;
   int found = 0;

@@ -123,6 +123,7 @@ int main(int argc, char** argv) {
     ofstream dag(arguments.dag);
     if (endswith(arguments.dag, ".dot")) draw(dag, proof);
     else if (endswith(arguments.dag, ".tex")) tikz(dag, proof);
+    else if (endswith(arguments.dag, ".asy")) asy(dag, proof);
     else {
       cerr << "Unknown output format" << endl;
       exit(1);

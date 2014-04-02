@@ -143,3 +143,78 @@ void tikz(std::ostream& out, const proof& proof) {
   out << "\\end{tikzpicture}" << endl;
   out << "\\end{document}" << endl;
 }
+
+void asy(std::ostream& out, const proof& proof) {
+  pretty.mode = pretty.LATEX;
+  unordered_set<const proof_clause*> axioms;
+  for (auto& c:proof.formula) axioms.insert(&c);
+  out << "import node;" << endl;
+  out << "real dx = 7.5cm;" << endl;
+  out << "real dy = 1cm;" << endl;
+  out << "nodestyle lemmastyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightgreen,black));" << endl;
+  out << "nodestyle axiomstyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightblue,black));" << endl;
+  string previous_lemma;
+  vector<string> stuff;
+  for (auto& c:proof.proof) {
+    vector<string> lemma_names;
+    vector<string> axiom_names;
+    for (size_t i=0;i<c.derivation.size()-1;++i) {
+      stringstream ss;
+      ss << "lemma" << uint64_t(&c);
+      if (i<c.derivation.size()-2) ss << "d" << i;
+      lemma_names.push_back(ss.str());
+    }
+    // Declare nodes
+    int i=-1;
+    clause d = c.derivation.front()->c;
+    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
+      if (i>=0) {
+        d = resolve(d,(*it)->c);
+        out << "node " << lemma_names[i] << " = sroundbox(\"" << d << "\", lemmastyle);" << endl;
+      }
+      if (axioms.count(*it)) {
+        stringstream ss;
+        ss << "axiom" << uint64_t(&c) << "d" << i+1;
+        out << "node " << ss.str() << " = sroundbox(\"" << (*it)->c << "\",axiomstyle);" << endl;
+        axiom_names.push_back(ss.str());
+      }
+    }
+    // Position nodes
+    if(not previous_lemma.empty()) out << previous_lemma << " << eright(dx) << " << lemma_names.back() << ";" << endl;    
+    for (auto it = lemma_names.rbegin();it+1!=lemma_names.rend();) {
+      out << *it;
+      ++it;
+      out << " << edown(dy) << " << *it << ";" << endl;
+    }
+    i=-1;
+    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
+      if (axioms.count(*it)) {
+        out << lemma_names[max(i,0)];
+        if (i==-1) out << " << edown(dy) << ";
+        else out << " << edir(-160,dx/3) << ";
+        out << "axiom" << uint64_t(&c) << "d" << i+1 << ";" << endl;
+      }
+    }
+    // Draw edges
+    for (auto it = lemma_names.begin();it+1!=lemma_names.end();) {
+      out << "draw(" << *it;
+      ++it;
+      out << "--" << *it << ",Arrow);" << endl;
+    }
+    i=-1;
+    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
+      out << "draw(";
+      if (axioms.count(*it)) {
+        out << "axiom" << uint64_t(&c) << "d" << i+1;
+      }
+      else out << "lemma" << uint64_t(*it);
+      out << "--" << lemma_names[max(i,0)] << ",Arrow);" << endl;
+    }
+
+    for (auto& s : lemma_names) stuff.push_back(s);
+    for (auto& s : axiom_names) stuff.push_back(s);
+    previous_lemma = lemma_names.back();
+  }
+  // Draw nodes
+  for (auto& s : stuff) out << "draw(" << s << ");" << endl;
+}

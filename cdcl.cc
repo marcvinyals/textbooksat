@@ -272,13 +272,17 @@ proof cdcl::solve(const cnf& f) {
       if (conflict) {
         learn();
         if (solved) {
-          LOG(LOG_ACTIONS) << "UNSAT" << endl;
+          LOG(LOG_EFFECTS) << "UNSAT" << endl;
           return {formula,learnt_clauses};
         }
       }
     }
     decide();
-    if (solved) cout << "SAT" << endl;
+    if (solved) {
+      LOG(LOG_EFFECTS) << "This is a satisfying assignment:" << endl << assignment << endl;
+      LOG(LOG_EFFECTS) << "SAT" << endl;
+      exit(0);
+    }
   }
   assert(false);
 }

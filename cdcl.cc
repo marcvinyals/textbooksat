@@ -620,7 +620,10 @@ void cdcl::bump_activity(const clause& c) {
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
   static cdcl solver;
-  if (decide == "ask") solver.decide_plugin = &cdcl::decide_ask;
+  if (decide == "ask") {
+    solver.decide_plugin = &cdcl::decide_ask;
+    solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
+  }
   else {
     solver.decide_plugin = &cdcl::decide_fixed;
     if (decide == "fixed")

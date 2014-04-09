@@ -147,6 +147,7 @@ class cdcl {
 
   proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_luip(const vector<literal>::reverse_iterator& first_decision);
 
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
@@ -162,6 +163,7 @@ private:
   
   void assign(literal l);
   void unassign(literal l);
+  bool asserting(const proof_clause& c) const;
   void backjump(const proof_clause& learnt_clause,
                 const vector<literal>::reverse_iterator& first_decision,
                 vector<literal>::reverse_iterator& backtrack_limit);
@@ -345,6 +347,13 @@ void cdcl::unassign(literal l) {
   decision_order.insert(variable(l));
 }
 
+bool cdcl::asserting(const proof_clause& c) const {
+  restricted_clause d(c);
+  d.restrict(assignment);
+  if (solved) return d.contradiction();
+  return d.unit();
+}
+
 // This is currently equivalent to 1UIP. It can be hacked to prompt
 // the user for a choice.
 proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first_decision) {
@@ -393,12 +402,29 @@ proof_clause cdcl::learn_fuip(const vector<literal>::reverse_iterator& first_dec
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = *it;
     if (not c.c.contains(~l)) continue;
-    restricted_clause d(c);
-    d.restrict(assignment);
-    if (not solved and d.unit()) break;
+    if (asserting(c)) break;
     c.resolve(*reasons[l.l].front(), variable(l));
     LOG(LOG_DETAIL) << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
   }
+  return c;
+}
+
+// Find the learnt clause by resolving with all the reasons in the
+// last decision level. Only the decision variable remains so the
+// result must be asserting.
+// aka: rel_sat
+proof_clause cdcl::learn_luip(const vector<literal>::reverse_iterator& first_decision) {
+  proof_clause c(conflict->c);
+  c.derivation.push_back(conflict);
+  LOG(LOG_STATE) << "Conflict clause " << c << endl;
+  LOG(LOG_STATE) << "Assignment " << assignment << endl;
+  for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
+    literal l = *it;
+    if (not c.c.contains(~l)) continue;
+    c.resolve(*reasons[l.l].front(), variable(l));
+    LOG(LOG_DETAIL) << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
+  }
+  assert(asserting(c));
   return c;
 }
 
@@ -642,6 +668,7 @@ proof cdcl_solver::solve(const cnf& f) {
     }
   }
   if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
+  else if (learn == "lastuip") solver.learn_plugin = &cdcl::learn_luip;
   else if (learn == "1uip-all") solver.learn_plugin = &cdcl::learn_fuip_all;
   else {
     cerr << "Invalid learning scheme" << endl;

@@ -104,6 +104,11 @@ ostream& operator << (ostream& o, const vector<restricted_clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
+template<>
+ostream& operator << (ostream& o, const vector<clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
+  return o;
+}
 
 struct propagation_queue {
   deque<branch> q;
@@ -354,40 +359,46 @@ bool cdcl::asserting(const proof_clause& c) const {
   return d.unit();
 }
 
-// This is currently equivalent to 1UIP. It can be hacked to prompt
-// the user for a choice.
+// 1UIP with all conflict graphs consistent with the current reasons.
 proof_clause cdcl::learn_fuip_all(const vector<literal>::reverse_iterator& first_decision) {
   deque<clause> q;
   q.push_back(conflict->c);
   unordered_map<clause,pair<const clause*, const proof_clause*>> parent;
   parent[conflict->c]={NULL,conflict};
-  while(not q.empty()) {
-    clause c=q.front();q.pop_front();
-    for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
-      literal l = *it;
-      if (not c.contains(~l)) continue;
+  vector<clause> learnable_clauses;
+  for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
+    literal l = *it;
+    deque<clause> qq;
+    for (const auto& c:q) {
+      if (not c.contains(~l)) {
+        qq.push_back(c);
+        continue;
+      }
       for (auto d:reasons[l.l]) {
         clause e = resolve(c, d->c, variable(l));
-        if (parent.count(e)) continue;
-        //cerr << "Resolved " << c << " with " << *d << " and got " << q.back() << endl;
-        restricted_clause r(e);
-        r.restrict(assignment);
-        q.push_back(e);
         parent[e]={&(parent.find(c)->first), d};
-        if ((solved and r.contradiction()) or (not solved and r.unit())) {
-          proof_clause ret(e);
-          const clause* p = &e;
-          while(p) {
-            ret.derivation.push_back(parent[*p].second);
-            p = parent[*p].first;
-          }
-          reverse(ret.derivation.begin(), ret.derivation.end());
-          return ret;
-        }
+        if (asserting(e)) learnable_clauses.push_back(e);
+        else qq.push_back(e);
       }
     }
+    swap(q,qq);
   }
-  assert(false);
+  assert (not learnable_clauses.empty());
+  int i=0;
+  if (learnable_clauses.size()>1) {
+    cout << "What do I learn? What do I learn?" << endl;
+    cout << learnable_clauses << endl;
+    cin >> i;
+  }
+  const clause& e = learnable_clauses[i];
+  proof_clause ret(e);
+  const clause* p = &e;
+  while(p) {
+    ret.derivation.push_back(parent[*p].second);
+    p = parent[*p].first;
+  }
+  reverse(ret.derivation.begin(), ret.derivation.end());
+  return ret;
 }
 
 // Find the learnt clause by resolving the conflict clause with

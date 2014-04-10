@@ -57,6 +57,7 @@ struct clause {
   bool contains(literal l) const;
   std::vector<literal>::const_iterator begin() const { return literals.begin(); }
   std::vector<literal>::const_iterator end() const { return literals.end(); }
+  std::size_t width() const { return literals.size(); }
 private:
   std::vector<literal> literals;
   friend struct std::hash<clause>;

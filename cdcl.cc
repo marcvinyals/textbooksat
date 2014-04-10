@@ -153,6 +153,7 @@ class cdcl {
   proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
   proof_clause learn_luip(const vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_decision(const vector<literal>::reverse_iterator& first_decision);
 
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
@@ -439,6 +440,24 @@ proof_clause cdcl::learn_luip(const vector<literal>::reverse_iterator& first_dec
   return c;
 }
 
+// Learn a subset of the decision variables
+proof_clause cdcl::learn_decision(const vector<literal>::reverse_iterator& first_decision) {
+  proof_clause c(conflict->c);
+  c.derivation.push_back(conflict);
+  LOG(LOG_STATE) << "Conflict clause " << c << endl;
+  LOG(LOG_STATE) << "Assignment " << assignment << endl;
+  for (auto it = branching_seq.rbegin(); it!=branching_seq.rend(); ++it) {
+    literal l = *it;
+    if (reasons[l.l].empty()) continue;
+    if (not c.c.contains(~l)) continue;
+    c.resolve(*reasons[l.l].front(), variable(l));
+    LOG(LOG_DETAIL) << "Resolved with " << *reasons[l.l].front() << " and got " << c << endl;
+  }
+  assert(asserting(c));
+  for (literal l : c.c) assert (reasons[l.l].empty());
+  return c;
+}
+
 // Clause minimization. Try eliminating literals from the clause by
 // resolving them with a reason.
 void cdcl::minimize(proof_clause& c) const {
@@ -681,6 +700,7 @@ proof cdcl_solver::solve(const cnf& f) {
   if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
   else if (learn == "lastuip") solver.learn_plugin = &cdcl::learn_luip;
   else if (learn == "1uip-all") solver.learn_plugin = &cdcl::learn_fuip_all;
+  else if (learn == "decision") solver.learn_plugin = &cdcl::learn_decision;
   else {
     cerr << "Invalid learning scheme" << endl;
     exit(1);

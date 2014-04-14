@@ -12,6 +12,9 @@
 #include <iostream>
 #include <iomanip>
 
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix.hpp>
+
 #include "formatting.h"
 #include "color.h"
 #include "log.h"
@@ -589,24 +592,35 @@ literal_or_restart cdcl::decide_ask() {
   cout << "Therefore these are the restricted clauses I have in mind:" << endl << working_clauses << endl;
   int dimacs_decision = 0;
   while (not dimacs_decision) {
-    if (not cin) {
-      cerr << "No more input?" << endl;
-      exit(1);
-    }
     cout << "Please input either of:" << endl;
     cout << " * a literal in dimacs format" << endl;
     cout << " * an assignment <varname> {0,1}" << endl;
     cout << " * the keyword 'restart'" << endl;
     cout << " * the keyword 'forget' and a restricted clause number" << endl;
-    string in;
-    cin >> in;
-    if (in[0] == '#') {
-      cin.ignore(numeric_limits<streamsize>::max(),'\n');
-      continue; }
-    if (in == "restart") return true;
-    if (in == "forget") {
-      unsigned int m;
-      cin >> m;
+    string line;
+    getline(cin, line);
+    if (not cin) {
+      cerr << "No more input?" << endl;
+      exit(1);
+    }
+    string action, var;
+    int m, polarity;
+    namespace qi = boost::spirit::qi;
+    namespace ph = boost::phoenix;
+    auto it = line.begin();
+    bool parse = qi::phrase_parse(it, line.end(),
+        qi::string("#")[ph::ref(action) = qi::_1]
+      | qi::string("restart")[ph::ref(action) = qi::_1]
+                                  | qi::string("forget")[ph::ref(action) = qi::_1] >> qi::int_[ph::ref(m) = qi::_1]
+                                  | -qi::lit("assign") >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(var) = qi::_1] >> qi::int_[ph::ref(polarity) = qi::_1] >> qi::eps[ph::ref(action) = "assign"]
+                                  | qi::int_[ph::ref(dimacs_decision) = qi::_1] >> qi::eps[ph::ref(action) = "dimacs"]
+                                  , qi::space);
+    if (not parse) continue;
+    if (action=="#") continue;
+    if (it != line.end()) continue;
+    if (action=="restart") return true;
+    else if (action=="forget") {
+      cerr << m << endl;
       if (m < formula.size()) {
         cerr << "Refusing to forget an axiom" << endl;
         continue;
@@ -618,18 +632,16 @@ literal_or_restart cdcl::decide_ask() {
       forget(m);
       return decide_ask();
     }
-    auto it= pretty.name_variables.find(in);
-    if (it == pretty.name_variables.end()) {
-      stringstream ss(in);
-      ss >> dimacs_decision;
-    }
-    else {
-      int polarity;
-      cin >> polarity;
+    else if (action == "assign") {
+      cerr << polarity << endl;
+      auto it= pretty.name_variables.find(var);
+      if (it == pretty.name_variables.end()) continue;
       polarity = polarity*2-1;
       if (abs(polarity)>1) continue;
       dimacs_decision = polarity*( it->second + 1 );
     }
+    else if (action == "dimacs");
+    else assert(false);
   }
   return from_dimacs(dimacs_decision);
 }

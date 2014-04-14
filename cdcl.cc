@@ -1,17 +1,5 @@
 #include "cdcl.h"
 
-#include <vector>
-#include <set>
-#include <deque>
-#include <queue>
-#include <list>
-#include <algorithm>
-#include <unordered_map>
-#include <sstream>
-#include <cassert>
-#include <iostream>
-#include <iomanip>
-
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 
@@ -25,74 +13,9 @@ ostream& operator << (ostream& o, const list<proof_clause>& v) {
   for (const auto& i:v) o << "   " << i.c << endl;
   return o;
 };
-
-struct branch {
-  literal to;
-  const proof_clause* reason;
-};
 ostream& operator << (ostream& o, const branch& b) {
   return o << pretty << variable(b.to) << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
-
-struct literal_or_restart {
-  literal l;
-  bool restart;
-  literal_or_restart(literal l_) : l(l_), restart(false) {}
-  literal_or_restart(bool restart_) : l(0,0), restart(restart_) {}
-};
-
-struct restricted_clause {
-  vector<literal> literals;
-  const proof_clause* source;
-  int satisfied;
-  restricted_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), satisfied(0) {}
-  bool unit() const { return not satisfied and literals.size() == 1; }
-  bool contradiction() const { return not satisfied and literals.empty(); }
-  
-  void restrict(literal l) {
-    for (auto a = literals.begin(); a!= literals.end(); ++a) {
-      if (*a==l) {
-        satisfied++;
-        break;
-      }
-      if (a->opposite(l)) {
-        literals.erase(a);
-        break;
-      }
-    }
-  }
-
-  void loosen(literal l) {
-    for (auto a : source->c) {
-      if (a==l) {
-        satisfied--;
-        break;
-      }
-      if (a.opposite(l)) {
-        literals.push_back(a);
-        break;
-      }      
-    }
-  }
-
-  void restrict(const vector<int>& assignment) {
-    literals.erase(remove_if(literals.begin(), literals.end(),
-                             [this,&assignment](literal a) {
-                               int al = assignment[variable(a)];
-                               if (al) {
-                                 if ((al==1)==a.polarity()) satisfied++;
-                                 else return true;
-                               }
-                               return false;
-                             }), literals.end());
-  }
-
-  void reset() {
-    literals.assign(source->begin(), source->end());
-    satisfied = 0;
-  }
-};
 ostream& operator << (ostream& o, const restricted_clause& c) {
   for (auto l:c.literals) o << l;
   return o;
@@ -112,109 +35,6 @@ ostream& operator << (ostream& o, const vector<clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
-
-struct propagation_queue {
-  deque<branch> q;
-  void propagate(const restricted_clause& c) {
-    assert(c.unit());
-    q.push_back({c.literals.front(),c.source});
-  }
-  void decide(literal l) {
-    q.push_back({l,NULL});
-  }
-  void clear() {
-    q.clear();
-  }
-  void pop() {
-    q.pop_front();
-  }
-  bool empty() const {
-    return q.empty();
-  }
-  const branch& front() const {
-    return q.front();
-  }
-};
-
-
-class cdcl {
- public:
-  proof solve(const cnf& f);
-
-  function<literal_or_restart(cdcl&)> decide_plugin;
-  function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
-  function<bool(const cdcl&, int, int)> variable_order_plugin;
-
-  bool config_backjump;
-  bool config_minimize;
-  bool config_phase_saving;
-  double config_activity_decay;
-
-  literal_or_restart decide_fixed();
-  literal_or_restart decide_ask();
-
-  proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_luip(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_decision(const vector<literal>::reverse_iterator& first_decision);
-
-  bool variable_cmp_vsids(variable, variable) const;
-  bool variable_cmp_fixed(variable, variable) const;
-  bool variable_cmp_reverse(variable, variable) const;
-  
-private:
-
-  void unit_propagate();
-  void learn();
-  void forget(unsigned int m);
-  void decide();
-  void restart();
-  
-  void assign(literal l);
-  void unassign(literal l);
-  bool asserting(const proof_clause& c) const;
-  void backjump(const proof_clause& learnt_clause,
-                const vector<literal>::reverse_iterator& first_decision,
-                vector<literal>::reverse_iterator& backtrack_limit);
-  void minimize(proof_clause& c) const;
-  void bump_activity(const clause& c);
-
-  vector<branch> build_branching_seq() const;
-  bool consistent() const;
-  
-  bool solved; // Done
-  const proof_clause* conflict; // Conflict
-
-  // Copy of the formula.
-  vector<proof_clause> formula;
-  // Learnt clauses, in order. We will pointers to proof clauses, so
-  // they should not be erased or reallocated.
-  list<proof_clause> learnt_clauses;
-  // Clauses restricted to the current assignment.
-  vector<restricted_clause> working_clauses;
-
-  // List of unit propagations, in chronological order.
-  vector<literal> branching_seq;
-  // Reasons for propagation, indexed by literal number. If a
-  // propagated literal does not have any reason, then it was
-  // decided. It is possible for a literal to have multiple reasons
-  // before being propagated; we choose the first as the main reason.
-  vector<list<const proof_clause*>> reasons;
-  // Queue of literals waiting to be unit-propagated.
-  struct propagation_queue propagation_queue;
-  // Assignment induced by the branching sequence, indexed by variable
-  // number. Possible values are 1 (true), -1 (false) or 0
-  // (unassigned).
-  vector<int> assignment;
-
-  // Queue of variables waiting to be decided.
-  typedef function<bool(variable, variable)> variable_cmp;
-  set<variable, variable_cmp> decision_order;
-  // Value a decided variable should be set to, indexed by variable
-  // number.
-  vector<bool> decision_polarity;
-  vector<double> variable_activity;
-};
 
 bool cdcl::variable_cmp_vsids(variable x, variable y) const {
   double d = variable_activity[y] - variable_activity[x];
@@ -603,7 +423,7 @@ literal_or_restart cdcl::decide_ask() {
       cerr << "No more input?" << endl;
       exit(1);
     }
-    string action, var;
+    string action, var, file;
     int m, polarity;
     namespace qi = boost::spirit::qi;
     namespace ph = boost::phoenix;
@@ -687,39 +507,4 @@ void cdcl::bump_activity(const clause& c) {
     variable_activity[variable(l)] ++;
   }
   decision_order.insert(attach.begin(), attach.end());
-}
-
-proof cdcl_solver::solve(const cnf& f) {
-  pretty = pretty_(f);
-  static cdcl solver;
-  if (decide == "ask") {
-    solver.decide_plugin = &cdcl::decide_ask;
-    solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
-  }
-  else {
-    solver.decide_plugin = &cdcl::decide_fixed;
-    if (decide == "fixed")
-      solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
-    else if (decide == "reverse")
-      solver.variable_order_plugin = &cdcl::variable_cmp_reverse;
-    else if (decide == "vsids")
-      solver.variable_order_plugin = &cdcl::variable_cmp_vsids;
-    else {
-      cerr << "Invalid decision procedure" << endl;
-      exit(1);
-    }
-  }
-  if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
-  else if (learn == "lastuip") solver.learn_plugin = &cdcl::learn_luip;
-  else if (learn == "1uip-all") solver.learn_plugin = &cdcl::learn_fuip_all;
-  else if (learn == "decision") solver.learn_plugin = &cdcl::learn_decision;
-  else {
-    cerr << "Invalid learning scheme" << endl;
-    exit(1);
-  }
-  solver.config_backjump = backjump;
-  solver.config_minimize = minimize;
-  solver.config_phase_saving = phase_saving;
-  solver.config_activity_decay = 1.-1./32.;
-  return solver.solve(f);
 }

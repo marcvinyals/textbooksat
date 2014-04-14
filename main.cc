@@ -3,7 +3,7 @@
 #include <argp.h>
 
 #include "dimacs.h"
-#include "cdcl.h"
+#include "solver.h"
 #include "analysis.h"
 #include "log.h"
 

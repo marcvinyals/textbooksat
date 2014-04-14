@@ -1,10 +1,10 @@
 CXX = g++
 CPPFLAGS = -std=c++0x -Wall
 LDFLAGS=
-SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc
+SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
-HEADERS = solver.h dimacs.h data_structures.h formatting.h analysis.h log.h
+HEADERS = solver.h dimacs.h data_structures.h formatting.h analysis.h log.h ui.h
 
 
 # argp.h under MacOSX

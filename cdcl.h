@@ -132,6 +132,7 @@ class cdcl {
   bool variable_cmp_reverse(variable, variable) const;
   
 private:
+  friend class ui;
 
   void unit_propagate();
   void learn();
@@ -184,3 +185,23 @@ private:
   vector<bool> decision_polarity;
   vector<double> variable_activity;
 };
+
+ostream& operator << (ostream& o, const restricted_clause& c);
+ostream& operator << (ostream& o, const list<proof_clause>& v);
+ostream& operator << (ostream& o, const branch& b);
+
+template<typename T>
+ostream& operator << (ostream& o, const vector<T>& v) {
+  for (const auto& i:v) o << i;
+  return o;
+}
+template<>
+inline ostream& operator << (ostream& o, const vector<restricted_clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
+  return o;
+}
+template<>
+inline ostream& operator << (ostream& o, const vector<clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
+  return o;
+}

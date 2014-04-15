@@ -6,8 +6,12 @@
 class cdcl;
 struct literal_or_restart;
 
-struct ui {
+class ui {
+ public:
+  ui(cdcl& solver) : solver(solver), batch(false) {}
+  literal_or_restart get_decision();
+ private:
   cdcl& solver;
   std::vector<std::string> history;
-  literal_or_restart get_decision();
+  bool batch;
 };

@@ -13,17 +13,21 @@ using std::cin;
 using std::getline;
 
 literal_or_restart ui::get_decision() {
-  cout << "Good day oracle, would you mind giving me some advice?" << endl;
-cout << "This is the branching sequence so far: " << solver.build_branching_seq() << endl;
-  cout << "I learned the following clauses:" << endl << solver.learnt_clauses << endl;
-  cout << "Therefore these are the restricted clauses I have in mind:" << endl << solver.working_clauses << endl;
+  if (not batch) {
+    cout << "Good day oracle, would you mind giving me some advice?" << endl;
+    cout << "This is the branching sequence so far: " << solver.build_branching_seq() << endl;
+    cout << "I learned the following clauses:" << endl << solver.learnt_clauses << endl;
+    cout << "Therefore these are the restricted clauses I have in mind:" << endl << solver.working_clauses << endl;
+  }
   int dimacs_decision = 0;
   while (not dimacs_decision) {
-    cout << "Please input either of:" << endl;
-    cout << " * a literal in dimacs format" << endl;
-    cout << " * an assignment <varname> {0,1}" << endl;
-    cout << " * the keyword 'restart'" << endl;
-    cout << " * the keyword 'forget' and a restricted clause number" << endl;
+    if (not batch) {
+      cout << "Please input either of:" << endl;
+      cout << " * a literal in dimacs format" << endl;
+      cout << " * an assignment <varname> {0,1}" << endl;
+      cout << " * the keyword 'restart'" << endl;
+      cout << " * the keyword 'forget' and a restricted clause number" << endl;
+    }
     string line;
     getline(cin, line);
     if (not cin) {
@@ -37,11 +41,12 @@ cout << "This is the branching sequence so far: " << solver.build_branching_seq(
     auto it = line.begin();
     bool parse = qi::phrase_parse(it, line.end(),
         qi::string("#")[ph::ref(action) = qi::_1]
+      | qi::string("save")[ph::ref(action) = qi::_1] >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(file) = qi::_1]
+      | qi::string("batch")[ph::ref(action) = qi::_1] >> qi::int_[ph::ref(batch) = qi::_1]
       | qi::string("restart")[ph::ref(action) = qi::_1]
       | qi::string("forget")[ph::ref(action) = qi::_1] >> qi::int_[ph::ref(m) = qi::_1]
       | -qi::lit("assign") >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(var) = qi::_1] >> qi::int_[ph::ref(polarity) = qi::_1] >> qi::eps[ph::ref(action) = "assign"]
       | qi::int_[ph::ref(dimacs_decision) = qi::_1] >> qi::eps[ph::ref(action) = "dimacs"]
-      | qi::string("save")[ph::ref(action) = qi::_1] >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(file) = qi::_1]
                                   , qi::space);
     if (not parse) continue;
     if (action=="#") {
@@ -79,6 +84,7 @@ cout << "This is the branching sequence so far: " << solver.build_branching_seq(
       for (const auto& line : history) out << line << endl;
       continue;
     }
+    else if (action == "batch") return solver.decide_plugin(solver);
     else assert(false);
     history.push_back(line);
   }

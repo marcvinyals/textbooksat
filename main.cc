@@ -32,6 +32,8 @@ static argp_option options[] = {
    "to. (default: 1)"},
   {"proof-dag", 'p', "FILE", 0,
    "Output the proof dag to FILE (default: null)"},
+  {"trace", 't', "FILE", 0,
+   "Output the decision sequence to FILE (default: null)"},
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
   { 0 }
@@ -46,6 +48,7 @@ struct arguments {
   bool minimize;
   bool phase_saving;
   string dag;
+  string trace;
   int verbose;
 };
 
@@ -75,6 +78,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 'p':
     arguments->dag = arg;
+    break;
+  case 't':
+    arguments->trace = arg;
     break;
   case 'v':
     arguments->verbose = atoi(arg);
@@ -123,6 +129,12 @@ int main(int argc, char** argv) {
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
   solver.phase_saving = arguments.phase_saving;
+
+  if (not arguments.trace.empty()) {
+    solver.trace = shared_ptr<ostream>(new ofstream(arguments.trace));
+    *solver.trace << "# -*- mode: conf -*-" << endl;
+    *solver.trace << "batch 1" << endl;
+  }
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;
   proof proof = solver.solve(f);

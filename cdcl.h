@@ -10,6 +10,7 @@
 #include <cassert>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 
 #include "data_structures.h"
 #include "formatting.h"
@@ -135,6 +136,8 @@ class cdcl {
   void forget_nothing();
   void forget_everything();
   void forget_wide();
+
+  std::shared_ptr<std::ostream> trace;
   
 private:
   friend class ui;

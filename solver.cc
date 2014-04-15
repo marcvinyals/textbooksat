@@ -45,5 +45,6 @@ proof cdcl_solver::solve(const cnf& f) {
   solver.config_minimize = minimize;
   solver.config_phase_saving = phase_saving;
   solver.config_activity_decay = 1.-1./32.;
+  solver.trace = trace;
   return solver.solve(f);
 }

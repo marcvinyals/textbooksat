@@ -346,6 +346,7 @@ void cdcl::learn() {
   if (config_minimize) minimize(learnt_clause);
   
   LOG(LOG_EFFECTS) << "Learnt: " << learnt_clause << endl;
+  if(trace) *trace << "# learnt:" << learnt_clause << endl;
   clause d = learnt_clause.derivation.front()->c;
   for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {
     d = resolve(d,(*it)->c);
@@ -405,6 +406,7 @@ void cdcl::decide() {
   else {
     LOG(LOG_DECISIONS) << "Deciding " << decision.l <<
       " with activity " << variable_activity[variable(decision.l)] << endl;
+    if(trace) *trace << "assign " << pretty << variable(decision.l) << ' ' << decision.l.polarity() << endl;
     propagation_queue.decide(decision.l);
   }
 }

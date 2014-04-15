@@ -7,7 +7,6 @@
 #include <list>
 #include <algorithm>
 #include <unordered_map>
-#include <sstream>
 #include <cassert>
 #include <iostream>
 #include <iomanip>
@@ -15,8 +14,6 @@
 #include "data_structures.h"
 #include "formatting.h"
 #include "ui.h"
-
-using namespace std;
 
 struct branch {
   literal to;
@@ -31,7 +28,7 @@ struct literal_or_restart {
 };
 
 struct restricted_clause {
-  vector<literal> literals;
+  std::vector<literal> literals;
   const proof_clause* source;
   int satisfied;
   restricted_clause(const proof_clause& c) :
@@ -65,7 +62,7 @@ struct restricted_clause {
     }
   }
 
-  void restrict(const vector<int>& assignment) {
+  void restrict(const std::vector<int>& assignment) {
     literals.erase(remove_if(literals.begin(), literals.end(),
                              [this,&assignment](literal a) {
                                int al = assignment[variable(a)];
@@ -84,7 +81,7 @@ struct restricted_clause {
 };
 
 struct propagation_queue {
-  deque<branch> q;
+  std::deque<branch> q;
   void propagate(const restricted_clause& c) {
     assert(c.unit());
     q.push_back({c.literals.front(),c.source});
@@ -113,9 +110,9 @@ class cdcl {
   
   proof solve(const cnf& f);
 
-  function<literal_or_restart(cdcl&)> decide_plugin;
-  function<proof_clause(cdcl&, const vector<literal>::reverse_iterator&)> learn_plugin;
-  function<bool(const cdcl&, int, int)> variable_order_plugin;
+  std::function<literal_or_restart(cdcl&)> decide_plugin;
+  std::function<proof_clause(cdcl&, const std::vector<literal>::reverse_iterator&)> learn_plugin;
+  std::function<bool(const cdcl&, int, int)> variable_order_plugin;
 
   bool config_backjump;
   bool config_minimize;
@@ -125,10 +122,10 @@ class cdcl {
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
 
-  proof_clause learn_fuip(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_fuip_all(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_luip(const vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_decision(const vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_fuip(const std::vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_fuip_all(const std::vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_luip(const std::vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_decision(const std::vector<literal>::reverse_iterator& first_decision);
 
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
@@ -148,64 +145,64 @@ private:
   void unassign(literal l);
   bool asserting(const proof_clause& c) const;
   void backjump(const proof_clause& learnt_clause,
-                const vector<literal>::reverse_iterator& first_decision,
-                vector<literal>::reverse_iterator& backtrack_limit);
+                const std::vector<literal>::reverse_iterator& first_decision,
+                std::vector<literal>::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
   void bump_activity(const clause& c);
 
-  vector<branch> build_branching_seq() const;
+  std::vector<branch> build_branching_seq() const;
   bool consistent() const;
   
   bool solved; // Done
   const proof_clause* conflict; // Conflict
 
   // Copy of the formula.
-  vector<proof_clause> formula;
+  std::vector<proof_clause> formula;
   // Learnt clauses, in order. We will pointers to proof clauses, so
   // they should not be erased or reallocated.
-  list<proof_clause> learnt_clauses;
+  std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
-  vector<restricted_clause> working_clauses;
+  std::vector<restricted_clause> working_clauses;
 
   // List of unit propagations, in chronological order.
-  vector<literal> branching_seq;
+  std::vector<literal> branching_seq;
   // Reasons for propagation, indexed by literal number. If a
   // propagated literal does not have any reason, then it was
   // decided. It is possible for a literal to have multiple reasons
   // before being propagated; we choose the first as the main reason.
-  vector<list<const proof_clause*>> reasons;
+  std::vector<std::list<const proof_clause*>> reasons;
   // Queue of literals waiting to be unit-propagated.
   struct propagation_queue propagation_queue;
   // Assignment induced by the branching sequence, indexed by variable
   // number. Possible values are 1 (true), -1 (false) or 0
   // (unassigned).
-  vector<int> assignment;
+  std::vector<int> assignment;
 
   // Queue of variables waiting to be decided.
-  typedef function<bool(variable, variable)> variable_cmp;
-  set<variable, variable_cmp> decision_order;
+  typedef std::function<bool(variable, variable)> variable_cmp;
+  std::set<variable, variable_cmp> decision_order;
   // Value a decided variable should be set to, indexed by variable
   // number.
-  vector<bool> decision_polarity;
-  vector<double> variable_activity;
+  std::vector<bool> decision_polarity;
+  std::vector<double> variable_activity;
 };
 
-ostream& operator << (ostream& o, const restricted_clause& c);
-ostream& operator << (ostream& o, const list<proof_clause>& v);
-ostream& operator << (ostream& o, const branch& b);
+std::ostream& operator << (std::ostream& o, const restricted_clause& c);
+std::ostream& operator << (std::ostream& o, const std::list<proof_clause>& v);
+std::ostream& operator << (std::ostream& o, const branch& b);
 
 template<typename T>
-ostream& operator << (ostream& o, const vector<T>& v) {
+std::ostream& operator << (std::ostream& o, const std::vector<T>& v) {
   for (const auto& i:v) o << i;
   return o;
 }
 template<>
-inline ostream& operator << (ostream& o, const vector<restricted_clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
+inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
   return o;
 }
 template<>
-inline ostream& operator << (ostream& o, const vector<clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
+inline std::ostream& operator << (std::ostream& o, const std::vector<clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
   return o;
 }

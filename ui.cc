@@ -10,7 +10,18 @@
 
 using std::cout;
 using std::cin;
+using std::cerr;
 using std::getline;
+using std::endl;
+using std::string;
+
+namespace qi = boost::spirit::qi;
+namespace ph = boost::phoenix;
+using qi::int_;
+using qi::eps;
+using qi::lit;
+using qi::_1;
+using ph::ref;
 
 literal_or_restart ui::get_decision() {
   if (not batch) {
@@ -36,17 +47,16 @@ literal_or_restart ui::get_decision() {
     }
     string action, var, file;
     int m, polarity;
-    namespace qi = boost::spirit::qi;
-    namespace ph = boost::phoenix;
     auto it = line.begin();
+    auto token = qi::as_string[qi::lexeme[+~qi::space]];
     bool parse = qi::phrase_parse(it, line.end(),
-        qi::string("#")[ph::ref(action) = qi::_1]
-      | qi::string("save")[ph::ref(action) = qi::_1] >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(file) = qi::_1]
-      | qi::string("batch")[ph::ref(action) = qi::_1] >> qi::int_[ph::ref(batch) = qi::_1]
-      | qi::string("restart")[ph::ref(action) = qi::_1]
-      | qi::string("forget")[ph::ref(action) = qi::_1] >> qi::int_[ph::ref(m) = qi::_1]
-      | -qi::lit("assign") >> qi::as_string[qi::lexeme[+~qi::space]][ph::ref(var) = qi::_1] >> qi::int_[ph::ref(polarity) = qi::_1] >> qi::eps[ph::ref(action) = "assign"]
-      | qi::int_[ph::ref(dimacs_decision) = qi::_1] >> qi::eps[ph::ref(action) = "dimacs"]
+        qi::string("#")[ph::ref(action) = _1]
+      | qi::string("save")[ph::ref(action) = _1] >> token[ph::ref(file) = _1]
+      | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
+      | qi::string("restart")[ph::ref(action) = _1]
+      | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
+      | -lit("assign") >> token[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
+      | int_[ref(dimacs_decision) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
     if (not parse) continue;
     if (action=="#") {
@@ -80,7 +90,7 @@ literal_or_restart ui::get_decision() {
     }
     else if (action == "dimacs");
     else if (action == "save") {
-      ofstream out(file);
+      std::ofstream out(file);
       for (const auto& line : history) out << line << endl;
       continue;
     }

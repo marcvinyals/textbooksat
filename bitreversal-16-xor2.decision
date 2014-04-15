@@ -1,0 +1,41 @@
+u70 0
+u60 0
+u61 0
+u50 0
+u51 0
+u40 0
+u41 0
+u30 0
+u31 0
+u20 0
+u21 0
+u10 0
+u11 0
+u00 0
+u01 0
+# Setup
+d00 0
+# Learnt u00 u01. Darn! Now u0 is true
+d40 0
+d30 0
+d20 0
+d10 0
+d00 0
+d00 0
+d10 0
+d20 0
+d30 0
+# Learnt u00 u10 u11. Ha! Now u0 is *
+u01 1
+d00 0
+# Learnt ~u00~u01. Oh well u0 is true
+d40 0
+# Learnt ~u10 u11. Darn! Now u1 is true
+d20 0
+# Learnt u10 u20 u21. Ha! Now u1 is *
+u11 1
+d40 0
+d41 0
+u00 0
+u00 0
+# Aargh what's going on?

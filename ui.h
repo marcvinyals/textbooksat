@@ -1,7 +1,13 @@
 #pragma once
 
-#include "cdcl.h"
+#include <string>
+#include <vector>
+
+class cdcl;
+struct literal_or_restart;
 
 struct ui {
-  static literal_or_restart get_decision(cdcl& solver);
+  cdcl& solver;
+  std::vector<std::string> history;
+  literal_or_restart get_decision();
 };

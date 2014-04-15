@@ -389,7 +389,7 @@ literal_or_restart cdcl::decide_fixed() {
 }
 
 literal_or_restart cdcl::decide_ask() {
-  return ui::get_decision(*this);
+  return ui.get_decision();
 }
 
 void cdcl::restart() {

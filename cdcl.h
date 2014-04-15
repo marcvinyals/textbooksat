@@ -14,6 +14,7 @@
 
 #include "data_structures.h"
 #include "formatting.h"
+#include "ui.h"
 
 using namespace std;
 
@@ -108,6 +109,8 @@ struct propagation_queue {
 
 class cdcl {
  public:
+  cdcl() : ui({*this}) {}
+  
   proof solve(const cnf& f);
 
   function<literal_or_restart(cdcl&)> decide_plugin;
@@ -133,6 +136,7 @@ class cdcl {
   
 private:
   friend class ui;
+  class ui ui;
 
   void unit_propagate();
   void learn();

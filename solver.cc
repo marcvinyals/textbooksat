@@ -7,6 +7,7 @@ using namespace std;
 
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
+  pretty.mode = pretty.TERMINAL;
   static cdcl solver;
   if (decide == "ask") {
     solver.decide_plugin = &cdcl::decide_ask;
@@ -31,6 +32,13 @@ proof cdcl_solver::solve(const cnf& f) {
   else if (learn == "decision") solver.learn_plugin = &cdcl::learn_decision;
   else {
     cerr << "Invalid learning scheme" << endl;
+    exit(1);
+  }
+  if (forget == "nothing") solver.forget_plugin = &cdcl::forget_nothing;
+  else if (forget == "everything") solver.forget_plugin = &cdcl::forget_everything;
+  else if (forget == "wide") solver.forget_plugin = &cdcl::forget_wide;
+  else {
+    cerr << "Invalid forgetting scheme" << endl;
     exit(1);
   }
   solver.config_backjump = backjump;

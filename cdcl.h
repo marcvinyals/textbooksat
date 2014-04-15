@@ -113,6 +113,7 @@ class cdcl {
   std::function<literal_or_restart(cdcl&)> decide_plugin;
   std::function<proof_clause(cdcl&, const std::vector<literal>::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
+  std::function<void(cdcl&)> forget_plugin;
 
   bool config_backjump;
   bool config_minimize;
@@ -130,6 +131,10 @@ class cdcl {
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
   bool variable_cmp_reverse(variable, variable) const;
+
+  void forget_nothing();
+  void forget_everything();
+  void forget_wide();
   
 private:
   friend class ui;

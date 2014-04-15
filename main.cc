@@ -13,9 +13,11 @@ static argp_option options[] = {
   {"in", 'i', "FILE", 0,
    "Read formula in dimacs format from FILE (default: stdin)"},
   {"decide", 'd', "{fixed,reverse,vsids,ask}", 0,
-   "Use the specified decision procedure (default: fixed"},
+   "Use the specified decision procedure (default: fixed)"},
   {"learn", 'l', "{1uip,1uip-all,lastuip,decision}", 0,
-   "Use the specified learning schema (default: 1uip"},
+   "Use the specified learning schema (default: 1uip)"},
+  {"forget", 'f', "{nothing,everything,wide}", 0,
+   "Use the specified forgetting schema (default: nothing)"},
   {"backjump", 'b', "BOOL", 0,
    "On a conflict, backtrack deeper than the decision level as long as the "
    "learnt clause is unit (default: 1)\nNote that disabling backjumps may "
@@ -39,6 +41,7 @@ struct arguments {
   string in;
   string decide;
   string learn;
+  string forget;
   bool backjump;
   bool minimize;
   bool phase_saving;
@@ -57,6 +60,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 'l':
     arguments->learn = arg;
+    break;
+  case 'f':
+    arguments->forget = arg;
     break;
   case 'b':
     arguments->backjump = atoi(arg);
@@ -90,6 +96,7 @@ int main(int argc, char** argv) {
   arguments.in = "-";
   arguments.decide = "fixed";
   arguments.learn = "1uip";
+  arguments.forget = "nothing";
   arguments.backjump = true;
   arguments.minimize = false;
   arguments.phase_saving = true;
@@ -112,6 +119,7 @@ int main(int argc, char** argv) {
   cdcl_solver solver;
   solver.decide = arguments.decide;
   solver.learn = arguments.learn;
+  solver.forget = arguments.forget;
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
   solver.phase_saving = arguments.phase_saving;

@@ -1,5 +1,7 @@
 #include "cdcl.h"
 
+#include <unordered_set>
+
 #include "formatting.h"
 #include "color.h"
 #include "log.h"
@@ -55,6 +57,12 @@ bool cdcl::consistent() const {
   return true;
 }
 
+
+
+/*
+ * Main
+ */
+
 proof cdcl::solve(const cnf& f) {
   LOG(LOG_STATE) << f << endl;
   LOG(LOG_ACTIONS) << "Solving a formula with " << f.variables << " variables and " << f.clauses.size() << " clauses" << endl;
@@ -89,6 +97,7 @@ proof cdcl::solve(const cnf& f) {
           LOG(LOG_EFFECTS) << "UNSAT" << endl;
           return {formula,learnt_clauses};
         }
+        forget_plugin(*this);
       }
     }
     decide();
@@ -100,6 +109,12 @@ proof cdcl::solve(const cnf& f) {
   }
   assert(false);
 }
+
+
+
+/*
+ * Assignment management
+ */
 
 void cdcl::unit_propagate() {
   literal l = propagation_queue.front().to;
@@ -158,6 +173,12 @@ void cdcl::unassign(literal l) {
   for (auto& c : working_clauses) c.loosen(l);
   decision_order.insert(variable(l));
 }
+
+
+
+/*
+ * Learning
+ */
 
 bool cdcl::asserting(const proof_clause& c) const {
   restricted_clause d(c);
@@ -368,6 +389,12 @@ void cdcl::learn() {
   conflict = NULL;
 }
 
+
+
+/*
+ * Decision
+ */
+
 void cdcl::decide() {
   if (decision_order.empty()) {
     solved=true;
@@ -406,21 +433,6 @@ void cdcl::restart() {
   }
 }
 
-void cdcl::forget(unsigned int m) {
-  assert (m>=formula.size());
-  assert (m<working_clauses.size());
-  auto& target = working_clauses[m];
-  LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
-  auto branch_seq = build_branching_seq();
-  for (const auto& branch : build_branching_seq()) {
-    if (branch.reason == target.source) {
-      LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
-      return;
-    }
-  }
-  working_clauses.erase(working_clauses.begin()+m);
-}
-
 void cdcl::bump_activity(const clause& c) {
   for (auto& x : variable_activity) x *= config_activity_decay;
   list<int> attach;
@@ -433,4 +445,56 @@ void cdcl::bump_activity(const clause& c) {
     variable_activity[variable(l)] ++;
   }
   decision_order.insert(attach.begin(), attach.end());
+}
+
+
+
+/*
+ * Forgetting
+ */
+
+void cdcl::forget_nothing() {}
+
+void cdcl::forget_wide() {
+  if (working_clauses.back().source->c.width() <= 2) {
+    unordered_set<const proof_clause*> busy;
+    for (auto branch : build_branching_seq()) busy.insert(branch.reason);
+    for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+      if (it->source->c.width() > 2 and busy.count(it->source) == 0) {
+        LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+        it = working_clauses.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+  }
+}
+
+void cdcl::forget_everything() {
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : build_branching_seq()) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    if (busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+      it = working_clauses.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
+}
+
+void cdcl::forget(unsigned int m) {
+  assert (m>=formula.size());
+  assert (m<working_clauses.size());
+  const auto& target = working_clauses[m];
+  LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
+  for (const auto& branch : build_branching_seq()) {
+    if (branch.reason == target.source) {
+      LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
+      return;
+    }
+  }
+  working_clauses.erase(working_clauses.begin()+m);
 }

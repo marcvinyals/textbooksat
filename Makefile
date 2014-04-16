@@ -47,3 +47,5 @@ release/%.o: %.cc $(HEADERS)
 
 satr: release/main.o $(ROBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -O2 -o $@ $+ $(ARGP)
+
+.PHONY : all clean test

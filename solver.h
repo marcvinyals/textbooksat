@@ -12,4 +12,5 @@ struct cdcl_solver {
   std::string decide, learn, forget;
   bool backjump, minimize, phase_saving;
   std::shared_ptr<std::ostream> trace;
+  std::shared_ptr<std::istream> pebbling;
 };

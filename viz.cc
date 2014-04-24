@@ -44,11 +44,11 @@ pebble_viz::pebble_viz(istream& graph) :
   int n = adjacency.size();
 
   gvc = gvContext();
-  g = agopen("pebble", Agstrictdirected, NULL);
-  agattr(g, AGNODE, "style", "filled");
-  agattr(g, AGNODE, "color", "black");
-  agattr(g, AGNODE, "fillcolor", "white");
-  agattr(g, AGNODE, "penwidth", "1");
+  g = agopen(const_cast<char*>("pebble"), Agstrictdirected, NULL);
+  agattr(g, AGNODE, const_cast<char*>("style"), const_cast<char*>("filled"));
+  agattr(g, AGNODE, const_cast<char*>("color"), const_cast<char*>("black"));
+  agattr(g, AGNODE, const_cast<char*>("fillcolor"), const_cast<char*>("white"));
+  agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>("1"));
   nodes.reserve(n);
   for (int u=0; u<n; ++u) {
     char x[10];
@@ -78,7 +78,8 @@ void pebble_viz::draw_assignment(const vector<int>& a) {
     if (true_assignments.count(a_u)) color = "olivedrab1";
     else if (false_assignments.count(a_u)) color = "salmon1";
     else if (a_u != vector<int>({0,0})) color = "grey";
-    agset(nodes[u], "fillcolor", (char*)color.c_str());
+    agset(nodes[u], const_cast<char*>("fillcolor"),
+          const_cast<char*>(color.c_str()));
   }
 }
 
@@ -106,8 +107,10 @@ void pebble_viz::draw_learnt(const vector<restricted_clause>& mem) {
     vector<string> border_map = {"red3", "red1", "black", "green1", "green3"};
     vector<string> border_width = {"3", "2", "1", "2", "3"};
     for (size_t u=0; u<nodes.size(); ++u) {
-      agset(nodes[u], "color", (char*)border_map[truth[u]+2].c_str());    
-      agset(nodes[u], "penwidth", (char*)border_width[truth[u]+2].c_str());    
+      agset(nodes[u], const_cast<char*>("color"),
+            const_cast<char*>(border_map[truth[u]+2].c_str()));    
+      agset(nodes[u], const_cast<char*>("penwidth"),
+            const_cast<char*>(border_width[truth[u]+2].c_str()));
     }
   }
 }

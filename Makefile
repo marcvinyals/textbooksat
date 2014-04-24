@@ -1,12 +1,12 @@
 CXX = g++
-CPPFLAGS = -std=c++0x -Wall -DSTONE_AGE
+CPPFLAGS = -std=c++0x -Wall
 LDFLAGS=
-LIBS = -lgvc -lgraph -lcdt
+GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
+CIMG_LIBS = -lX11 -lpthread
+LIBS = $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc viz.cc
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
-HEADERS = solver.h dimacs.h data_structures.h formatting.h analysis.h log.h ui.h viz.h
-
 
 # argp.h under MacOSX
 ifeq ($(shell uname -s),Darwin)
@@ -23,11 +23,13 @@ LDFLAGS+=-L/opt/gcc/4.8.1 -Wl,-rpath=/opt/gcc/4.8.1/lib64
 endif
 endif
 
-
 all: sat satr
 
-%.o : %.cc $(HEADERS)
+-include $(OBJS:.o=.d)
+
+%.o : %.cc
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
+	$(CXX) $(CPPFLAGS) -MM $< > $*.d
 
 sat: main.o $(OBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(LIBS)

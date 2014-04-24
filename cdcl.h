@@ -115,7 +115,7 @@ class cdcl {
   std::function<proof_clause(cdcl&, const std::vector<literal>::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
   std::function<void(cdcl&)> forget_plugin;
-  std::function<void(const std::vector<int>&)> visualizer_plugin;
+  std::function<void(const std::vector<int>&, const std::vector<restricted_clause>&)> visualizer_plugin;
 
   bool config_backjump;
   bool config_minimize;

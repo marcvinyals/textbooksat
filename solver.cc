@@ -6,7 +6,7 @@
 
 using namespace std;
 
-void visualizer_nothing(const vector<int>) {}
+void visualizer_nothing(const vector<int>&, const vector<restricted_clause>&) {}
 
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
@@ -47,7 +47,9 @@ proof cdcl_solver::solve(const cnf& f) {
   shared_ptr<pebble_viz> vz;
   if (pebbling) {
     vz = shared_ptr<pebble_viz>(new pebble_viz(*pebbling));
-    solver.visualizer_plugin = bind(&pebble_viz::draw_pebbling, ref(*vz), std::placeholders::_1);
+    solver.visualizer_plugin =
+      bind(&pebble_viz::draw, ref(*vz),
+           std::placeholders::_1, std::placeholders::_2);
   }
   else {
     solver.visualizer_plugin = &visualizer_nothing;

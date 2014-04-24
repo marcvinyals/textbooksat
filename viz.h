@@ -2,19 +2,25 @@
 
 #include <istream>
 #include <vector>
+
 #include <CImg.h>
 
 typedef struct Agraph_s Agraph_t;
 typedef struct Agnode_s Agnode_t;
 typedef struct GVC_s GVC_t;
+class restricted_clause;
 
 class pebble_viz {
  public:
   pebble_viz(std::istream& graph);
   ~pebble_viz();
   pebble_viz(const pebble_viz&) = delete;
-  void draw_pebbling(const std::vector<int>& a);
+  void draw(const std::vector<int>& a,
+            const std::vector<restricted_clause>& mem);
  private:
+  void draw_assignment(const std::vector<int>& a);
+  void draw_learnt(const std::vector<restricted_clause>& mem);
+
   std::string tmpfile;
   GVC_t* gvc;
   Agraph_t* g;  

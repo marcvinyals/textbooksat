@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   arguments.minimize = false;
   arguments.phase_saving = true;
   arguments.dag = "";
-  arguments.verbose = LOG_ACTIONS;
+  arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   max_log_level = log_level(arguments.verbose);
   

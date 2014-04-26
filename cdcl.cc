@@ -235,8 +235,6 @@ proof_clause cdcl::learn_fuip_all(const branching_sequence::reverse_iterator& fi
 proof_clause cdcl::learn_fuip(const branching_sequence::reverse_iterator& first_decision) {
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
-  LOG(LOG_STATE) << "Conflict clause " << c << endl;
-  LOG(LOG_STATE) << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = it->to;
     if (not c.c.contains(~l)) continue;
@@ -254,8 +252,6 @@ proof_clause cdcl::learn_fuip(const branching_sequence::reverse_iterator& first_
 proof_clause cdcl::learn_luip(const branching_sequence::reverse_iterator& first_decision) {
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
-  LOG(LOG_STATE) << "Conflict clause " << c << endl;
-  LOG(LOG_STATE) << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
     literal l = it->to;
     if (not c.c.contains(~l)) continue;
@@ -270,8 +266,6 @@ proof_clause cdcl::learn_luip(const branching_sequence::reverse_iterator& first_
 proof_clause cdcl::learn_decision(const branching_sequence::reverse_iterator& first_decision) {
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
-  LOG(LOG_STATE) << "Conflict clause " << c << endl;
-  LOG(LOG_STATE) << "Assignment " << assignment << endl;
   for (auto it = branching_seq.rbegin(); it!=branching_seq.rend(); ++it) {
     literal l = it->to;
     if (reasons[l.l].empty()) continue;
@@ -319,12 +313,12 @@ void cdcl::backjump(const proof_clause& learnt_clause,
   // But always backtrack to a decision
   while(backtrack_limit.base()->reason) --backtrack_limit;
 
-  LOG(LOG_ACTIONS) << "Backjump: ";
+  LOG(LOG_STATE_SUMMARY) << "Backjump: ";
   for (auto it=branching_seq.begin(); it!=branching_seq.end(); ++it) {
-    LOG(LOG_ACTIONS) << *it;
-    if (it == backtrack_limit.base()) LOG(LOG_ACTIONS) << "|   ";
+    LOG(LOG_STATE_SUMMARY) << *it;
+    if (it == backtrack_limit.base()) LOG(LOG_STATE_SUMMARY) << "|   ";
   }
-  LOG(LOG_ACTIONS) << endl;
+  LOG(LOG_STATE_SUMMARY) << endl;
   
   // Actually backtrack
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
@@ -333,6 +327,8 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 }
 
 void cdcl::learn() {
+  LOG(LOG_STATE_SUMMARY) << "Conflict clause " << *conflict << endl;
+  LOG(LOG_STATE) << "Assignment " << assignment << endl;
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // Backtrack to first decision level.
   auto first_decision = branching_seq.rbegin();
@@ -340,7 +336,6 @@ void cdcl::learn() {
     unassign(first_decision->to);
     if (not first_decision->reason) break;
   }
-  LOG(LOG_STATE) << "Branching " << branching_seq << endl;
 
   // If there is no decision on the stack, the formula is unsat.
   if (first_decision == branching_seq.rend()) solved = true;

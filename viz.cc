@@ -38,8 +38,16 @@ vector<vector<int>> parse_kth(istream& in) {
   return g;
 }
 
-pebble_viz::pebble_viz(istream& graph) :
+pebble_viz::pebble_viz(istream& graph, int arity) :
+  arity(arity),
   tmpfile(tmpnam(nullptr)) {
+  for (int m=0; m<(1<<arity); ++m) {
+    vector<int> a(arity);
+    for (int i=0; i<arity; ++i) a[i]=(m&(1<<i)?1:-1);
+    if (__builtin_popcount(m)&1) true_assignments.insert(a);
+    else false_assignments.insert(a);
+  }
+
   vector<vector<int>> adjacency = parse_kth(graph);
   int n = adjacency.size();
 
@@ -68,16 +76,13 @@ pebble_viz::~pebble_viz() {
   unlink(tmpfile.c_str());
 }
 
-set<vector<int>> true_assignments({{1,-1},{-1,1}});
-set<vector<int>> false_assignments({{1,1},{-1,-1}});
-
 void pebble_viz::draw_assignment(const vector<int>& a) {
   for (size_t u=0; u<nodes.size(); ++u) {
-    vector<int> a_u({a[2*u],a[2*u+1]});
+    vector<int> a_u(a.begin()+arity*u, a.begin()+arity*(u+1));
     string color = "white";
     if (true_assignments.count(a_u)) color = "olivedrab1";
     else if (false_assignments.count(a_u)) color = "salmon1";
-    else if (a_u != vector<int>({0,0})) color = "grey";
+    else if (a_u != vector<int>(arity,0)) color = "grey";
     agset(nodes[u], const_cast<char*>("fillcolor"),
           const_cast<char*>(color.c_str()));
   }
@@ -90,27 +95,29 @@ void pebble_viz::draw_learnt(const vector<restricted_clause>& mem) {
     vector<int> truth(nodes.size());
     for (const restricted_clause r : mem) {
       const clause& c = r.source->c;
-      if (c.width() == 2) {
-        auto it = c.begin();
-        literal l1 = *it;
-        variable x = variable(l1);
-        ++it;
-        literal l2 = *it;
-        if (x/2 == variable(l2)/2) {
-          vector<int> polarities({l1.polarity()*2-1, l2.polarity()*2-1});
-          string border = "black";
-          if (true_assignments.count(polarities)) truth[x/2]--;
-          else if (false_assignments.count(polarities)) truth[x/2]++;
+      if (c.width() == arity) {
+        vector<int> forbidden;
+        int u = variable(*c.begin())/arity;
+        for (literal l : c) {
+          if (variable(l)/arity !=u) goto nonuniform;
+          forbidden.push_back(1-l.polarity()*2);
         }
+        if (true_assignments.count(forbidden)) truth[u]--;
+        else if (false_assignments.count(forbidden)) truth[u]++;
+      nonuniform:;
       }
     }
     vector<string> border_map = {"red3", "red1", "black", "green1", "green3"};
-    vector<string> border_width = {"3", "2", "1", "2", "3"};
     for (size_t u=0; u<nodes.size(); ++u) {
+      int tcap = truth[u];
+      tcap = min(tcap,2);
+      tcap = max(tcap,-2);
       agset(nodes[u], const_cast<char*>("color"),
-            const_cast<char*>(border_map[truth[u]+2].c_str()));    
+            const_cast<char*>(border_map[tcap+2].c_str()));
+      stringstream penwidth;
+      penwidth << abs(truth[u]);
       agset(nodes[u], const_cast<char*>("penwidth"),
-            const_cast<char*>(border_width[truth[u]+2].c_str()));
+            const_cast<char*>(penwidth.str().c_str()));
     }
   }
 }

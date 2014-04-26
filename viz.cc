@@ -1,0 +1,136 @@
+#include "viz.h"
+
+#include <cassert>
+#include <set>
+#include <sstream>
+
+#include <graphviz/gvc.h>
+
+#include "cdcl.h"
+
+using namespace std;
+using namespace cimg_library;
+
+vector<vector<int>> parse_kth(istream& in) {
+  int n;
+  in >> n;
+  string s;
+  getline(in,s);
+  vector<vector<int>> g(n);
+  for(auto &u:g) {
+    getline(in, s);
+    stringstream ss(s);
+    int uu;
+    char c;
+    ss >> uu >> c;
+    uu--;
+    assert(uu>=0);
+    assert(uu<n);
+    assert (c==':');
+    int v;
+    while(ss >> v) {
+      v--;
+      assert(v>=0);
+      assert(v<uu);
+      u.push_back(v);
+    }
+  }
+  return g;
+}
+
+pebble_viz::pebble_viz(istream& graph, int arity) :
+  arity(arity),
+  tmpfile(tmpnam(nullptr)) {
+  for (int m=0; m<(1<<arity); ++m) {
+    vector<int> a(arity);
+    for (int i=0; i<arity; ++i) a[i]=(m&(1<<i)?1:-1);
+    if (__builtin_popcount(m)&1) true_assignments.insert(a);
+    else false_assignments.insert(a);
+  }
+
+  vector<vector<int>> adjacency = parse_kth(graph);
+  int n = adjacency.size();
+
+  gvc = gvContext();
+  g = agopen(const_cast<char*>("pebble"), Agstrictdirected, NULL);
+  agattr(g, AGNODE, const_cast<char*>("style"), const_cast<char*>("filled"));
+  agattr(g, AGNODE, const_cast<char*>("color"), const_cast<char*>("black"));
+  agattr(g, AGNODE, const_cast<char*>("fillcolor"), const_cast<char*>("white"));
+  agattr(g, AGNODE, const_cast<char*>("penwidth"), const_cast<char*>("1"));
+  nodes.reserve(n);
+  for (int u=0; u<n; ++u) {
+    char x[10];
+    snprintf(x, 10, "%d", u+1);
+    nodes.push_back(agnode(g, x, TRUE));
+  }
+  for (int u=0; u<n; ++u) {
+    for (int v : adjacency[u]) {
+      agedge(g, nodes[u], nodes[v], NULL, TRUE);
+    }
+  }
+}
+
+pebble_viz::~pebble_viz() {
+  agclose(g);
+  gvFreeContext(gvc);
+  unlink(tmpfile.c_str());
+}
+
+void pebble_viz::draw_assignment(const vector<int>& a) {
+  for (size_t u=0; u<nodes.size(); ++u) {
+    vector<int> a_u(a.begin()+arity*u, a.begin()+arity*(u+1));
+    string color = "white";
+    if (true_assignments.count(a_u)) color = "olivedrab1";
+    else if (false_assignments.count(a_u)) color = "salmon1";
+    else if (a_u != vector<int>(arity,0)) color = "grey";
+    agset(nodes[u], const_cast<char*>("fillcolor"),
+          const_cast<char*>(color.c_str()));
+  }
+}
+
+void pebble_viz::draw_learnt(const vector<restricted_clause>& mem) {
+  static size_t lastcfgsz = 0;
+  if (mem.size() != lastcfgsz) {
+    lastcfgsz = mem.size();
+    vector<int> truth(nodes.size());
+    for (const restricted_clause r : mem) {
+      const clause& c = r.source->c;
+      if (c.width() == arity) {
+        vector<int> forbidden;
+        int u = variable(*c.begin())/arity;
+        for (literal l : c) {
+          if (variable(l)/arity !=u) goto nonuniform;
+          forbidden.push_back(1-l.polarity()*2);
+        }
+        if (true_assignments.count(forbidden)) truth[u]--;
+        else if (false_assignments.count(forbidden)) truth[u]++;
+      nonuniform:;
+      }
+    }
+    vector<string> border_map = {"red3", "red1", "black", "green1", "green3"};
+    for (size_t u=0; u<nodes.size(); ++u) {
+      int tcap = truth[u];
+      tcap = min(tcap,2);
+      tcap = max(tcap,-2);
+      agset(nodes[u], const_cast<char*>("color"),
+            const_cast<char*>(border_map[tcap+2].c_str()));
+      stringstream penwidth;
+      penwidth << abs(truth[u]);
+      agset(nodes[u], const_cast<char*>("penwidth"),
+            const_cast<char*>(penwidth.str().c_str()));
+    }
+  }
+}
+
+void pebble_viz::draw(const vector<int>& a,
+                      const vector<restricted_clause>& mem) {
+  draw_assignment(a);
+  draw_learnt(mem);
+  
+  gvLayout(gvc, g, "dot");
+  gvRenderFilename (gvc, g, "png", tmpfile.c_str());
+  gvFreeLayout(gvc, g);
+
+  CImg<unsigned char> image(tmpfile.c_str());
+  display.display(image);
+}

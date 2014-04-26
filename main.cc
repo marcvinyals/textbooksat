@@ -34,6 +34,8 @@ static argp_option options[] = {
    "Output the proof dag to FILE (default: null)"},
   {"trace", 't', "FILE", 0,
    "Output the decision sequence to FILE (default: null)"},
+  {"pebbling-graph", 1, "FILE", 0,
+   "Visualize pebbling from FILE (default: null)"},
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
   { 0 }
@@ -49,6 +51,7 @@ struct arguments {
   bool phase_saving;
   string dag;
   string trace;
+  string pebbling_graph;
   int verbose;
 };
 
@@ -81,6 +84,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 't':
     arguments->trace = arg;
+    break;
+  case 1:
+    arguments->pebbling_graph = arg;
     break;
   case 'v':
     arguments->verbose = atoi(arg);
@@ -134,6 +140,10 @@ int main(int argc, char** argv) {
     solver.trace = shared_ptr<ostream>(new ofstream(arguments.trace));
     *solver.trace << "# -*- mode: conf -*-" << endl;
     *solver.trace << "batch 1" << endl;
+  }
+
+  if (not arguments.pebbling_graph.empty()) {
+    solver.pebbling = shared_ptr<istream>(new ifstream(arguments.pebbling_graph));
   }
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;

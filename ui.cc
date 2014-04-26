@@ -23,22 +23,29 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
-literal_or_restart ui::get_decision() {
+void ui::show_state() {
+  cout << "Branching sequence: " << solver.branching_seq << endl;
+  cout << "Learnt clauses:" << endl << solver.learnt_clauses << endl;
+  cout << "Restricted clauses:" << endl << solver.working_clauses << endl;
+
+}
+
+void ui::usage() {
   if (not batch) {
-    cout << "Good day oracle, would you mind giving me some advice?" << endl;
-    cout << "This is the branching sequence so far: " << solver.branching_seq << endl;
-    cout << "I learned the following clauses:" << endl << solver.learnt_clauses << endl;
-    cout << "Therefore these are the restricted clauses I have in mind:" << endl << solver.working_clauses << endl;
+    cout << "Please input either of:" << endl;
+    cout << " * <literal in dimacs format>" << endl;
+    cout << " * [assign] <varname> {0,1}" << endl;
+    cout << " * restart" << endl;
+    cout << " * forget <restricted clause number>" << endl;
+    cout << " * state" << endl;
+    cout << " * save <file>" << endl;
+    cout << " * batch {0,1}" << endl;
   }
+}
+
+literal_or_restart ui::get_decision() {
   int dimacs_decision = 0;
   while (not dimacs_decision) {
-    if (not batch) {
-      cout << "Please input either of:" << endl;
-      cout << " * a literal in dimacs format" << endl;
-      cout << " * an assignment <varname> {0,1}" << endl;
-      cout << " * the keyword 'restart'" << endl;
-      cout << " * the keyword 'forget' and a restricted clause number" << endl;
-    }
     string line;
     getline(cin, line);
     if (not cin) {
@@ -51,6 +58,7 @@ literal_or_restart ui::get_decision() {
     auto token = qi::as_string[qi::lexeme[+~qi::space]];
     bool parse = qi::phrase_parse(it, line.end(),
         qi::string("#")[ph::ref(action) = _1]
+      | qi::string("state")[ph::ref(action) = _1]
       | qi::string("save")[ph::ref(action) = _1] >> token[ph::ref(file) = _1]
       | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
       | qi::string("restart")[ph::ref(action) = _1]
@@ -58,12 +66,16 @@ literal_or_restart ui::get_decision() {
       | -lit("assign") >> token[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
       | int_[ref(dimacs_decision) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
-    if (not parse) continue;
+    if (not parse) {usage(); continue;}
     if (action=="#") {
       history.push_back(line);
       continue;
     }
-    if (it != line.end()) continue;
+    if (it != line.end()) {usage(); continue;}
+    if (action=="state") {
+      show_state();
+      continue;
+    }
     if (action=="restart") {
       history.push_back(line);
       return true;

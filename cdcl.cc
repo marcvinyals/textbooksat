@@ -17,7 +17,9 @@ ostream& operator << (ostream& o, const branch& b) {
   return o << pretty << variable(b.to) << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
 ostream& operator << (ostream& o, const restricted_clause& c) {
+  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;
+  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
   return o;
 }
 

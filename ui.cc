@@ -95,9 +95,15 @@ literal_or_restart ui::get_decision() {
     }
     else if (action == "assign") {
       auto it= pretty.name_variables.find(var);
-      if (it == pretty.name_variables.end()) continue;
+      if (it == pretty.name_variables.end()) {
+        cerr << "Variable not found" << endl;
+        continue;
+      }
       polarity = polarity*2-1;
-      if (abs(polarity)>1) continue;
+      if (abs(polarity)>1) {
+        cerr << "Polarity should be 0 or 1" << endl;
+        continue;
+      }
       dimacs_decision = polarity*( it->second + 1 );
     }
     else if (action == "dimacs");
@@ -110,5 +116,15 @@ literal_or_restart ui::get_decision() {
     else assert(false);
     history.push_back(line);
   }
-  return from_dimacs(dimacs_decision);
+  literal l = from_dimacs(dimacs_decision);
+  variable x(l);
+  if (x >= solver.assignment.size()) {
+    cerr << "Variable not found" << endl;
+    return get_decision();
+  }
+  if (solver.assignment[x]) {
+    cerr << "Refusing to decide an assigned variable" << endl;
+    return get_decision();
+  }
+  return l;
 }

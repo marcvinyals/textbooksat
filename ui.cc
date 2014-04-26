@@ -28,7 +28,7 @@ literal_or_restart ui::get_decision() {
     cout << "Good day oracle, would you mind giving me some advice?" << endl;
     cout << "This is the branching sequence so far: " << solver.branching_seq << endl;
     cout << "I learned the following clauses:" << endl << solver.learnt_clauses << endl;
-    //    cout << "Therefore these are the restricted clauses I have in mind:" << endl << solver.working_clauses << endl;
+    cout << "Therefore these are the restricted clauses I have in mind:" << endl << solver.working_clauses << endl;
   }
   int dimacs_decision = 0;
   while (not dimacs_decision) {

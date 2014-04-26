@@ -112,10 +112,14 @@ proof cdcl::solve(const cnf& f) {
 
 void cdcl::unit_propagate() {
   literal l = propagation_queue.front().to;
-  LOG(LOG_ACTIONS) << "Unit propagating " << l;
-  if (propagation_queue.front().reason)
+  if (propagation_queue.front().reason) {
+    LOG(LOG_ACTIONS) << "Unit propagating " << l;
     LOG(LOG_ACTIONS) << " because of " << *propagation_queue.front().reason;
-  LOG(LOG_ACTIONS) << endl;
+    LOG(LOG_ACTIONS) << endl;
+  }
+  else {
+    LOG(LOG_DETAIL) << "Unit propagating " << l;
+  }
 
   auto& al = assignment[variable(l)];
   if (propagation_queue.front().reason)
@@ -314,6 +318,13 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 
   // But always backtrack to a decision
   while(backtrack_limit.base()->reason) --backtrack_limit;
+
+  LOG(LOG_ACTIONS) << "Backjump: ";
+  for (auto it=branching_seq.begin(); it!=branching_seq.end(); ++it) {
+    LOG(LOG_ACTIONS) << *it;
+    if (it == backtrack_limit.base()) LOG(LOG_ACTIONS) << "|   ";
+  }
+  LOG(LOG_ACTIONS) << endl;
   
   // Actually backtrack
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
@@ -339,8 +350,8 @@ void cdcl::learn() {
   proof_clause& learnt_clause = learnt_clauses.back();
 
   if (config_minimize) minimize(learnt_clause);
-  
-  LOG(LOG_EFFECTS) << "Learnt: " << learnt_clause << endl;
+
+  LOG(LOG_EFFECTS) << Color::Modifier(Color::FG_GREEN) << "Learnt: " << Color::Modifier(Color::FG_DEFAULT) << learnt_clause << endl;
   if(trace) *trace << "# learnt:" << learnt_clause << endl;
   clause d = learnt_clause.derivation.front()->c;
   for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {

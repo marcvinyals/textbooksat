@@ -1,6 +1,8 @@
 #include <ostream>
 namespace Color {
     enum Code {
+        TY_BOLD     = 1,
+        TY_DEFAULT  = 0,
         FG_RED      = 31,
         FG_GREEN    = 32,
         FG_BLUE     = 34,

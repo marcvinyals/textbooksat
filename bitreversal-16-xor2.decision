@@ -35,7 +35,24 @@ d20 0
 # Learnt u10 u20 u21. Ha! Now u1 is *
 u11 1
 d40 0
+d41 1
+u00 0
 d41 0
 u00 0
-u00 0
-# Aargh what's going on?
+# Learnt ~u10~u11. Oh well u1 is true
+d20 0
+# Learnt u20 u21. Darn! Now u2 is true
+d60 0
+d50 0
+d40 0
+d40 0
+d50 0
+# Learnt u20 u30 u31. Ha! Now u2 is *
+u21 1
+d20 0
+d21 1
+u10 0
+d21 1
+# Learnt ~d20~d21
+u10 0
+# Learnt ~u20~u21. Oh well u2 is true

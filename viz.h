@@ -21,6 +21,7 @@ class pebble_viz {
  private:
   void draw_assignment(const std::vector<int>& a);
   void draw_learnt(const std::vector<restricted_clause>& mem);
+  void render();
 
   int arity;
   std::set<std::vector<int>> true_assignments;

@@ -5,6 +5,7 @@ enum log_level {
   LOG_EFFECTS,
   LOG_DECISIONS,
   LOG_ACTIONS,
+  LOG_STATE_SUMMARY,
   LOG_STATE,
   LOG_DETAIL,
 };

@@ -462,20 +462,23 @@ void cdcl::bump_activity(const clause& c) {
 
 void cdcl::forget_nothing() {}
 
-void cdcl::forget_wide() {
-  if (working_clauses.back().source->c.width() <= 2) {
-    unordered_set<const proof_clause*> busy;
-    for (auto branch : branching_seq) busy.insert(branch.reason);
-    for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-      if (it->source->c.width() > 2 and busy.count(it->source) == 0) {
-        LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-        it = working_clauses.erase(it);
-      }
-      else {
-        ++it;
-      }
+// Forget clauses wider than w
+void cdcl::forget_wide(int w) {
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : branching_seq) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    if (it->source->c.width() > w and busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+      it = working_clauses.erase(it);
+    }
+    else {
+      ++it;
     }
   }
+}
+
+void cdcl::forget_wide() {
+  if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
 }
 
 void cdcl::forget_everything() {

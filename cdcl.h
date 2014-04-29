@@ -138,6 +138,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   void forget_nothing();
   void forget_everything();
   void forget_wide();
+  void forget_wide(int w);
 
   std::shared_ptr<std::ostream> trace;
   

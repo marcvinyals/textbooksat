@@ -1,6 +1,8 @@
 #include <ostream>
 namespace Color {
     enum Code {
+        DEFAULT  = 0,
+        TY_BOLD     = 1,
         FG_RED      = 31,
         FG_GREEN    = 32,
         FG_BLUE     = 34,
@@ -8,7 +10,8 @@ namespace Color {
         BG_RED      = 41,
         BG_GREEN    = 42,
         BG_BLUE     = 44,
-        BG_DEFAULT  = 49
+        BG_DEFAULT  = 49,
+        TY_CROSSED = 9,
     };
     class Modifier {
         Code code;

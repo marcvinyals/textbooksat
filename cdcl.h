@@ -104,6 +104,7 @@ struct propagation_queue {
   }
 };
 
+typedef std::vector<branch> branching_sequence;
 
 class cdcl {
  public:
@@ -112,7 +113,7 @@ class cdcl {
   proof solve(const cnf& f);
 
   std::function<literal_or_restart(cdcl&)> decide_plugin;
-  std::function<proof_clause(cdcl&, const std::vector<literal>::reverse_iterator&)> learn_plugin;
+std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
   std::function<void(cdcl&)> forget_plugin;
   std::function<void(const std::vector<int>&, const std::vector<restricted_clause>&)> visualizer_plugin;
@@ -125,10 +126,10 @@ class cdcl {
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
 
-  proof_clause learn_fuip(const std::vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_fuip_all(const std::vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_luip(const std::vector<literal>::reverse_iterator& first_decision);
-  proof_clause learn_decision(const std::vector<literal>::reverse_iterator& first_decision);
+  proof_clause learn_fuip(const branching_sequence::reverse_iterator& first_decision);
+  proof_clause learn_fuip_all(const branching_sequence::reverse_iterator& first_decision);
+  proof_clause learn_luip(const branching_sequence::reverse_iterator& first_decision);
+  proof_clause learn_decision(const branching_sequence::reverse_iterator& first_decision);
 
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
@@ -154,12 +155,11 @@ private:
   void unassign(literal l);
   bool asserting(const proof_clause& c) const;
   void backjump(const proof_clause& learnt_clause,
-                const std::vector<literal>::reverse_iterator& first_decision,
-                std::vector<literal>::reverse_iterator& backtrack_limit);
+                const branching_sequence::reverse_iterator& first_decision,
+                branching_sequence::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
   void bump_activity(const clause& c);
 
-  std::vector<branch> build_branching_seq() const;
   bool consistent() const;
   
   bool solved; // Done
@@ -174,7 +174,7 @@ private:
   std::vector<restricted_clause> working_clauses;
 
   // List of unit propagations, in chronological order.
-  std::vector<literal> branching_seq;
+  std::vector<branch> branching_seq;
   // Reasons for propagation, indexed by literal number. If a
   // propagated literal does not have any reason, then it was
   // decided. It is possible for a literal to have multiple reasons

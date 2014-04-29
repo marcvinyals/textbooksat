@@ -87,7 +87,6 @@ proof cdcl::solve(const cnf& f) {
     assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
-      visualizer_plugin(assignment, working_clauses);
       if (conflict) {
         learn();
         visualizer_plugin(assignment, working_clauses);
@@ -98,6 +97,7 @@ proof cdcl::solve(const cnf& f) {
         forget_plugin(*this);
       }
     }
+    visualizer_plugin(assignment, working_clauses);
     decide();
     if (solved) {
       LOG(LOG_EFFECTS) << "This is a satisfying assignment:" << endl << assignment << endl;

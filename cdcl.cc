@@ -319,10 +319,12 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 
   LOG(LOG_STATE_SUMMARY) << "Backjump: ";
   for (auto it=branching_seq.begin(); it!=branching_seq.end(); ++it) {
+    if (it == backtrack_limit.base()) {
+      LOG(LOG_STATE_SUMMARY) << "|   " << Color::Modifier(Color::TY_FAINT);
+    }
     LOG(LOG_STATE_SUMMARY) << *it;
-    if (it == backtrack_limit.base()) LOG(LOG_STATE_SUMMARY) << "|   ";
   }
-  LOG(LOG_STATE_SUMMARY) << endl;
+  LOG(LOG_STATE_SUMMARY) << Color::Modifier(Color::DEFAULT) << endl;
   
   // Actually backtrack
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {

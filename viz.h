@@ -13,7 +13,7 @@ class restricted_clause;
 
 class pebble_viz {
  public:
-  pebble_viz(std::istream& graph, int arity);
+  pebble_viz(std::istream& graph, std::string fn, int arity);
   ~pebble_viz();
   pebble_viz(const pebble_viz&) = delete;
   void draw(const std::vector<int>& a,
@@ -21,6 +21,7 @@ class pebble_viz {
  private:
   void draw_assignment(const std::vector<int>& a);
   void draw_learnt(const std::vector<restricted_clause>& mem);
+  void render();
 
   int arity;
   std::set<std::vector<int>> true_assignments;

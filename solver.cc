@@ -41,15 +41,13 @@ proof cdcl_solver::solve(const cnf& f) {
   }
   if (forget == "nothing") solver.forget_plugin = &cdcl::forget_nothing;
   else if (forget == "everything") solver.forget_plugin = &cdcl::forget_everything;
-  else if (forget == "wide") solver.forget_plugin = &cdcl::forget_wide;
+  else if (forget == "wide") solver.forget_plugin = static_cast<void (cdcl::*)(void)>(&cdcl::forget_wide);
   else {
     cerr << "Invalid forgetting scheme" << endl;
     exit(1);
   }
 #ifndef NO_VIZ
-  shared_ptr<pebble_viz> vz;
-  if (pebbling) {
-    vz = shared_ptr<pebble_viz>(new pebble_viz(*pebbling, 2));
+  if (vz) {
     solver.visualizer_plugin =
       bind(&pebble_viz::draw, ref(*vz),
            std::placeholders::_1, std::placeholders::_2);

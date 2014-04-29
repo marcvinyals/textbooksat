@@ -138,6 +138,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   void forget_nothing();
   void forget_everything();
   void forget_wide();
+  void forget_wide(int w);
 
   std::shared_ptr<std::ostream> trace;
   
@@ -203,11 +204,6 @@ std::ostream& operator << (std::ostream& o, const branch& b);
 template<typename T>
 std::ostream& operator << (std::ostream& o, const std::vector<T>& v) {
   for (const auto& i:v) o << i;
-  return o;
-}
-template<>
-inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
   return o;
 }
 template<>

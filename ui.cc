@@ -1,7 +1,9 @@
 #include "ui.h"
 
+#include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
@@ -23,6 +25,20 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
+template<>
+inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) {
+    o << std::setw(5) << i << ":";
+    if (v[i].satisfied) o << std::setw(35+8);
+    else o << std::setw(35);
+    std::stringstream ss;
+    ss << v[i];
+    o << ss.str();
+    o << " | " << v[i].source->c << std::endl;
+  }
+  return o;
+}
+
 void ui::show_state() {
   cout << "Branching sequence: " << solver.branching_seq << endl;
   cout << "Learnt clauses:" << endl << solver.learnt_clauses << endl;
@@ -37,6 +53,7 @@ void ui::usage() {
     cout << " * [assign] <varname> {0,1}" << endl;
     cout << " * restart" << endl;
     cout << " * forget <restricted clause number>" << endl;
+    cout << " * forget wide <width>" << endl;
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
     cout << " * batch {0,1}" << endl;
@@ -53,7 +70,7 @@ literal_or_restart ui::get_decision() {
       exit(1);
     }
     string action, var, file;
-    int m, polarity;
+    int m, polarity, w = 2;
     auto it = line.begin();
     auto token = qi::as_string[qi::lexeme[+~qi::space]];
     bool parse = qi::phrase_parse(it, line.end(),
@@ -63,6 +80,7 @@ literal_or_restart ui::get_decision() {
       | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
       | qi::string("restart")[ph::ref(action) = _1]
       | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
+      | qi::string("forget wide")[ph::ref(action) = _1] >> -int_[ref(w) = _1]
       | -lit("assign") >> token[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
       | int_[ref(dimacs_decision) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
@@ -91,6 +109,11 @@ literal_or_restart ui::get_decision() {
       }
       history.push_back(line);
       solver.forget(m);
+      return solver.decide_plugin(solver);
+    }
+    else if (action=="forget wide") {
+      history.push_back(line);
+      solver.forget_wide(w);
       return solver.decide_plugin(solver);
     }
     else if (action == "assign") {

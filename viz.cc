@@ -38,13 +38,21 @@ vector<vector<int>> parse_kth(istream& in) {
   return g;
 }
 
-pebble_viz::pebble_viz(istream& graph, int arity) :
+pebble_viz::pebble_viz(istream& graph, string fn, int arity) :
   arity(arity),
   tmpfile(tmpnam(nullptr)) {
   for (int m=0; m<(1<<arity); ++m) {
     vector<int> a(arity);
     for (int i=0; i<arity; ++i) a[i]=(m&(1<<i)?1:-1);
-    if (__builtin_popcount(m)&1) true_assignments.insert(a);
+    bool is_true;
+    if (fn == "xor") {
+      is_true = (__builtin_popcount(m)&1);
+    }
+    else {
+      cerr << "Invalid substitution function" << endl;
+      exit(1);
+    }
+    if (is_true) true_assignments.insert(a);
     else false_assignments.insert(a);
   }
 
@@ -53,6 +61,7 @@ pebble_viz::pebble_viz(istream& graph, int arity) :
 
   gvc = gvContext();
   g = agopen(const_cast<char*>("pebble"), Agstrictdirected, NULL);
+  agattr(g, AGRAPH, const_cast<char*>("rankdir"), const_cast<char*>("LR"));
   agattr(g, AGNODE, const_cast<char*>("style"), const_cast<char*>("filled"));
   agattr(g, AGNODE, const_cast<char*>("color"), const_cast<char*>("black"));
   agattr(g, AGNODE, const_cast<char*>("fillcolor"), const_cast<char*>("white"));
@@ -65,12 +74,15 @@ pebble_viz::pebble_viz(istream& graph, int arity) :
   }
   for (int u=0; u<n; ++u) {
     for (int v : adjacency[u]) {
-      agedge(g, nodes[u], nodes[v], NULL, TRUE);
+      agedge(g, nodes[v], nodes[u], NULL, TRUE);
     }
   }
+  gvLayout(gvc, g, "dot");
+  render();
 }
 
 pebble_viz::~pebble_viz() {
+  gvFreeLayout(gvc, g);
   agclose(g);
   gvFreeContext(gvc);
   unlink(tmpfile.c_str());
@@ -122,15 +134,16 @@ void pebble_viz::draw_learnt(const vector<restricted_clause>& mem) {
   }
 }
 
+void pebble_viz::render() {
+  gvRenderFilename (gvc, g, "bmp", tmpfile.c_str());
+  CImg<unsigned char> image(tmpfile.c_str());
+  display.display(image);
+  usleep(100000);
+}
+
 void pebble_viz::draw(const vector<int>& a,
                       const vector<restricted_clause>& mem) {
   draw_assignment(a);
   draw_learnt(mem);
-  
-  gvLayout(gvc, g, "dot");
-  gvRenderFilename (gvc, g, "png", tmpfile.c_str());
-  gvFreeLayout(gvc, g);
-
-  CImg<unsigned char> image(tmpfile.c_str());
-  display.display(image);
+  render();
 }

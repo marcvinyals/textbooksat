@@ -87,7 +87,6 @@ proof cdcl::solve(const cnf& f) {
     assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
-      visualizer_plugin(assignment, working_clauses);
       if (conflict) {
         learn();
         visualizer_plugin(assignment, working_clauses);
@@ -98,6 +97,7 @@ proof cdcl::solve(const cnf& f) {
         forget_plugin(*this);
       }
     }
+    visualizer_plugin(assignment, working_clauses);
     decide();
     if (solved) {
       LOG(LOG_EFFECTS) << "This is a satisfying assignment:" << endl << assignment << endl;
@@ -138,7 +138,7 @@ void cdcl::unit_propagate() {
 
   branching_seq.push_back(propagation_queue.front());
   propagation_queue.pop();
-  LOG(LOG_STATE) << "Branching " << branching_seq << endl;
+  LOG(LOG_STATE_SUMMARY) << "Branching " << branching_seq << endl;
 
   assign(l);
 }
@@ -319,10 +319,12 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 
   LOG(LOG_STATE_SUMMARY) << "Backjump: ";
   for (auto it=branching_seq.begin(); it!=branching_seq.end(); ++it) {
+    if (it == backtrack_limit.base()) {
+      LOG(LOG_STATE_SUMMARY) << "|   " << Color::Modifier(Color::TY_FAINT);
+    }
     LOG(LOG_STATE_SUMMARY) << *it;
-    if (it == backtrack_limit.base()) LOG(LOG_STATE_SUMMARY) << "|   ";
   }
-  LOG(LOG_STATE_SUMMARY) << endl;
+  LOG(LOG_STATE_SUMMARY) << Color::Modifier(Color::DEFAULT) << endl;
   
   // Actually backtrack
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
@@ -462,20 +464,23 @@ void cdcl::bump_activity(const clause& c) {
 
 void cdcl::forget_nothing() {}
 
-void cdcl::forget_wide() {
-  if (working_clauses.back().source->c.width() <= 2) {
-    unordered_set<const proof_clause*> busy;
-    for (auto branch : branching_seq) busy.insert(branch.reason);
-    for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-      if (it->source->c.width() > 2 and busy.count(it->source) == 0) {
-        LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-        it = working_clauses.erase(it);
-      }
-      else {
-        ++it;
-      }
+// Forget clauses wider than w
+void cdcl::forget_wide(int w) {
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : branching_seq) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    if (it->source->c.width() > w and busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+      it = working_clauses.erase(it);
+    }
+    else {
+      ++it;
     }
   }
+}
+
+void cdcl::forget_wide() {
+  if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
 }
 
 void cdcl::forget_everything() {

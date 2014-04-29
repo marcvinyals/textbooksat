@@ -1,0 +1,6 @@
+Dependencies:
+boost
+
+Optional dependencies (disable with $ NO_VIZ=NO_VIZ make sat):
+>=graphviz-2.30
+cimg

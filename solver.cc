@@ -2,7 +2,9 @@
 
 #include "cdcl.h"
 #include "formatting.h"
+#ifndef NO_VIZ
 #include "viz.h"
+#endif
 
 using namespace std;
 
@@ -44,6 +46,7 @@ proof cdcl_solver::solve(const cnf& f) {
     cerr << "Invalid forgetting scheme" << endl;
     exit(1);
   }
+#ifndef NO_VIZ
   shared_ptr<pebble_viz> vz;
   if (pebbling) {
     vz = shared_ptr<pebble_viz>(new pebble_viz(*pebbling, 2));
@@ -52,6 +55,9 @@ proof cdcl_solver::solve(const cnf& f) {
            std::placeholders::_1, std::placeholders::_2);
   }
   else {
+#else
+  {
+#endif
     solver.visualizer_plugin = &visualizer_nothing;
   }
   solver.config_backjump = backjump;

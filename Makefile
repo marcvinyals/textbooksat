@@ -5,14 +5,21 @@ GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
-ifdef NO_VIZ
-CPPFLAGS += -DNO_VIZ
-else
+
+# Visualization only on wille
+ifeq ($(shell hostname -a),wille)
+$(info Visualization for pebbling formulas active)
 LIBS += $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
 SOURCES += viz.cc
+else
+CPPFLAGS += -DNO_VIZ
 endif
+
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
+
+
+
 
 # argp.h under MacOSX
 ifeq ($(shell uname -s),Darwin)

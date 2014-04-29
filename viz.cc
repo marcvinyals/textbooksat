@@ -38,13 +38,21 @@ vector<vector<int>> parse_kth(istream& in) {
   return g;
 }
 
-pebble_viz::pebble_viz(istream& graph, int arity) :
+pebble_viz::pebble_viz(istream& graph, string fn, int arity) :
   arity(arity),
   tmpfile(tmpnam(nullptr)) {
   for (int m=0; m<(1<<arity); ++m) {
     vector<int> a(arity);
     for (int i=0; i<arity; ++i) a[i]=(m&(1<<i)?1:-1);
-    if (__builtin_popcount(m)&1) true_assignments.insert(a);
+    bool is_true;
+    if (fn == "xor") {
+      is_true = (__builtin_popcount(m)&1);
+    }
+    else {
+      cerr << "Invalid substitution function" << endl;
+      exit(1);
+    }
+    if (is_true) true_assignments.insert(a);
     else false_assignments.insert(a);
   }
 

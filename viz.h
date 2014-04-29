@@ -13,7 +13,7 @@ class restricted_clause;
 
 class pebble_viz {
  public:
-  pebble_viz(std::istream& graph, int arity);
+  pebble_viz(std::istream& graph, std::string fn, int arity);
   ~pebble_viz();
   pebble_viz(const pebble_viz&) = delete;
   void draw(const std::vector<int>& a,

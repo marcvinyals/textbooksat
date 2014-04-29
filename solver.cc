@@ -47,9 +47,7 @@ proof cdcl_solver::solve(const cnf& f) {
     exit(1);
   }
 #ifndef NO_VIZ
-  shared_ptr<pebble_viz> vz;
-  if (pebbling) {
-    vz = shared_ptr<pebble_viz>(new pebble_viz(*pebbling, 2));
+  if (vz) {
     solver.visualizer_plugin =
       bind(&pebble_viz::draw, ref(*vz),
            std::placeholders::_1, std::placeholders::_2);

@@ -6,6 +6,9 @@
 #include "solver.h"
 #include "analysis.h"
 #include "log.h"
+#ifndef NO_VIZ
+#include "viz.h"
+#endif
 
 using namespace std;
 
@@ -36,6 +39,10 @@ static argp_option options[] = {
    "Output the decision sequence to FILE (default: null)"},
   {"pebbling-graph", 1, "FILE", 0,
    "Visualize pebbling from FILE (default: null)"},
+  {"substitution-fn", 2, "{xor}", 0,
+   "Hint that the formula was substituted with the specified function (default: xor)"},
+  {"substitution-arity", 3, "INT", 0,
+   "Hint that the formula was substituted with the specified arity (default: 2)"},
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
   { 0 }
@@ -52,6 +59,8 @@ struct arguments {
   string dag;
   string trace;
   string pebbling_graph;
+  string substitution_fn;
+  int substitution_arity;
   int verbose;
 };
 
@@ -88,6 +97,12 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 1:
     arguments->pebbling_graph = arg;
     break;
+  case 2:
+    arguments->substitution_fn = arg;
+    break;
+  case 3:
+    arguments->substitution_arity = atoi(arg);
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -113,6 +128,9 @@ int main(int argc, char** argv) {
   arguments.minimize = false;
   arguments.phase_saving = true;
   arguments.dag = "";
+  arguments.pebbling_graph = "";
+  arguments.substitution_fn = "xor";
+  arguments.substitution_arity = 2;
   arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   max_log_level = log_level(arguments.verbose);
@@ -142,9 +160,13 @@ int main(int argc, char** argv) {
     *solver.trace << "batch 1" << endl;
   }
 
+#ifndef NO_VIZ
   if (not arguments.pebbling_graph.empty()) {
-    solver.pebbling = shared_ptr<istream>(new ifstream(arguments.pebbling_graph));
+    ifstream pebbling(arguments.pebbling_graph);
+    solver.vz = shared_ptr<pebble_viz>
+      (new pebble_viz(pebbling, arguments.substitution_fn, arguments.substitution_arity));
   }
+#endif
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;
   proof proof = solver.solve(f);

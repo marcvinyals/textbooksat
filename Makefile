@@ -3,8 +3,14 @@ CPPFLAGS = -std=c++0x -Wall
 LDFLAGS=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
-LIBS = $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
-SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc viz.cc
+LIBS =
+SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
+ifdef NO_VIZ
+CPPFLAGS += -DNO_VIZ
+else
+LIBS += $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
+SOURCES += viz.cc
+endif
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
 

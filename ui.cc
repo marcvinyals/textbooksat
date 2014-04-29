@@ -113,7 +113,7 @@ literal_or_restart ui::get_decision() {
     }
     else if (action=="forget wide") {
       history.push_back(line);
-      solver.forget_wide();
+      solver.forget_wide(2);
       return solver.decide_plugin(solver);
     }
     else if (action == "assign") {

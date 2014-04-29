@@ -6,8 +6,12 @@ CIMG_LIBS = -lX11 -lpthread
 LIBS =
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
 
-# Visualization only on wille
+# Visualization only on wille by default
 ifeq ($(shell hostname -a),wille)
+VIZ=VIZ
+endif
+
+ifeq ($(VIZ),VIZ)
 $(info Visualization for pebbling formulas active)
 LIBS += $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
 SOURCES += viz.cc

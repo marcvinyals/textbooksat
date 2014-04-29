@@ -1,19 +1,24 @@
 CXX = g++
 CPPFLAGS = -std=c++0x -Wall
 LDFLAGS=
+GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
+CIMG_LIBS = -lX11 -lpthread
+LIBS =
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
+ifdef NO_VIZ
+CPPFLAGS += -DNO_VIZ
+else
+LIBS += $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
+SOURCES += viz.cc
+endif
 OBJS = $(SOURCES:.cc=.o)
 ROBJS = $(addprefix release/,$(OBJS))
-HEADERS = solver.h dimacs.h data_structures.h formatting.h analysis.h log.h ui.h
-
 
 # argp.h under MacOSX
 ifeq ($(shell uname -s),Darwin)
 $(info Mac OS: using argp-standalone package)
-ARGP=/opt/local/lib/libargp.a
+LIBS +=/opt/local/lib/libargp.a
 CPPFLAGS+=-I/opt/local/include/
-else
-ARGP=
 endif
 
 # gcc 4.8.1 and libstdc++ path at runtime
@@ -24,14 +29,16 @@ LDFLAGS+=-L/opt/gcc/4.8.1 -Wl,-rpath=/opt/gcc/4.8.1/lib64
 endif
 endif
 
-
 all: sat satr
 
-%.o : %.cc $(HEADERS)
+-include $(OBJS:.o=.d)
+
+%.o : %.cc
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
+	$(CXX) $(CPPFLAGS) -MM $< > $*.d
 
 sat: main.o $(OBJS)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(ARGP)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(LIBS)
 
 clean:
 	rm -f sat *.o satr release/*.o
@@ -46,6 +53,6 @@ release/%.o: %.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) -O2 -DNDEBUG -c -o $@ $<
 
 satr: release/main.o $(ROBJS)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -O2 -o $@ $+ $(ARGP)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -O2 -o $@ $+ $(LIBS)
 
 .PHONY : all clean test

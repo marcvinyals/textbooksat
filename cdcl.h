@@ -206,11 +206,6 @@ std::ostream& operator << (std::ostream& o, const std::vector<T>& v) {
   return o;
 }
 template<>
-inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
-  return o;
-}
-template<>
 inline std::ostream& operator << (std::ostream& o, const std::vector<clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
   return o;

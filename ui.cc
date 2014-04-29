@@ -1,7 +1,9 @@
 #include "ui.h"
 
+#include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
@@ -22,6 +24,20 @@ using qi::eps;
 using qi::lit;
 using qi::_1;
 using ph::ref;
+
+template<>
+inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) {
+    o << std::setw(5) << i << ":";
+    if (v[i].satisfied) o << std::setw(35+8);
+    else o << std::setw(35);
+    std::stringstream ss;
+    ss << v[i];
+    o << ss.str();
+    o << " | " << v[i].source->c << std::endl;
+  }
+  return o;
+}
 
 void ui::show_state() {
   cout << "Branching sequence: " << solver.branching_seq << endl;

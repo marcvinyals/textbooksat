@@ -138,7 +138,7 @@ void cdcl::unit_propagate() {
 
   branching_seq.push_back(propagation_queue.front());
   propagation_queue.pop();
-  LOG(LOG_STATE) << "Branching " << branching_seq << endl;
+  LOG(LOG_STATE_SUMMARY) << "Branching " << branching_seq << endl;
 
   assign(l);
 }

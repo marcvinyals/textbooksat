@@ -87,7 +87,6 @@ proof cdcl::solve(const cnf& f) {
     assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
-      //visualizer_plugin(assignment, working_clauses);
       if (conflict) {
         learn();
         visualizer_plugin(assignment, working_clauses);

@@ -53,7 +53,7 @@ void ui::usage() {
     cout << " * [assign] <varname> {0,1}" << endl;
     cout << " * restart" << endl;
     cout << " * forget <restricted clause number>" << endl;
-    cout << " * forget wide" << endl;
+    cout << " * forget wide <width>" << endl;
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
     cout << " * batch {0,1}" << endl;
@@ -70,7 +70,7 @@ literal_or_restart ui::get_decision() {
       exit(1);
     }
     string action, var, file;
-    int m, polarity;
+    int m, polarity, w = 2;
     auto it = line.begin();
     auto token = qi::as_string[qi::lexeme[+~qi::space]];
     bool parse = qi::phrase_parse(it, line.end(),
@@ -80,7 +80,7 @@ literal_or_restart ui::get_decision() {
       | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
       | qi::string("restart")[ph::ref(action) = _1]
       | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
-      | qi::string("forget wide")[ph::ref(action) = _1]
+      | qi::string("forget wide")[ph::ref(action) = _1] >> -int_[ref(w) = _1]
       | -lit("assign") >> token[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
       | int_[ref(dimacs_decision) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
@@ -113,7 +113,7 @@ literal_or_restart ui::get_decision() {
     }
     else if (action=="forget wide") {
       history.push_back(line);
-      solver.forget_wide(2);
+      solver.forget_wide(w);
       return solver.decide_plugin(solver);
     }
     else if (action == "assign") {

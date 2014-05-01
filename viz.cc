@@ -11,27 +11,45 @@
 using namespace std;
 using namespace cimg_library;
 
+int parse_header(istream& in) {
+  while(in) {
+    string line;
+    getline(in, line);
+    if (line.empty() || line[0] == 'c') continue;
+    stringstream ss(line);
+    int n;
+    ss >> n;
+    if (n<0) break;
+    return n;
+  }
+  cerr << "could not parse header" << endl;
+  exit(1);
+}
+
 vector<vector<int>> parse_kth(istream& in) {
-  int n;
-  in >> n;
-  string s;
-  getline(in,s);
+  int n = parse_header(in);
   vector<vector<int>> g(n);
-  for(auto &u:g) {
-    getline(in, s);
-    stringstream ss(s);
+  while(in) {
+    string line;
+    getline(in, line);
+    if (line.empty() || line[0] == 'c') continue;
+    stringstream ss(line);
     int uu;
     char c;
     ss >> uu >> c;
     uu--;
-    assert(uu>=0);
-    assert(uu<n);
-    assert (c==':');
+    if (uu<0 || uu>=n || c!=':') {
+      cerr << "invalid node" << endl;
+      exit(1);
+    }
+    vector<int>& u = g[uu];
     int v;
     while(ss >> v) {
       v--;
-      assert(v>=0);
-      assert(v<uu);
+      if (v<0 || v>=n) {
+        cerr << "invalid neighbour" << endl;
+        exit(1);
+      }
       u.push_back(v);
     }
   }

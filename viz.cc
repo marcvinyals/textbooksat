@@ -56,23 +56,55 @@ vector<vector<int>> parse_kth(istream& in) {
   return g;
 }
 
-pebble_viz::pebble_viz(istream& graph, string fn, int arity) :
-  arity(arity),
-  tmpfile(tmpnam(nullptr)) {
-  for (int m=0; m<(1<<arity); ++m) {
+set<vector<int>> filter(const set<vector<int>>& assignments) {
+  set<vector<int>> ret;
+  for (const vector<int>& a : assignments) {
+    vector<int> b(a);
+    for (int& x : b) {
+      if (not x) continue;
+      int y=x;
+      x=0;
+      if (assignments.count(b)) goto redundant;
+      x=y;
+    }
+    ret.insert(a);
+  redundant:;
+  }
+  return ret;
+}
+
+void pebble_viz::make_assignments(const string& fn, int arity) {
+  int mmax=1;
+  for (int i=0; i<arity; ++i) mmax*=3;
+  for (int m=0; m<mmax; ++m) {
     vector<int> a(arity);
-    for (int i=0; i<arity; ++i) a[i]=(m&(1<<i)?1:-1);
-    bool is_true;
+    for (int i=0, mm=m; i<arity; ++i, mm/=3) a[i]=mm%3-1;
+    int is_true = 0;
     if (fn == "xor") {
-      is_true = (__builtin_popcount(m)&1);
+      is_true=1;
+      for (int x : a) is_true*=-x;
+    }
+    else if (fn == "maj") {
+      vector<int> n(3);
+      for (int x : a) n[x+1]++;
+      if (n[0]*2>arity) is_true=-1;
+      else if (n[2]*2>arity) is_true=1;
     }
     else {
       cerr << "Invalid substitution function" << endl;
       exit(1);
     }
-    if (is_true) true_assignments.insert(a);
-    else false_assignments.insert(a);
+    if (is_true==1) true_assignments.insert(a);
+    else if (is_true==-1) false_assignments.insert(a);
   }
+  true_minimal = filter(true_assignments);
+  false_minimal = filter(false_assignments);
+}
+
+pebble_viz::pebble_viz(istream& graph, const string& fn, int arity) :
+  arity(arity),
+  tmpfile(tmpnam(nullptr)) {
+  make_assignments(fn, arity);
 
   vector<vector<int>> adjacency = parse_kth(graph);
   int n = adjacency.size();
@@ -125,15 +157,15 @@ void pebble_viz::draw_learnt(const vector<restricted_clause>& mem) {
     vector<int> truth(nodes.size());
     for (const restricted_clause r : mem) {
       const clause& c = r.source->c;
-      if (c.width() == arity) {
-        vector<int> forbidden;
+      if (c.width() <= arity) {
+        vector<int> forbidden(arity);
         int u = variable(*c.begin())/arity;
         for (literal l : c) {
           if (variable(l)/arity !=u) goto nonuniform;
-          forbidden.push_back(1-l.polarity()*2);
+          forbidden[variable(l)%arity] = (1-l.polarity()*2);
         }
-        if (true_assignments.count(forbidden)) truth[u]--;
-        else if (false_assignments.count(forbidden)) truth[u]++;
+        if (true_minimal.count(forbidden)) truth[u]--;
+        else if (false_minimal.count(forbidden)) truth[u]++;
       nonuniform:;
       }
     }

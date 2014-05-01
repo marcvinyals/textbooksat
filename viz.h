@@ -13,12 +13,14 @@ class restricted_clause;
 
 class pebble_viz {
  public:
-  pebble_viz(std::istream& graph, std::string fn, int arity);
+  pebble_viz(std::istream& graph, const std::string& fn, int arity);
   ~pebble_viz();
   pebble_viz(const pebble_viz&) = delete;
   void draw(const std::vector<int>& a,
             const std::vector<restricted_clause>& mem);
  private:
+  void make_assignments(const std::string& fn, int arity);
+
   void draw_assignment(const std::vector<int>& a);
   void draw_learnt(const std::vector<restricted_clause>& mem);
   void render();
@@ -26,6 +28,8 @@ class pebble_viz {
   int arity;
   std::set<std::vector<int>> true_assignments;
   std::set<std::vector<int>> false_assignments;
+  std::set<std::vector<int>> true_minimal;
+  std::set<std::vector<int>> false_minimal;
   
   std::string tmpfile;
   GVC_t* gvc;

@@ -81,7 +81,7 @@ void pebble_viz::make_assignments(const string& fn, int arity) {
     for (int i=0, mm=m; i<arity; ++i, mm/=3) a[i]=mm%3-1;
     int is_true = 0;
     if (fn == "xor") {
-      is_true=1;
+      is_true=-1;
       for (int x : a) is_true*=-x;
     }
     else if (fn == "maj") {

@@ -9,6 +9,8 @@ SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.
 # Visualization only on wille by default
 ifeq ($(shell hostname -a),wille)
 VIZ=VIZ
+LDFLAGS+=-L/usr/local-noprio/lib -Wl,-rpath=/usr/local-noprio/lib
+CPPFLAGS+=-I/usr/local-noprio/include
 endif
 
 ifeq ($(VIZ),VIZ)

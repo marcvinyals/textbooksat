@@ -483,6 +483,29 @@ void cdcl::forget_wide() {
   if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
 }
 
+void cdcl::forget_domain(const vector<variable>& domain) {
+  vector<literal> dom;
+  dom.reserve(domain.size()*2);
+  for (variable x : domain) {
+    dom.push_back(literal(x,false));
+    dom.push_back(literal(x,true));
+  }
+  sort(dom.begin(), dom.end());
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : branching_seq) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    if (includes(dom.begin(), dom.end(),
+                 it->source->begin(), it->source->end())
+        and busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+      it = working_clauses.erase(it);      
+    }
+    else {
+      ++it;
+    }
+  }
+}
+
 void cdcl::forget_everything() {
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);

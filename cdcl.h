@@ -139,6 +139,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   void forget_everything();
   void forget_wide();
   void forget_wide(int w);
+  void forget_domain(const std::vector<variable>& domain);
 
   std::shared_ptr<std::ostream> trace;
   

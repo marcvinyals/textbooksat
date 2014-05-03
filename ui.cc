@@ -54,6 +54,7 @@ void ui::usage() {
     cout << " * restart" << endl;
     cout << " * forget <restricted clause number>" << endl;
     cout << " * forget wide <width>" << endl;
+    cout << " * forget domain <variable>*" << endl;
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
     cout << " * batch {0,1}" << endl;
@@ -61,16 +62,21 @@ void ui::usage() {
 }
 
 literal_or_restart ui::get_decision() {
-  int dimacs_decision = 0;
-  while (not dimacs_decision) {
+  qi::symbols<char, variable> variable_;
+  for (const auto& it : pretty.variable_names) variable_.add(it.second, it.first);
+  literal decision = from_dimacs(0);
+  while (true) {
     string line;
     getline(cin, line);
     if (not cin) {
       cerr << "No more input?" << endl;
       exit(1);
     }
-    string action, var, file;
-    int m, polarity, w = 2;
+    if (line.empty()) return solver.decide_fixed();
+    string action, file;
+    int m, polarity, w = 2, dimacs;
+    variable var;
+    std::vector<variable> domain;
     auto it = line.begin();
     auto token = qi::as_string[qi::lexeme[+~qi::space]];
     bool parse = qi::phrase_parse(it, line.end(),
@@ -81,8 +87,9 @@ literal_or_restart ui::get_decision() {
       | qi::string("restart")[ph::ref(action) = _1]
       | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
       | qi::string("forget wide")[ph::ref(action) = _1] >> -int_[ref(w) = _1]
-      | -lit("assign") >> token[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
-      | int_[ref(dimacs_decision) = _1] >> eps[ph::ref(action) = "dimacs"]
+      | qi::string("forget domain")[ph::ref(action) = _1] >> (*variable_)[ph::ref(domain) = _1]
+      | -lit("assign") >> variable_[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
+      | int_[ref(dimacs) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
     if (not parse) {usage(); continue;}
     if (action=="#") {
@@ -116,20 +123,21 @@ literal_or_restart ui::get_decision() {
       solver.forget_wide(w);
       return solver.decide_plugin(solver);
     }
+    else if (action=="forget domain") {
+      history.push_back(line);
+      solver.forget_domain(domain);
+      return solver.decide_plugin(solver);
+    }
     else if (action == "assign") {
-      auto it= pretty.name_variables.find(var);
-      if (it == pretty.name_variables.end()) {
-        cerr << "Variable not found" << endl;
-        continue;
-      }
-      polarity = polarity*2-1;
-      if (abs(polarity)>1) {
+      if (polarity<0 or polarity>1) {
         cerr << "Polarity should be 0 or 1" << endl;
         continue;
       }
-      dimacs_decision = polarity*( it->second + 1 );
+      decision = literal(var, polarity);
     }
-    else if (action == "dimacs");
+    else if (action == "dimacs") {
+      decision = from_dimacs(dimacs);
+    }
     else if (action == "save") {
       std::ofstream out(file);
       for (const auto& line : history) out << line << endl;
@@ -138,9 +146,9 @@ literal_or_restart ui::get_decision() {
     else if (action == "batch") return solver.decide_plugin(solver);
     else assert(false);
     history.push_back(line);
+    break;
   }
-  literal l = from_dimacs(dimacs_decision);
-  variable x(l);
+  variable x(decision);
   if (x >= solver.assignment.size()) {
     cerr << "Variable not found" << endl;
     return get_decision();
@@ -149,5 +157,5 @@ literal_or_restart ui::get_decision() {
     cerr << "Refusing to decide an assigned variable" << endl;
     return get_decision();
   }
-  return l;
+  return decision;
 }

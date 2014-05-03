@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <functional>
+#include <memory>
 #include <sstream>
 
 #include <boost/spirit/include/qi.hpp>
@@ -37,6 +39,18 @@ inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_
     o << " | " << v[i].source->c << std::endl;
   }
   return o;
+}
+
+std::unique_ptr<ui> singleton;
+
+void ui::bindto(cdcl& solver) {
+  if (not singleton) {
+    singleton = std::unique_ptr<ui>(new ui(solver));
+  }
+  else {
+    assert (&singleton->solver == &solver);
+  }
+  solver.decide_plugin = std::bind(&ui::get_decision, *singleton);
 }
 
 void ui::show_state() {

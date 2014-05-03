@@ -101,6 +101,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   std::shared_ptr<std::ostream> trace;
   
 private:
+  friend class pebble;
   friend class ui;
 
   void unit_propagate();

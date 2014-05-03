@@ -95,10 +95,6 @@ struct proof_clause {
 };
 
 struct proof {
-  const std::vector<proof_clause>& formula;
-  const std::list<proof_clause>& proof;
+  std::vector<proof_clause> formula;
+  std::list<proof_clause> proof;
 };
-
-
-
-

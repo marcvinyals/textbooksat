@@ -6,6 +6,7 @@
 #include "solver.h"
 #include "analysis.h"
 #include "log.h"
+#include "pebble.h"
 #ifndef NO_VIZ
 #include "viz.h"
 #endif
@@ -160,13 +161,18 @@ int main(int argc, char** argv) {
     *solver.trace << "batch 1" << endl;
   }
 
-#ifndef NO_VIZ
   if (not arguments.pebbling_graph.empty()) {
     ifstream pebbling(arguments.pebbling_graph);
+    solver.pebble_helper = shared_ptr<pebble>
+      (new pebble(pebbling, arguments.substitution_fn,
+                  arguments.substitution_arity));
+#ifndef NO_VIZ
+    ifstream pebbling2(arguments.pebbling_graph);
     solver.vz = shared_ptr<pebble_viz>
-      (new pebble_viz(pebbling, arguments.substitution_fn, arguments.substitution_arity));
-  }
+      (new pebble_viz(pebbling2, arguments.substitution_fn,
+                      arguments.substitution_arity));
 #endif
+  }
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;
   proof proof = solver.solve(f);

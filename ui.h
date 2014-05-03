@@ -8,6 +8,8 @@ struct literal_or_restart;
 
 class ui {
  public:
+  static void bindto(cdcl& solver);
+ public:
   ui(cdcl& solver) : solver(solver), batch(false) {}
   literal_or_restart get_decision();
 

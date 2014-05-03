@@ -4,7 +4,7 @@ LDFLAGS=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
-SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc
+SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble.cc pebble_util.cc
 
 # Visualization only on wille by default
 ifeq ($(shell hostname -s),wille)

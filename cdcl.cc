@@ -1,5 +1,7 @@
 #include "cdcl.h"
 
+#include <algorithm>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "formatting.h"
@@ -22,6 +24,50 @@ ostream& operator << (ostream& o, const restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
   return o;
 }
+
+void restricted_clause::restrict(literal l) {
+  for (auto a = literals.begin(); a!= literals.end(); ++a) {
+    if (*a==l) {
+      satisfied++;
+      break;
+    }
+    if (a->opposite(l)) {
+      literals.erase(a);
+      break;
+    }
+  }
+}
+
+void restricted_clause::loosen(literal l) {
+  for (literal a : *source) {
+    if (a==l) {
+      satisfied--;
+      break;
+    }
+    if (a.opposite(l)) {
+      literals.push_back(a);
+      break;
+    }      
+  }
+}
+
+void restricted_clause::restrict(const std::vector<int>& assignment) {
+  literals.erase(remove_if(literals.begin(), literals.end(),
+                           [this,&assignment](literal a) {
+                             int al = assignment[variable(a)];
+                             if (al) {
+                               if ((al==1)==a.polarity()) satisfied++;
+                               else return true;
+                             }
+                             return false;
+                           }), literals.end());
+}
+
+void restricted_clause::reset() {
+  literals.assign(source->begin(), source->end());
+  satisfied = 0;
+}
+
 
 bool cdcl::variable_cmp_vsids(variable x, variable y) const {
   double d = variable_activity[y] - variable_activity[x];
@@ -422,10 +468,6 @@ literal_or_restart cdcl::decide_fixed() {
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);
-}
-
-literal_or_restart cdcl::decide_ask() {
-  return ui.get_decision();
 }
 
 void cdcl::restart() {

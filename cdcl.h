@@ -3,18 +3,13 @@
 #include <vector>
 #include <set>
 #include <deque>
-#include <queue>
 #include <list>
-#include <algorithm>
-#include <unordered_map>
 #include <cassert>
 #include <iostream>
 #include <iomanip>
-#include <memory>
 
 #include "data_structures.h"
 #include "formatting.h"
-#include "ui.h"
 
 struct branch {
   literal to;
@@ -36,49 +31,11 @@ struct restricted_clause {
     literals(c.begin(), c.end()), source(&c), satisfied(0) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
   bool contradiction() const { return not satisfied and literals.empty(); }
-  
-  void restrict(literal l) {
-    for (auto a = literals.begin(); a!= literals.end(); ++a) {
-      if (*a==l) {
-        satisfied++;
-        break;
-      }
-      if (a->opposite(l)) {
-        literals.erase(a);
-        break;
-      }
-    }
-  }
 
-  void loosen(literal l) {
-    for (auto a : source->c) {
-      if (a==l) {
-        satisfied--;
-        break;
-      }
-      if (a.opposite(l)) {
-        literals.push_back(a);
-        break;
-      }      
-    }
-  }
-
-  void restrict(const std::vector<int>& assignment) {
-    literals.erase(remove_if(literals.begin(), literals.end(),
-                             [this,&assignment](literal a) {
-                               int al = assignment[variable(a)];
-                               if (al) {
-                                 if ((al==1)==a.polarity()) satisfied++;
-                                 else return true;
-                               }
-                               return false;
-                             }), literals.end());
-  }
-
-  void reset() {
-    literals.assign(source->begin(), source->end());
-    satisfied = 0;
-  }
+  void restrict(literal l);
+  void loosen(literal l);
+  void restrict(const std::vector<int>& assignment);
+  void reset();
 };
 
 struct propagation_queue {
@@ -108,7 +65,7 @@ typedef std::vector<branch> branching_sequence;
 
 class cdcl {
  public:
-  cdcl() : ui({*this}) {}
+  cdcl() {}
   
   proof solve(const cnf& f);
 
@@ -145,7 +102,6 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   
 private:
   friend class ui;
-  class ui ui;
 
   void unit_propagate();
   void learn();

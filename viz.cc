@@ -27,6 +27,7 @@ pebble_viz::pebble_viz(istream& graph, const string& fn, int arity) :
   nodes.reserve(n);
   for (int u=0; u<n; ++u) {
     char x[10];
+    //snprintf(x, 10, "%d\n%d", u*2+1, u*2+2);
     snprintf(x, 10, "%d", u+1);
     nodes.push_back(agnode(g, x, TRUE));
   }

@@ -162,16 +162,16 @@ int main(int argc, char** argv) {
   }
 
   if (not arguments.pebbling_graph.empty()) {
-    ifstream pebbling(arguments.pebbling_graph);
-    solver.pebble_helper = shared_ptr<pebble>
-      (new pebble(pebbling, arguments.substitution_fn,
-                  arguments.substitution_arity));
 #ifndef NO_VIZ
     ifstream pebbling2(arguments.pebbling_graph);
     solver.vz = shared_ptr<pebble_viz>
       (new pebble_viz(pebbling2, arguments.substitution_fn,
                       arguments.substitution_arity));
 #endif
+    ifstream pebbling(arguments.pebbling_graph);
+    solver.pebble_helper = shared_ptr<pebble>
+      (new pebble(pebbling, arguments.substitution_fn,
+                  arguments.substitution_arity));
   }
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;

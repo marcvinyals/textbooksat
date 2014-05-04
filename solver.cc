@@ -21,7 +21,7 @@ proof cdcl_solver::solve(const cnf& f) {
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
   else if (decide == "pebble") {
-    solver.decide_plugin = bind(&pebble::get_decision, pebble_helper, std::placeholders::_1);
+    pebble_helper->bindto(solver);
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
   else {

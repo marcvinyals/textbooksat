@@ -88,7 +88,7 @@ void pebble_viz::render() {
   CImg<unsigned char> image(tmpfile.c_str());
   display.display(image);
   //sleep(1);
-  usleep(100000);
+  //usleep(100000);
 }
 
 void pebble_viz::draw(const vector<int>& a,

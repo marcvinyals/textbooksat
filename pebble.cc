@@ -27,8 +27,8 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
   }
   }
   for (int u : pebble_sequence) {
-    if (u<0) continue;
-    pebble_queue.push_back({u,1});
+    if (u<0) pebble_queue.push_back({-u,-1});
+    else pebble_queue.push_back({u,1});
     expect[u]=1;
   }
 }
@@ -97,12 +97,14 @@ void pebble::prepare_successors(int who) {
   }*/
 
 void pebble::cleanup() {
+  cerr << "CLEANUP" << endl;
   solver->forget_wide(2);
   for (unsigned u = 0; u<g.size(); ++u) {
     if (expect[u]==0 and truth[u]) {
       bool ok = true;
       for (int succ : rg[u]) {
         if (expect[succ] and truth[succ]<2) {
+          cerr << "Not erasing " << u+1 << " because of " << succ+1 << " which is " << truth[succ] << " but should be " << expect[succ] << endl;
           ok = false;
           break;
         }
@@ -185,13 +187,13 @@ bool pebble::complete(int u) {
   if (truth[u]<1) return false;
   if (truth[u]==2) return true;
   for (int pred : g[u]) {
+    if (truth[pred]==2) continue;
     if (expect[pred]<2) {
       expect[pred]=2;
       pebble_queue.push_front({pred,2});
       pebble_next2();
-      return false;
     }
-    if (truth[pred]<2) return false;
+    return false;
   }
   return true;
 }
@@ -204,11 +206,20 @@ void pebble::pebble_next2() {
   for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
     int u = it->first;
     int exp = it->second;
+    cerr << u << "->" << exp << "  ";
+  }
+  cerr << endl;
+  for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
+    int u = it->first;
+    int exp = it->second;
     if (exp<0) {
       if (it==pebble_queue.begin()) {
+        cerr << endl << "Erasing " << u << endl << endl;
         uh=0;
         expect[u]=0;
         pebble_queue.pop_front();
+        if (pebble_sequence.front()==-u) pebble_sequence.pop_front();
+        cleanup();
         return pebble_next2();
       }
     }
@@ -220,6 +231,7 @@ void pebble::pebble_next2() {
       uh=0;
       if (it==pebble_queue.begin()) {
         pebble_queue.pop_front();
+        if (pebble_sequence.front()==u) pebble_sequence.pop_front();
         return pebble_next2();
       }
     }
@@ -255,6 +267,7 @@ void pebble::pebble_next2() {
         return;
       }
       for (int pred : g[u]) {
+        if (truth[pred]==2) continue;
         if (expect[pred]<2) {
           expect[pred]=2;
           pebble_queue.push_front({pred,2});

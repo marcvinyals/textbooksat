@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
   solver.phase_saving = arguments.phase_saving;
 
   if (not arguments.trace.empty()) {
-    solver.trace = shared_ptr<ostream>(new ofstream(arguments.trace));
+    solver.trace.reset(new ofstream(arguments.trace));
     *solver.trace << "# -*- mode: conf -*-" << endl;
     *solver.trace << "batch 1" << endl;
   }
@@ -164,12 +164,12 @@ int main(int argc, char** argv) {
   if (not arguments.pebbling_graph.empty()) {
 #ifndef NO_VIZ
     ifstream pebbling2(arguments.pebbling_graph);
-    solver.vz = shared_ptr<pebble_viz>
+    solver.vz.reset
       (new pebble_viz(pebbling2, arguments.substitution_fn,
                       arguments.substitution_arity));
 #endif
     ifstream pebbling(arguments.pebbling_graph);
-    solver.pebble_helper = shared_ptr<pebble>
+    solver.pebble_helper.reset
       (new pebble(pebbling, arguments.substitution_fn,
                   arguments.substitution_arity));
   }

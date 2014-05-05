@@ -2,6 +2,7 @@
 
 #include "cdcl.h"
 #include "formatting.h"
+#include "ui.h"
 #ifndef NO_VIZ
 #include "viz.h"
 #endif
@@ -13,9 +14,10 @@ void visualizer_nothing(const vector<int>&, const vector<restricted_clause>&) {}
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);
   pretty.mode = pretty.TERMINAL;
-  static cdcl solver;
+  cdcl solver;
+  class ui ui (solver);
   if (decide == "ask") {
-    solver.decide_plugin = &cdcl::decide_ask;
+    solver.decide_plugin = bind(&ui::get_decision, ui);
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
   else {

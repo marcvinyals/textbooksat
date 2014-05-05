@@ -9,6 +9,8 @@ SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.
 # Visualization only on Marc machines by default
 ifeq ($(shell hostname -s),wille)
 VIZ=VIZ
+LDFLAGS+=-L/usr/local-noprio/lib -Wl,-rpath=/usr/local-noprio/lib
+CPPFLAGS+=-I/usr/local-noprio/include
 endif
 ifeq ($(shell hostname -s),pcbox-marc)
 VIZ=VIZ
@@ -56,7 +58,7 @@ sat: main.o $(OBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(LIBS)
 
 clean:
-	rm -f sat *.o satr release/*.o
+	rm -f sat *.o satr release/*.o *.d
 	rm -fr release/
 
 test: test.o $(OBJS)

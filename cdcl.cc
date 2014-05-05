@@ -1,5 +1,7 @@
 #include "cdcl.h"
 
+#include <algorithm>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "formatting.h"
@@ -22,6 +24,50 @@ ostream& operator << (ostream& o, const restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
   return o;
 }
+
+void restricted_clause::restrict(literal l) {
+  for (auto a = literals.begin(); a!= literals.end(); ++a) {
+    if (*a==l) {
+      satisfied++;
+      break;
+    }
+    if (a->opposite(l)) {
+      literals.erase(a);
+      break;
+    }
+  }
+}
+
+void restricted_clause::loosen(literal l) {
+  for (literal a : *source) {
+    if (a==l) {
+      satisfied--;
+      break;
+    }
+    if (a.opposite(l)) {
+      literals.push_back(a);
+      break;
+    }      
+  }
+}
+
+void restricted_clause::restrict(const std::vector<int>& assignment) {
+  literals.erase(remove_if(literals.begin(), literals.end(),
+                           [this,&assignment](literal a) {
+                             int al = assignment[variable(a)];
+                             if (al) {
+                               if ((al==1)==a.polarity()) satisfied++;
+                               else return true;
+                             }
+                             return false;
+                           }), literals.end());
+}
+
+void restricted_clause::reset() {
+  literals.assign(source->begin(), source->end());
+  satisfied = 0;
+}
+
 
 bool cdcl::variable_cmp_vsids(variable x, variable y) const {
   double d = variable_activity[y] - variable_activity[x];
@@ -424,10 +470,6 @@ literal_or_restart cdcl::decide_fixed() {
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
-literal_or_restart cdcl::decide_ask() {
-  return ui.get_decision();
-}
-
 void cdcl::restart() {
   LOG(LOG_ACTIONS) << "Restarting" << endl;
   for (auto branch:branching_seq) decision_order.insert(variable(branch.to));
@@ -481,6 +523,29 @@ void cdcl::forget_wide(int w) {
 
 void cdcl::forget_wide() {
   if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
+}
+
+void cdcl::forget_domain(const vector<variable>& domain) {
+  vector<literal> dom;
+  dom.reserve(domain.size()*2);
+  for (variable x : domain) {
+    dom.push_back(literal(x,false));
+    dom.push_back(literal(x,true));
+  }
+  sort(dom.begin(), dom.end());
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : branching_seq) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    if (includes(dom.begin(), dom.end(),
+                 it->source->begin(), it->source->end())
+        and busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
+      it = working_clauses.erase(it);      
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 void cdcl::forget_everything() {

@@ -24,6 +24,7 @@ class pebble {
   void prepare_successors(int who);
   void prepare_successors();
   void cleanup();
+  void update_truth();
   void parse_sequence(std::istream& in);
   
   std::vector<std::vector<int>> g;

@@ -32,7 +32,6 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
     }
     else {
       pebble_queue.push_back({u,1});
-      expect[u]=1;
     }
   }
 }
@@ -116,6 +115,7 @@ void pebble::cleanup() {
       if (ok) solver->forget_domain({u*2,u*2+1});
     }
   }
+  update_truth();
 }
 
 /*void pebble::pebble_next() {
@@ -193,7 +193,6 @@ bool pebble::complete(int u) {
   for (int pred : g[u]) {
     if (truth[pred]==2) continue;
     if (expect[pred]<2) {
-      expect[pred]=2;
       pebble_queue.push_front({pred,2});
       pebble_next2();
     }
@@ -226,8 +225,10 @@ void pebble::pebble_next2() {
         cleanup();
         return pebble_next2();
       }
+      continue;
     }
-    else if (exp==2 and not complete(u)) {
+    expect[u]=max(expect[u], exp);
+    if (exp==2 and not complete(u)) {
       continue;
     }
     else if (truth[u]>=exp) {
@@ -273,7 +274,6 @@ void pebble::pebble_next2() {
       for (int pred : g[u]) {
         if (truth[pred]==2) continue;
         if (expect[pred]<2) {
-          expect[pred]=2;
           pebble_queue.push_front({pred,2});
           return pebble_next2();
         }
@@ -291,6 +291,14 @@ void pebble::pebble_next2() {
   }
 }
 
+void pebble::update_truth() {
+  truth.assign(g.size(), 0);
+  for (const restricted_clause r : solver->working_clauses) {
+    int key, value;
+    if (sub.is_clause(r.source->c, key, value)) truth[key]+=value;
+  }
+}
+
 literal_or_restart pebble::get_decision() {
   cerr << "@ get_decision" << endl;
 
@@ -298,11 +306,7 @@ literal_or_restart pebble::get_decision() {
   size_t nlearnt_new = solver->learnt_clauses.size();
   if (nlearnt_new != nlearnt) {
     nlearnt = nlearnt_new;
-    truth.assign(g.size(), 0);
-    for (const restricted_clause r : solver->working_clauses) {
-      int key, value;
-      if (sub.is_clause(r.source->c, key, value)) truth[key]+=value;
-    }
+    update_truth();
     if (nlearnt) decision_queue.clear();
     if (nlearnt == 0 or solver->working_clauses.back().source->c.width()<=2) {
       cleanup();

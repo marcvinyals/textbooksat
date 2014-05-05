@@ -54,7 +54,7 @@ sat: main.o $(OBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(LIBS)
 
 clean:
-	rm -f sat *.o satr release/*.o
+	rm -f sat *.o satr release/*.o *.d
 	rm -fr release/
 
 test: test.o $(OBJS)

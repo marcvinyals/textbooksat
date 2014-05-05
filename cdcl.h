@@ -7,6 +7,7 @@
 #include <cassert>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 
 #include "data_structures.h"
 #include "formatting.h"

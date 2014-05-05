@@ -57,9 +57,21 @@ void pebble::prepare_successors() {
   for (int u : pebble_sequence) {
     if (u<0) continue;
     if (busy[u]) continue;
-    decision_queue.push_front(literal(u*2,false));
-    decision_queue.push_front(literal(u*2+1,false));
-    busy[u]=true;
+    bool waitforit = false;
+    if (g[u].size()==1) {
+      int pred = g[u].front();
+      for (int sibling : rg[pred]) {
+        if(busy[sibling]) {
+          waitforit = true;
+          break;
+        }
+      }
+    }
+    if (not waitforit) {
+      decision_queue.push_front(literal(u*2,false));
+      decision_queue.push_front(literal(u*2+1,false));
+    }
+    busy[u]=1;
   }
 }
 

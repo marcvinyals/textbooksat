@@ -17,6 +17,7 @@ class pebble {
 
  private:
   void pebble_next();
+  void pebble_next2();
   void sequence_next();
   void prepare_successors(int who);
   void prepare_successors();

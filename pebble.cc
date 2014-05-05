@@ -16,11 +16,15 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
       rg[j].push_back(i);
     }
   }
+  if(g.size()==16) {
   parse_sequence(cin);
+  }
+  else {
   for (size_t i=0; i<g.size(); ++i) {
     if (g[i].empty()) continue;
-    //pebble_sequence.push_back(i);
+    pebble_sequence.push_back(i);
     //if (i-7>0 and not g[i-7].empty()) pebble_sequence.push_back(-(i-7));
+  }
   }
   for (int u : pebble_sequence) {
     if (u<0) continue;
@@ -176,6 +180,72 @@ void pebble::pebble_next() {
   }
 }
 
+void pebble::pebble_next2() {
+  static int uh = 0;
+  cerr << "@ pebble_next2" << endl;
+  for (auto it = pebble_sequence.begin(); it != pebble_sequence.end(); ++it) {
+    int u = *it;
+    if (u<0) {
+      if (it==pebble_sequence.begin()) {
+        uh=0;
+        expect[-u]=0;
+        pebble_sequence.pop_front();
+        return pebble_next2();
+      }
+    }
+    else if (truth[u]>=expect[u]) {
+      uh=0;
+      if (it==pebble_sequence.begin()) {
+        pebble_sequence.pop_front();
+        return pebble_next2();
+      }
+    }
+    else {
+      ++uh;
+      if (uh>20) {
+        cerr << "I think I am stuck" << endl;
+        pebble_sequence.clear();
+        pebble_queue.clear();
+        decision_queue.clear();
+        return;
+      }
+      cerr << "trying to get " << u+1 << " to " << expect[u] << endl;
+      const vector<int>& a = solver->assignment;
+      vector<int> a_u(a.begin()+sub.arity*u, a.begin()+sub.arity*(u+1));
+      if (sub.true_assignments.count(a_u)) {
+        cerr << "Better do something else" << endl;
+        continue;
+      }
+      if (not sub.false_assignments.count(a_u)) {
+        if (expect[u]==1) {
+          decision_queue.push_back(literal(u*sub.arity, false));
+          decision_queue.push_back(literal(u*sub.arity+1, false));
+        }
+        else if (expect[u]==2) {
+          decision_queue.push_back(literal(u*sub.arity, true));
+          decision_queue.push_back(literal(u*sub.arity+1, true));
+        }
+        else {
+          cerr << "bug" << endl;
+          exit(1);
+        }
+        return;
+      }
+      for (int pred : g[u]) {
+        expect[pred]=2;
+        if (truth[pred]<2) {
+          pebble_sequence.push_front(pred);
+          return pebble_next2();
+        }
+      }
+      for (int pred : g[u]) {
+        decision_queue.push_back(literal(pred*sub.arity, false));
+      }
+      return;
+    }
+  }
+}
+
 literal_or_restart pebble::get_decision() {
   cerr << "@ get_decision" << endl;
 
@@ -196,7 +266,7 @@ literal_or_restart pebble::get_decision() {
   }
 
   if (decision_queue.empty()) {
-    pebble_next();
+    pebble_next2();
   }
   if (decision_queue.empty()) {
     cerr << "Empty decision queue" << endl;

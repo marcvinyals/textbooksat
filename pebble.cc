@@ -27,9 +27,13 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
   }
   }
   for (int u : pebble_sequence) {
-    if (u<0) pebble_queue.push_back({-u,-1});
-    else pebble_queue.push_back({u,1});
-    expect[u]=1;
+    if (u<0) {
+      pebble_queue.push_back({-u,-1});
+    }
+    else {
+      pebble_queue.push_back({u,1});
+      expect[u]=1;
+    }
   }
 }
 
@@ -266,7 +270,14 @@ void pebble::pebble_next2() {
         }
         return;
       }
-      if (not complete(u)) return;
+      for (int pred : g[u]) {
+        if (truth[pred]==2) continue;
+        if (expect[pred]<2) {
+          expect[pred]=2;
+          pebble_queue.push_front({pred,2});
+          return pebble_next2();
+        }
+      }
       for (int pred : g[u]) {
         vector<int> a_pred(a.begin()+sub.arity*pred, a.begin()+sub.arity*(pred+1));
         if (not sub.true_assignments.count(a_pred)) {

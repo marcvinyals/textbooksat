@@ -67,6 +67,7 @@ void pebble::prepare_successors() {
         }
       }
     }
+    waitforit=false;
     if (not waitforit) {
       decision_queue.push_front(literal(u*2,false));
       decision_queue.push_front(literal(u*2+1,false));
@@ -199,7 +200,7 @@ void pebble::cleanup() {
   }
 }*/
 
-bool pebble::complete(int u) {
+bool pebble::do_complete(int u) {
   if (truth[u]<1) return false;
   if (truth[u]==2) return true;
   for (int pred : g[u]) {
@@ -213,23 +214,31 @@ bool pebble::complete(int u) {
   return true;
 }
 
+bool pebble::is_complete(int u) const {
+  if (truth[u]<1) return false;
+  if (truth[u]==2) return true;
+  for (int pred : g[u]) if (truth[pred]<2) return false;
+  return true;
+}
+
+
 void pebble::pebble_next2() {
-  string line;
-  //getline(cin, line);
   static int uh = 0;
   cerr << "@ pebble_next2" << endl;
   for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
     int u = it->first;
     int exp = it->second;
-    cerr << u << "->" << exp << "  ";
+    cerr << u+1 << "->" << exp << "  ";
   }
   cerr << endl;
+  string line;
+  //getline(cin, line);
   for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
     int u = it->first;
     int exp = it->second;
     if (exp<0) {
       if (it==pebble_queue.begin()) {
-        cerr << endl << "Erasing " << u << endl << endl;
+        cerr << endl << "Erasing " << u+1 << endl << endl;
         uh=0;
         expect[u]=0;
         pebble_queue.pop_front();
@@ -239,13 +248,15 @@ void pebble::pebble_next2() {
       }
       continue;
     }
-    expect[u]=max(expect[u], exp);
-    if (exp==2 and not complete(u)) {
+    if (it==pebble_queue.begin()) {
+      expect[u]=max(expect[u], exp);
+    }
+    if (exp==2 and not is_complete(u)) {
       continue;
     }
     else if (truth[u]>=exp) {
-      if (not complete(u)) continue;
       uh=0;
+      if (not do_complete(u)) continue;
       if (it==pebble_queue.begin()) {
         pebble_queue.pop_front();
         if (pebble_sequence.front()==u) pebble_sequence.pop_front();
@@ -254,7 +265,7 @@ void pebble::pebble_next2() {
     }
     else {
       ++uh;
-      if (uh>20) {
+      if (uh>100) {
         cerr << "I think I am stuck" << endl;
         pebble_sequence.clear();
         pebble_queue.clear();
@@ -285,18 +296,21 @@ void pebble::pebble_next2() {
       }
       for (int pred : g[u]) {
         if (truth[pred]==2) continue;
-        if (expect[pred]<2) {
-          pebble_queue.push_front({pred,2});
+        if (find(pebble_queue.begin(), it, make_pair(pred,2))==it) {
+          pebble_queue.insert(it,{pred,2});
           return pebble_next2();
         }
       }
+      cerr << "Actually messing with its predecessors" << endl;
       for (int pred : g[u]) {
+        if (truth[pred]<2) continue;
         vector<int> a_pred(a.begin()+sub.arity*pred, a.begin()+sub.arity*(pred+1));
         if (not sub.true_assignments.count(a_pred)) {
           decision_queue.push_back(literal(pred*sub.arity, false));
           return;
         }
       }
+      cerr << "But found nothing to do, trying something else" << endl;
       continue;
       return;
     }

@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <istream>
+#include <list>
 #include <utility>
 
 #include "data_structures.h"
@@ -19,7 +20,8 @@ class pebble {
  private:
   void pebble_next();
   void pebble_next2();
-  bool complete(int u);
+  bool do_complete(int u);
+  bool is_complete(int u) const;
   void sequence_next();
   void prepare_successors(int who);
   void prepare_successors();
@@ -31,7 +33,7 @@ class pebble {
   std::vector<std::vector<int>> rg;
   substitution sub;
   std::deque<int> pebble_sequence;
-  std::deque<std::pair<int,int>> pebble_queue;
+  std::list<std::pair<int,int>> pebble_queue;
   std::deque<int> something_else;
   bool skip;
   std::vector<int> expect;

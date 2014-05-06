@@ -18,24 +18,17 @@ class pebble {
   literal_or_restart get_decision();
 
  private:
-  void pebble_next();
   void pebble_next2();
-  bool do_complete(int u);
   bool is_complete(int u) const;
-  void sequence_next();
-  void prepare_successors(int who);
   void prepare_successors();
   void cleanup();
   void update_truth();
-  void parse_sequence(std::istream& in);
+  std::vector<int> parse_sequence(std::istream& in);
   
   std::vector<std::vector<int>> g;
   std::vector<std::vector<int>> rg;
   substitution sub;
-  std::deque<int> pebble_sequence;
-  std::list<std::pair<int,int>> pebble_queue;
-  std::deque<int> something_else;
-  bool skip;
+  std::deque<std::pair<int,int>> pebble_queue;
   std::vector<int> expect;
   std::deque<literal> decision_queue;
   cdcl* solver;

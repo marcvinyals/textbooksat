@@ -32,6 +32,9 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
     }
     else {
       pebble_queue.push_back({u,1});
+      for (int pred : g[u]) {
+        pebble_queue.push_back({pred,2});
+      }
     }
   }
 }
@@ -67,7 +70,7 @@ void pebble::prepare_successors() {
         }
       }
     }
-    waitforit=false;
+    //waitforit=false;
     if (not waitforit) {
       decision_queue.push_front(literal(u*2,false));
       decision_queue.push_front(literal(u*2+1,false));
@@ -200,7 +203,7 @@ void pebble::cleanup() {
   }
 }*/
 
-bool pebble::do_complete(int u) {
+/*bool pebble::do_complete(int u) {
   if (truth[u]<1) return false;
   if (truth[u]==2) return true;
   for (int pred : g[u]) {
@@ -212,7 +215,7 @@ bool pebble::do_complete(int u) {
     return false;
   }
   return true;
-}
+  }*/
 
 bool pebble::is_complete(int u) const {
   if (truth[u]<1) return false;
@@ -232,10 +235,11 @@ void pebble::pebble_next2() {
   }
   cerr << endl;
   string line;
-  //getline(cin, line);
+  getline(cin, line);
   for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
     int u = it->first;
     int exp = it->second;
+    cerr << "Considering to set " << u+1 << " to " << exp << endl;
     if (exp<0) {
       if (it==pebble_queue.begin()) {
         cerr << endl << "Erasing " << u+1 << endl << endl;
@@ -255,8 +259,8 @@ void pebble::pebble_next2() {
       continue;
     }
     else if (truth[u]>=exp) {
+      if (not is_complete(u)) continue;
       uh=0;
-      if (not do_complete(u)) continue;
       if (it==pebble_queue.begin()) {
         pebble_queue.pop_front();
         if (pebble_sequence.front()==u) pebble_sequence.pop_front();
@@ -272,7 +276,7 @@ void pebble::pebble_next2() {
         decision_queue.clear();
         return;
       }
-      cerr << "trying to get " << u+1 << " to " << exp << endl;
+      cerr << "Trying to get " << u+1 << " to " << exp << endl;
       const vector<int>& a = solver->assignment;
       vector<int> a_u(a.begin()+sub.arity*u, a.begin()+sub.arity*(u+1));
       if (sub.true_assignments.count(a_u)) {
@@ -294,14 +298,7 @@ void pebble::pebble_next2() {
         }
         return;
       }
-      for (int pred : g[u]) {
-        if (truth[pred]==2) continue;
-        if (find(pebble_queue.begin(), it, make_pair(pred,2))==it) {
-          pebble_queue.insert(it,{pred,2});
-          return pebble_next2();
-        }
-      }
-      cerr << "Actually messing with its predecessors" << endl;
+      cerr << "Now messing with its predecessors" << endl;
       for (int pred : g[u]) {
         if (truth[pred]<2) continue;
         vector<int> a_pred(a.begin()+sub.arity*pred, a.begin()+sub.arity*(pred+1));

@@ -1,6 +1,7 @@
 #include "cdcl.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -22,6 +23,10 @@ ostream& operator << (ostream& o, const restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;
   if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  return o;
+}
+ostream& operator << (ostream& o, const vector<clause>& v) {
+  for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
 

@@ -6,11 +6,9 @@
 #include <list>
 #include <cassert>
 #include <iostream>
-#include <iomanip>
 #include <memory>
 
 #include "data_structures.h"
-#include "formatting.h"
 
 struct branch {
   literal to;
@@ -164,8 +162,4 @@ std::ostream& operator << (std::ostream& o, const std::vector<T>& v) {
   for (const auto& i:v) o << i;
   return o;
 }
-template<>
-inline std::ostream& operator << (std::ostream& o, const std::vector<clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) o << std::setw(5) << i << ": " << v[i] << std::endl;
-  return o;
-}
+std::ostream& operator << (std::ostream& o, const std::vector<clause>& v);

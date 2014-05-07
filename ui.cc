@@ -9,6 +9,7 @@
 #include <boost/spirit/include/phoenix.hpp>
 
 #include "cdcl.h"
+#include "formatting.h"
 
 using std::cout;
 using std::cin;
@@ -25,8 +26,7 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
-template<>
-inline std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
+std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) {
     o << std::setw(5) << i << ":";
     if (v[i].satisfied) o << std::setw(35+8);

@@ -20,6 +20,7 @@ class pebble {
  private:
   void pebble_next2();
   bool is_complete(int u) const;
+  bool contradiction_reachable(int u) const;
   void prepare_successors();
   void cleanup();
   void update_truth();
@@ -32,4 +33,5 @@ class pebble {
   std::deque<literal> decision_queue;
   cdcl* solver;
   std::vector<int> truth;
+  std::vector<int> effectivetruth;
 };

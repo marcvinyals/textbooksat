@@ -6,6 +6,7 @@
 #include <vector>
 
 class clause;
+class literal;
 
 typedef std::set<std::vector<int>> assignment_set;
 class substitution {
@@ -15,6 +16,7 @@ class substitution {
   assignment_set true_assignments;
   assignment_set false_assignments;
   bool is_clause(const clause& c, int& key, int& value);
+  bool is_clause(const std::vector<literal>& c, int& key, int& value);
  private:
   assignment_set true_minimal;
   assignment_set false_minimal;

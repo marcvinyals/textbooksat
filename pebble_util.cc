@@ -110,3 +110,17 @@ bool substitution::is_clause(const clause& c, int& u, int& value) {
   else return false;
   return true;
 }
+
+bool substitution::is_clause(const vector<literal>& c, int& u, int& value) {
+  if (c.size() > arity) return false;
+  vector<int> forbidden(arity);
+  u = variable(*c.begin())/arity;
+  for (literal l : c) {
+    if (variable(l)/arity !=u) return false;
+    forbidden[variable(l)%arity] = (1-l.polarity()*2);
+  }
+  if (true_minimal.count(forbidden)) value=-1;
+  else if (false_minimal.count(forbidden)) value=1;
+  else return false;
+  return true;
+}

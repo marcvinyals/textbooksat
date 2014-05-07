@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
+#include <signal.h>
+
 #include "cdcl.h"
 #include "ui.h"
 
@@ -125,6 +127,9 @@ void pebble::prepare_successors() {
 
 void pebble::cleanup() {
   cerr << "CLEANUP" << endl;
+  if (solver->working_clauses.size()>230) {
+    kill(getpid(),SIGSTOP);
+  };
   solver->forget_wide(2);
   for (unsigned u = 0; u<g.size(); ++u) {
     if (expect[u]==0 and truth[u]) {
@@ -149,6 +154,17 @@ bool pebble::is_complete(int u) const {
   return true;
 }
 
+bool pebble::contradiction_reachable(int u) const {
+  const vector<int>& a = solver->assignment;
+  vector<int> a_u(a.begin()+sub.arity*u, a.begin()+sub.arity*(u+1));
+  if (sub.true_assignments.count(a_u)) return false;
+  return true;
+  /*for (int succ : rg[u]) {
+    vector<int> a_succ(a.begin()+sub.arity*succ, a.begin()+sub.arity*(succ+1));
+    if (sub.false_assignments.count(a_succ)) return true;
+  }
+  return false;*/
+}
 
 void pebble::pebble_next2() {
   static int uh = 0;
@@ -200,10 +216,10 @@ void pebble::pebble_next2() {
         decision_queue.clear();
         return;
       }
-      cerr << "Trying to get " << u+1 << " to " << exp << endl;
       const vector<int>& a = solver->assignment;
       vector<int> a_u(a.begin()+sub.arity*u, a.begin()+sub.arity*(u+1));
-      if (sub.true_assignments.count(a_u)) {
+      cerr << "Trying to get " << u+1 << " to " << exp << endl;
+      if (not contradiction_reachable(u)) {
         cerr << "Better do something else" << endl;
         continue;
       }
@@ -243,6 +259,12 @@ void pebble::update_truth() {
   for (const restricted_clause r : solver->working_clauses) {
     int key, value;
     if (sub.is_clause(r.source->c, key, value)) truth[key]+=value;
+  }
+  effectivetruth.assign(g.size(), 0);
+  for (const restricted_clause r : solver->working_clauses) {
+    if (r.satisfied) continue;
+    int key, value;
+    if (sub.is_clause(r.literals, key, value)) effectivetruth[key]+=value;
   }
 }
 

@@ -8,6 +8,51 @@
 
 using namespace std;
 
+vector<int> parse_sequence(istream& in) {
+  vector<int> pebble_sequence;
+  string line;
+  getline(in, line);
+  stringstream ss(line);
+  int u;
+  while (ss >> u) pebble_sequence.push_back(u);
+  return pebble_sequence;
+}
+
+vector<int> topo_sequence(const vector<vector<int>>& g) {
+  vector<int> pebble_sequence;
+  for (size_t i=0; i<g.size(); ++i) {
+    if (g[i].empty()) continue;
+    pebble_sequence.push_back(i+1);
+    //if (i-7>0 and not g[i-7].empty()) pebble_sequence.push_back(-(i-7));
+  }
+  return pebble_sequence;
+}
+
+ostream& operator << (ostream& o, const vector<int>& v) {
+  for (const auto& i:v) o << i << ' ';
+  return o;
+}
+
+vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
+  vector<int> pebble_sequence;
+  pebble_sequence.push_back(g.size()/2+1);
+  for (size_t i=g.size()/2+1; i<g.size(); ++i) {
+    int jtill=-1;
+    for (int k : g[i]) if (k<g.size()/2) jtill=k;
+    assert(jtill>=0);
+    for (size_t j=1;j<=jtill;++j) {
+      pebble_sequence.push_back(j+1);
+      if (j>1) pebble_sequence.push_back(-j);
+    }
+    pebble_sequence.push_back(i+1);
+    if (i+1==g.size()) break;
+    pebble_sequence.push_back(-i);
+    pebble_sequence.push_back(-jtill-1);
+  }
+  cerr << pebble_sequence << endl;
+  return pebble_sequence;
+}
+
 pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
   g(parse_kth(graph)), rg(g.size()), sub(fn, arity), expect(g.size()) {
   for (size_t i=0; i<g.size(); ++i) {
@@ -17,19 +62,19 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
     }
   }
   vector<int> pebble_sequence;
-  pebble_sequence = parse_sequence(cin);
-  if (pebble_sequence.empty()) {
-    for (size_t i=0; i<g.size(); ++i) {
-      if (g[i].empty()) continue;
-      pebble_sequence.push_back(i);
-      //if (i-7>0 and not g[i-7].empty()) pebble_sequence.push_back(-(i-7));
-    }
-  }
+  //pebble_sequence = parse_sequence(cin);
+  if (pebble_sequence.empty()) pebble_sequence = bitreversal_sequence(g);
   for (int u : pebble_sequence) {
     if (u<0) {
-      pebble_queue.push_back({-u,-1});
+      u=-1-u;
+      assert(u>=0);
+      assert(u<g.size());
+      pebble_queue.push_back({u,-1});
     }
     else {
+      --u;
+      assert(u>=0);
+      assert(u<g.size());
       pebble_queue.push_back({u,1});
       for (int pred : g[u]) {
         pebble_queue.push_back({pred,2});
@@ -41,19 +86,6 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
 void pebble::bindto(cdcl& solver) {
   this->solver = &solver;
   solver.decide_plugin = bind(&pebble::get_decision, this);
-}
-
-vector<int> pebble::parse_sequence(istream& in) {
-  vector<int> pebble_sequence;
-  string line;
-  getline(in, line);
-  stringstream ss(line);
-  int u;
-  while (ss >> u) {
-    if (u>0) pebble_sequence.push_back(u-1);
-    else pebble_sequence.push_back(u+1);
-  }
-  return pebble_sequence;
 }
 
 void pebble::prepare_successors() {

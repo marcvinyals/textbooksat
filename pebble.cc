@@ -57,28 +57,37 @@ vector<int> pebble::parse_sequence(istream& in) {
 }
 
 void pebble::prepare_successors() {
-  vector<int> busy(truth);
+  cerr << "Preparing things just in case" << endl;
+
+  vector<int> nextusage(g.size(),-1);
   for (pair<int,int> p : pebble_queue) {
-    if (p.second!=1) continue;
     int u = p.first;
-    if (u<0) continue;
-    if (busy[u]) continue;
-    bool waitforit = false;
-    if (g[u].size()==1) {
-      int pred = g[u].front();
-      for (int sibling : rg[pred]) {
-        if(busy[sibling]) {
-          waitforit = true;
-          break;
-        }
-      }
+    int exp = p.second;
+    if (truth[u]>=exp) continue;
+    for (int pred : g[u]) {
+      if (nextusage[pred]==-1) nextusage[pred]=u;
     }
-    //waitforit=false;
-    if (not waitforit) {
+  }
+  
+  vector<int> busy(g.size());
+  const vector<int>& a = solver->assignment;
+
+  for (pair<int,int> p : pebble_queue) {
+    if (p.second<0) continue;
+    int u = p.first;
+    if (busy[u]) continue;
+    busy[u]=1;
+    if (g[u].size()==1) { // Should test any subset of inputs, actually.
+      int pred = g[u].front();
+      if (nextusage[pred] != u) continue;
+    }
+    if (truth[u]) continue; // Should do more generic "will I get true by mistake?"
+    cerr << "Preparing " << u+1 << " for " << nextusage[u]+1 << endl;
+    vector<int> a_u(a.begin()+sub.arity*u, a.begin()+sub.arity*(u+1));
+    if (not sub.false_assignments.count(a_u)) {
       decision_queue.push_front(literal(u*2,false));
       decision_queue.push_front(literal(u*2+1,false));
     }
-    busy[u]=1;
   }
 }
 
@@ -146,6 +155,8 @@ void pebble::pebble_next2() {
       uh=0;
       if (it==pebble_queue.begin()) {
         pebble_queue.pop_front();
+        cleanup();
+        prepare_successors();
         return pebble_next2();
       }
     }

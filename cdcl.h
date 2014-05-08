@@ -163,4 +163,9 @@ std::ostream& operator << (std::ostream& o, const std::vector<T>& v) {
   for (const auto& i:v) o << i;
   return o;
 }
+template<typename T>
+std::ostream& operator << (std::ostream& o, const std::list<T>& v) {
+  for (const auto& i:v) o << i;
+  return o;
+}
 std::ostream& operator << (std::ostream& o, const std::vector<clause>& v);

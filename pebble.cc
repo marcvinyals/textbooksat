@@ -35,7 +35,11 @@ ostream& operator << (ostream& o, const vector<int>& v) {
   return o;
 }
 
-vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
+ostream& operator << (ostream& o, const pair<int,int>& p) {
+  return o << p.first+1 << "->" << p.second << " ";
+}
+
+vector<int> bitreversal_sequence_frugal(const vector<vector<int>>& g) {
   vector<int> pebble_sequence;
   pebble_sequence.push_back(g.size()/2+1);
   int lastjtill=0;
@@ -58,6 +62,102 @@ vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
   }
   cerr << pebble_sequence << endl;
   return pebble_sequence;
+}
+
+vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
+  vector<int> pebble_sequence;
+  pebble_sequence.push_back(g.size()/2+1);
+  for (size_t i=g.size()/2+1; i<g.size(); ++i) {
+    int jtill=-1;
+    for (int k : g[i]) if (k<g.size()/2) jtill=k;
+    assert(jtill>=0);
+    for (size_t j=1;j<=jtill;++j) {
+      pebble_sequence.push_back(j+1);
+      if (j>1) pebble_sequence.push_back(-j);
+    }
+    pebble_sequence.push_back(i+1);
+    if (i+1==g.size()) break;
+    pebble_sequence.push_back(-i);
+    pebble_sequence.push_back(-jtill-1);
+  }
+  cerr << pebble_sequence << endl;
+  return pebble_sequence;
+}
+
+void pebble::make_frugal() {
+  vector<int> useful(g.size());
+  vector<list<pair<int,int>>::iterator> time0(g.size());
+  vector<list<pair<int,int>>::iterator> time1(g.size());
+  vector<list<pair<int,int>>::iterator> time2(g.size());
+  vector<int> state(g.size());
+  for (size_t u = 0; u<g.size(); ++u) if (g[u].size()==0) state[u]=2;
+  vector<bool> gc(g.size());
+  for (auto it = pebble_queue.begin(); it != pebble_queue.end();) {
+    int u = it->first;
+    if (g[u].size()==0) {
+      it = pebble_queue.erase(it);
+      continue;
+    }
+    int exp = it->second;
+    switch(exp) {
+    case 1: 
+      if (state[u]>=exp) {
+        pebble_queue.erase(it);
+        pebble_queue.erase(time0[u]);
+        return make_frugal();
+      }
+      else {
+        state[u] = 1;
+        useful[u] = 0;
+        time0[u]=pebble_queue.end();
+        time1[u]=it;
+        time2[u]=pebble_queue.end();
+        for (int pred : g[u]) if (useful[pred]==0) useful[pred]=1;
+      }
+      break;
+    case 2:
+      if (state[u]==2) {
+        it = pebble_queue.erase(it);
+        continue;
+      }
+      if (state[u]==1) {
+        state[u] = 2;
+        time2[u]=it;
+      }
+      else if (state[u]!=2) {
+        cerr << "Not a black pebbling strategy" << endl;
+        exit(1);
+      }
+      break;
+    case -1:
+      if (useful[u]!=1) {
+        pebble_queue.erase(it);
+        pebble_queue.erase(time1[u]);
+        if (time2[u]!=pebble_queue.end()) pebble_queue.erase(time2[u]);
+        return make_frugal();
+      }
+      time0[u] = it;
+      gc[u] = true;
+      break;
+    default:
+      assert(false);
+    }
+    for (int i = 0; i<g.size(); ++i) {
+      if (not gc[i]) continue;
+      bool ok = true;
+      for (int succ : rg[i]) {
+        if (state[succ]==1) {
+          ok=false;
+          break;
+        }
+      }
+      if (ok) {
+        state[i] = 0;
+        gc[i] = false;
+      }
+    }
+    ++it;
+  }
 }
 
 pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
@@ -88,6 +188,7 @@ pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
       }
     }
   }
+  make_frugal();
 }
 
 void pebble::bindto(cdcl& solver) {
@@ -174,11 +275,7 @@ bool pebble::contradiction_reachable(int u) const {
 void pebble::pebble_next2() {
   static int uh = 0;
   cerr << "@ pebble_next2" << endl;
-  for (auto it = pebble_queue.begin(); it != pebble_queue.end(); ++it) {
-    int u = it->first;
-    int exp = it->second;
-    cerr << u+1 << "->" << exp << "  ";
-  }
+  cerr << pebble_queue << endl;
   cerr << endl;
   string line;
   //getline(cin, line);

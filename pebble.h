@@ -24,11 +24,12 @@ class pebble {
   void prepare_successors();
   void cleanup();
   void update_truth();
+  void make_frugal();
   
   std::vector<std::vector<int>> g;
   std::vector<std::vector<int>> rg;
   substitution sub;
-  std::deque<std::pair<int,int>> pebble_queue;
+  std::list<std::pair<int,int>> pebble_queue;
   std::vector<int> expect;
   std::deque<literal> decision_queue;
   cdcl* solver;

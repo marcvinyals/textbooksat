@@ -14,7 +14,7 @@ void measure(const proof& proof) {
   int length=0;
   unordered_map<const proof_clause*, int> last_used;
   int t=0;
-  for (auto& c:proof.proof) {
+  for (const proof_clause& c:proof.resolution) {
     length+=c.derivation.size();
     for (auto d:c.derivation) last_used[d]=t;
     ++t;
@@ -25,7 +25,7 @@ void measure(const proof& proof) {
   int space=0;
   int in_use=0;
   t=0;
-  for (auto& c:proof.proof) {
+  for (const proof_clause& c:proof.resolution) {
     in_use += last_used.count(&c);
     space = max(space, in_use);
     in_use -= remove_n[t];
@@ -34,14 +34,14 @@ void measure(const proof& proof) {
   assert(in_use==0);
   cerr << "Length " << length << endl;
   cerr << "Space " << space << endl;
-  cerr << "Non-trivial length " << proof.proof.size() << endl;
+  cerr << "Non-trivial length " << proof.resolution.size() << endl;
 }
 
 void draw(std::ostream& out, const proof& proof) {
   unordered_set<const proof_clause*> axioms;
-  for (auto& c:proof.formula) axioms.insert(&c);
+  for (const proof_clause& c:proof.formula) axioms.insert(&c);
   out << "digraph G {" << endl;
-  for (auto& c:proof.proof) {
+  for (const proof_clause& c:proof.resolution) {
     out << "subgraph cluster" << uint64_t(&c) << " {";
     out << "style=filled;" << endl;
     out << "color=lightgrey;" << endl;
@@ -76,14 +76,14 @@ void draw(std::ostream& out, const proof& proof) {
 void tikz(std::ostream& out, const proof& proof) {
   pretty.mode = pretty.LATEX;
   unordered_set<const proof_clause*> axioms;
-  for (auto& c:proof.formula) axioms.insert(&c);
+  for (const proof_clause& c:proof.formula) axioms.insert(&c);
   out << "\\documentclass{standalone}" << endl;
   out << "\\usepackage{tikz}" << endl;
   out << "\\usetikzlibrary{graphs,positioning,backgrounds}" << endl;
   out << "\\begin{document}" << endl;
   out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20}]" << endl;
   string previous_lemma;
-  for (auto& c:proof.proof) {
+  for (const proof_clause& c:proof.resolution) {
     // cluster
     vector<string> lemma_names;
     for (size_t i=0;i<c.derivation.size()-1;++i) {
@@ -147,7 +147,7 @@ void tikz(std::ostream& out, const proof& proof) {
 void asy(std::ostream& out, const proof& proof) {
   pretty.mode = pretty.LATEX;
   unordered_set<const proof_clause*> axioms;
-  for (auto& c:proof.formula) axioms.insert(&c);
+  for (const proof_clause& c:proof.formula) axioms.insert(&c);
   out << "import node;" << endl;
   out << "real dx = 7.5cm;" << endl;
   out << "real dy = 1cm;" << endl;
@@ -155,7 +155,7 @@ void asy(std::ostream& out, const proof& proof) {
   out << "nodestyle axiomstyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightblue,black));" << endl;
   string previous_lemma;
   vector<string> stuff;
-  for (auto& c:proof.proof) {
+  for (const proof_clause& c:proof.resolution) {
     vector<string> lemma_names;
     vector<string> axiom_names;
     for (size_t i=0;i<c.derivation.size()-1;++i) {

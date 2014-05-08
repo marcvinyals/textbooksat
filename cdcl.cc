@@ -143,7 +143,7 @@ proof cdcl::solve(const cnf& f) {
         visualizer_plugin(assignment, working_clauses);
         if (solved) {
           LOG(LOG_EFFECTS) << "UNSAT" << endl;
-          return {formula,learnt_clauses};
+          return proof(std::move(formula), std::move(learnt_clauses));
         }
         forget_plugin(*this);
       }

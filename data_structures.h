@@ -96,5 +96,10 @@ struct proof_clause {
 
 struct proof {
   std::vector<proof_clause> formula;
-  std::list<proof_clause> proof;
+  std::list<proof_clause> resolution;
+  proof(const proof&) = delete;
+  proof(proof&&) = default;
+  proof(std::vector<proof_clause>&& formula,
+        std::list<proof_clause>&& resolution) :
+  formula(std::move(formula)), resolution(std::move(resolution)) {}
 };

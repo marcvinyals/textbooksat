@@ -2,9 +2,10 @@
 
 #include <istream>
 #include <vector>
-#include <set>
 
 #include <CImg.h>
+
+#include "pebble_util.h"
 
 typedef struct Agraph_s Agraph_t;
 typedef struct Agnode_s Agnode_t;
@@ -19,17 +20,11 @@ class pebble_viz {
   void draw(const std::vector<int>& a,
             const std::vector<restricted_clause>& mem);
  private:
-  void make_assignments(const std::string& fn, int arity);
-
   void draw_assignment(const std::vector<int>& a);
   void draw_learnt(const std::vector<restricted_clause>& mem);
   void render();
 
-  int arity;
-  std::set<std::vector<int>> true_assignments;
-  std::set<std::vector<int>> false_assignments;
-  std::set<std::vector<int>> true_minimal;
-  std::set<std::vector<int>> false_minimal;
+  substitution sub;
   
   std::string tmpfile;
   GVC_t* gvc;

@@ -44,6 +44,7 @@ static argp_option options[] = {
    "Hint that the formula was substituted with the specified function (default: xor)"},
   {"substitution-arity", 3, "INT", 0,
    "Hint that the formula was substituted with the specified arity (default: 2)"},
+  {"viz",4,"BOOL",0,""},
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
   { 0 }
@@ -62,6 +63,7 @@ struct arguments {
   string pebbling_graph;
   string substitution_fn;
   int substitution_arity;
+  bool viz;
   int verbose;
 };
 
@@ -104,6 +106,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 3:
     arguments->substitution_arity = atoi(arg);
     break;
+  case 4:
+    arguments->viz = atoi(arg);
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -132,6 +137,7 @@ int main(int argc, char** argv) {
   arguments.pebbling_graph = "";
   arguments.substitution_fn = "xor";
   arguments.substitution_arity = 2;
+  arguments.viz = true;
   arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   max_log_level = log_level(arguments.verbose);
@@ -163,10 +169,12 @@ int main(int argc, char** argv) {
 
   if (not arguments.pebbling_graph.empty()) {
 #ifndef NO_VIZ
+    if (arguments.viz) {
     ifstream pebbling2(arguments.pebbling_graph);
     solver.vz.reset
       (new pebble_viz(pebbling2, arguments.substitution_fn,
                       arguments.substitution_arity));
+    }
 #endif
     ifstream pebbling(arguments.pebbling_graph);
     solver.pebble_helper.reset

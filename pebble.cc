@@ -38,18 +38,23 @@ ostream& operator << (ostream& o, const vector<int>& v) {
 vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
   vector<int> pebble_sequence;
   pebble_sequence.push_back(g.size()/2+1);
+  int lastjtill=0;
   for (size_t i=g.size()/2+1; i<g.size(); ++i) {
     int jtill=-1;
     for (int k : g[i]) if (k<g.size()/2) jtill=k;
     assert(jtill>=0);
-    for (size_t j=1;j<=jtill;++j) {
+    if (jtill<lastjtill) {
+      pebble_sequence.push_back(-lastjtill-1);
+      lastjtill=0;
+    }
+    for (size_t j=lastjtill+1;j<=jtill;++j) {
       pebble_sequence.push_back(j+1);
       if (j>1) pebble_sequence.push_back(-j);
     }
     pebble_sequence.push_back(i+1);
     if (i+1==g.size()) break;
     pebble_sequence.push_back(-i);
-    pebble_sequence.push_back(-jtill-1);
+    lastjtill=jtill;
   }
   cerr << pebble_sequence << endl;
   return pebble_sequence;
@@ -127,9 +132,9 @@ void pebble::prepare_successors() {
 
 void pebble::cleanup() {
   cerr << "CLEANUP" << endl;
-  if (solver->working_clauses.size()>230) {
+  /*if (solver->working_clauses.size()>230) {
     kill(getpid(),SIGSTOP);
-  };
+  };*/
   solver->forget_wide(2);
   for (unsigned u = 0; u<g.size(); ++u) {
     if (expect[u]==0 and truth[u]) {

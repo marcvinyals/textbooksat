@@ -13,7 +13,7 @@ struct literal_or_restart;
 
 class pebble {
  public:
-  pebble(std::istream& graph, const std::string& fn, int arity);
+  pebble(std::istream& graph, const std::string& fn, int arity, const std::string& strategy);
   void bindto(cdcl& solver);
   literal_or_restart get_decision();
 

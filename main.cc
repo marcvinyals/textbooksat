@@ -44,6 +44,8 @@ static argp_option options[] = {
    "Hint that the formula was substituted with the specified function (default: xor)"},
   {"substitution-arity", 3, "INT", 0,
    "Hint that the formula was substituted with the specified arity (default: 2)"},
+  {"pebbling-strategy",5,"{ask,topo,dfs,permutation}", 0,
+   "Substrategy for the pebbling decision strategy (default: topo)"},
 #ifndef NO_VIZ
   {"viz", 4, "BOOL", 0,
    "Visualize pebbling (default: 1)"},
@@ -67,6 +69,7 @@ struct arguments {
   string substitution_fn;
   int substitution_arity;
   bool visualize_pebbling;
+  string pebbling_strategy;
   int verbose;
 };
 
@@ -112,6 +115,8 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 4:
     arguments->visualize_pebbling = atoi(arg);
     break;
+  case 5:
+    arguments->pebbling_strategy = arg;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -141,6 +146,7 @@ int main(int argc, char** argv) {
   arguments.substitution_fn = "xor";
   arguments.substitution_arity = 2;
   arguments.visualize_pebbling = true;
+  arguments.pebbling_strategy = "topo";
   arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   max_log_level = log_level(arguments.verbose);
@@ -182,7 +188,8 @@ int main(int argc, char** argv) {
     ifstream pebbling(arguments.pebbling_graph);
     solver.pebble_helper.reset
       (new pebble(pebbling, arguments.substitution_fn,
-                  arguments.substitution_arity));
+                  arguments.substitution_arity,
+                  arguments.pebbling_strategy));
   }
 
   LOG(LOG_ACTIONS) << "Start solving" << endl;

@@ -10,6 +10,15 @@
 
 using namespace std;
 
+ostream& operator << (ostream& o, const vector<int>& v) {
+  for (const auto& i:v) o << i << ' ';
+  return o;
+}
+
+ostream& operator << (ostream& o, const pair<int,int>& p) {
+  return o << p.first+1 << "->" << p.second << " ";
+}
+
 vector<int> parse_sequence(istream& in) {
   vector<int> pebble_sequence;
   string line;
@@ -30,13 +39,20 @@ vector<int> topo_sequence(const vector<vector<int>>& g) {
   return pebble_sequence;
 }
 
-ostream& operator << (ostream& o, const vector<int>& v) {
-  for (const auto& i:v) o << i << ' ';
-  return o;
-}
-
-ostream& operator << (ostream& o, const pair<int,int>& p) {
-  return o << p.first+1 << "->" << p.second << " ";
+vector<int> dfs_sequence(const vector<vector<int>>& g, const vector<vector<int>>& rg) {
+  vector<int> seen(g.size(), false);
+  vector<int> pebble_sequence;
+  function<void(int)> dfs = [&] (int u) {
+    seen[u]=true;
+    for (int v : g[u]) {
+      if (seen[v]) continue;
+      dfs(v);
+    }
+    pebble_sequence.push_back(u+1);
+  };
+  for (size_t u=0; u<rg.size(); ++u) if (rg[u].empty()) dfs(u);
+  cerr << pebble_sequence << endl;
+  return pebble_sequence;
 }
 
 vector<int> bitreversal_sequence_frugal(const vector<vector<int>>& g) {
@@ -45,13 +61,13 @@ vector<int> bitreversal_sequence_frugal(const vector<vector<int>>& g) {
   int lastjtill=0;
   for (size_t i=g.size()/2+1; i<g.size(); ++i) {
     int jtill=-1;
-    for (int k : g[i]) if (k<g.size()/2) jtill=k;
+    for (size_t k : g[i]) if (k<g.size()/2) jtill=k;
     assert(jtill>=0);
     if (jtill<lastjtill) {
       pebble_sequence.push_back(-lastjtill-1);
       lastjtill=0;
     }
-    for (size_t j=lastjtill+1;j<=jtill;++j) {
+    for (int j=lastjtill+1;j<=jtill;++j) {
       pebble_sequence.push_back(j+1);
       if (j>1) pebble_sequence.push_back(-j);
     }
@@ -69,9 +85,9 @@ vector<int> bitreversal_sequence(const vector<vector<int>>& g) {
   pebble_sequence.push_back(g.size()/2+1);
   for (size_t i=g.size()/2+1; i<g.size(); ++i) {
     int jtill=-1;
-    for (int k : g[i]) if (k<g.size()/2) jtill=k;
+    for (size_t k : g[i]) if (k<g.size()/2) jtill=k;
     assert(jtill>=0);
-    for (size_t j=1;j<=jtill;++j) {
+    for (int j=1;j<=jtill;++j) {
       pebble_sequence.push_back(j+1);
       if (j>1) pebble_sequence.push_back(-j);
     }
@@ -142,35 +158,48 @@ void pebble::make_frugal() {
     default:
       assert(false);
     }
-    for (int i = 0; i<g.size(); ++i) {
-      if (not gc[i]) continue;
+    for (size_t u = 0; u<g.size(); ++u) {
+      if (not gc[u]) continue;
       bool ok = true;
-      for (int succ : rg[i]) {
+      for (int succ : rg[u]) {
         if (state[succ]==1) {
           ok=false;
           break;
         }
       }
       if (ok) {
-        state[i] = 0;
-        gc[i] = false;
+        state[u] = 0;
+        gc[u] = false;
       }
     }
     ++it;
   }
 }
 
-pebble::pebble(std::istream& graph, const std::string& fn, int arity) :
+pebble::pebble(istream& graph, const string& fn, int arity, const string& strategy) :
   g(parse_kth(graph)), rg(g.size()), sub(fn, arity), expect(g.size()) {
+  if (fn!="xor" or arity!=2) {
+    cerr << "Pebbling strategies work only for xor-2" << endl;
+    exit(1);
+  }
   for (size_t i=0; i<g.size(); ++i) {
     for (int j:g[i]) {
       cerr << i << " " << j << endl;
       rg[j].push_back(i);
     }
   }
+
   vector<int> pebble_sequence;
-  //pebble_sequence = parse_sequence(cin);
-  if (pebble_sequence.empty()) pebble_sequence = bitreversal_sequence(g);
+  if (strategy == "ask") pebble_sequence = parse_sequence(cin);
+  else if (strategy == "topo") pebble_sequence = topo_sequence(g);
+  else if (strategy == "dfs") pebble_sequence = dfs_sequence(g, rg);
+  else if (strategy == "permutation") pebble_sequence = bitreversal_sequence(g);
+  else if (strategy == "permutation-frugal") pebble_sequence = bitreversal_sequence_frugal(g);
+  else {
+    cerr << "Invalid pebbling strategy" << endl;
+    exit(1);
+  }
+  
   for (int u : pebble_sequence) {
     if (u<0) {
       u=-1-u;

@@ -120,8 +120,8 @@ private:
   bool consistent() const;
   
   bool solved; // Done
-  const proof_clause* conflict; // Conflict
-
+  std::vector<const proof_clause*> conflicts;
+  
   // Copy of the formula.
   std::vector<proof_clause> formula;
   // Learnt clauses, in order. We will pointers to proof clauses, so

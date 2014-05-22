@@ -8,6 +8,7 @@
 #include "log.h"
 #ifndef NO_VIZ
 #include "vizpebble.h"
+#include "viztseitin.h"
 #endif
 
 using namespace std;
@@ -46,6 +47,8 @@ static argp_option options[] = {
 #ifndef NO_VIZ
   {"viz", 4, "BOOL", 0,
    "Visualize pebbling (default: 1)"},
+  {"tseitin", 5, "BOOL", 0,
+   "Visualize Tseitin (default: 0)"},
 #endif
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
@@ -66,6 +69,7 @@ struct arguments {
   string substitution_fn;
   int substitution_arity;
   bool visualize_pebbling;
+  bool visualize_tseitin;
   int verbose;
 };
 
@@ -111,6 +115,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 4:
     arguments->visualize_pebbling = atoi(arg);
     break;
+  case 5:
+    arguments->visualize_tseitin = atoi(arg);
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -140,6 +147,7 @@ int main(int argc, char** argv) {
   arguments.substitution_fn = "xor";
   arguments.substitution_arity = 2;
   arguments.visualize_pebbling = true;
+  arguments.visualize_tseitin = false;
   arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
   max_log_level = log_level(arguments.verbose);
@@ -173,9 +181,12 @@ int main(int argc, char** argv) {
   if (not arguments.pebbling_graph.empty()) {
     if (arguments.visualize_pebbling) {
       ifstream pebbling(arguments.pebbling_graph);
-      solver.vz = shared_ptr<pebble_viz>
+      solver.vz.reset
         (new pebble_viz(pebbling, arguments.substitution_fn, arguments.substitution_arity));
     }
+  }
+  if (arguments.visualize_tseitin) {
+    solver.vz.reset(new tseitin_viz(f));
   }
 #endif
 

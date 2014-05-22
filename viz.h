@@ -1,19 +1,24 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <CImg.h>
 
 typedef struct Agraph_s Agraph_t;
 typedef struct Agnode_s Agnode_t;
+typedef struct Agedge_s Agedge_t;
 typedef struct GVC_s GVC_t;
+class restricted_clause;
 
 class graphviz_viz {
  public:
+  graphviz_viz();
   virtual ~graphviz_viz();
   graphviz_viz(const graphviz_viz&) = delete;
+  virtual void draw(const std::vector<int>& a,
+                    const std::vector<restricted_clause>& mem) = 0;
  protected:
-  graphviz_viz();
   void render();  
   GVC_t* gvc; // Owned
   Agraph_t* g; // Owned, created by subclass

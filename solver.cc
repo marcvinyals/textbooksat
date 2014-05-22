@@ -51,7 +51,7 @@ proof cdcl_solver::solve(const cnf& f) {
 #ifndef NO_VIZ
   if (vz) {
     solver.visualizer_plugin =
-      bind(&pebble_viz::draw, ref(*vz),
+      bind(&graphviz_viz::draw, ref(*vz),
            std::placeholders::_1, std::placeholders::_2);
   }
   else {

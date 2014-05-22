@@ -6,7 +6,7 @@
 #include <ostream>
 #include <memory>
 
-class pebble_viz;
+class graphviz_viz;
 
 struct cdcl_solver {
  public:
@@ -14,5 +14,5 @@ struct cdcl_solver {
   std::string decide, learn, forget;
   bool backjump, minimize, phase_saving;
   std::shared_ptr<std::ostream> trace;
-  std::shared_ptr<pebble_viz> vz;
+  std::shared_ptr<graphviz_viz> vz;
 };

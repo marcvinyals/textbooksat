@@ -4,7 +4,7 @@
 #include "formatting.h"
 #include "ui.h"
 #ifndef NO_VIZ
-#include "viz.h"
+#include "vizpebble.h"
 #endif
 
 using namespace std;

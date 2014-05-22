@@ -7,7 +7,7 @@
 #include "analysis.h"
 #include "log.h"
 #ifndef NO_VIZ
-#include "viz.h"
+#include "vizpebble.h"
 #endif
 
 using namespace std;

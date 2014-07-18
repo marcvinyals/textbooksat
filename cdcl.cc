@@ -347,17 +347,23 @@ void cdcl::minimize(proof_clause& c) const {
   d.restrict(assignment);
   if (d.contradiction()) return;
   literal asserting = d.literals.front();
-  for (auto l:c) {
+  for (auto it=c.c.begin(); it!=c.c.end();) {
+    literal l(*it);
     // We do not minimize asserting literals. We could be a bit bolder
     // here, but then we would require backjumps.
-    if (l==asserting) continue;
-    for (auto d:reasons[(~l).l]) {
+    if (l==asserting) {++it; continue;}
+    for (const proof_clause* d:reasons[(~l).l]) {
       LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
       if (d->c.subsumes(c.c, ~l)) {
+        int i=it-c.begin();
         c.resolve(*d, variable(l));
         LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
+        it=c.c.begin()+i;
+        goto nextliteral;
       }
     }
+    ++it;
+  nextliteral:;
   }
 }
 

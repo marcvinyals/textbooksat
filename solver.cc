@@ -5,7 +5,7 @@
 #include "pebble.h"
 #include "ui.h"
 #ifndef NO_VIZ
-#include "viz.h"
+#include "vizpebble.h"
 #endif
 
 using namespace std;
@@ -55,7 +55,7 @@ proof cdcl_solver::solve(const cnf& f) {
 #ifndef NO_VIZ
   if (vz) {
     solver.visualizer_plugin =
-      bind(&pebble_viz::draw, ref(*vz),
+      bind(&graphviz_viz::draw, ref(*vz),
            std::placeholders::_1, std::placeholders::_2);
   }
   else {

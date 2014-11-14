@@ -58,6 +58,14 @@ struct clause {
   std::vector<literal>::const_iterator begin() const { return literals.begin(); }
   std::vector<literal>::const_iterator end() const { return literals.end(); }
   std::size_t width() const { return literals.size(); }
+  struct domain_iterator : public std::vector<literal>::const_iterator {
+  domain_iterator(std::vector<literal>::const_iterator it) : std::vector<literal>::const_iterator(it) {}
+    variable operator * () const {
+      return variable(std::vector<literal>::const_iterator::operator *());
+    }
+  };
+  domain_iterator dom_begin() const { return literals.begin(); }
+  domain_iterator dom_end() const { return literals.end(); }
 private:
   std::vector<literal> literals;
   friend struct std::hash<clause>;

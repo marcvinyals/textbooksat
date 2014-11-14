@@ -134,11 +134,11 @@ proof cdcl::solve(const cnf& f) {
   // Main loop
   solved = false;
   while(not solved) {
-    conflict = NULL;
+    conflicts.clear();
     assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
-      if (conflict) {
+      if (not conflicts.empty()) {
         learn();
         visualizer_plugin(assignment, working_clauses);
         if (solved) {
@@ -206,7 +206,7 @@ void cdcl::assign(literal l) {
     c.restrict(l);
     if (c.contradiction()) {
       LOG(LOG_STATE) << "Conflict" << endl;
-      conflict=c.source;
+      conflicts.push_back(c.source);
     }
     if (c.unit() and not wasunit) {
       LOG(LOG_STATE) << c << " is now unit" << endl;
@@ -244,9 +244,12 @@ bool cdcl::asserting(const proof_clause& c) const {
 // 1UIP with all conflict graphs consistent with the current reasons.
 proof_clause cdcl::learn_fuip_all(const branching_sequence::reverse_iterator& first_decision) {
   deque<clause> q;
-  q.push_back(conflict->c);
   unordered_map<clause,pair<const clause*, const proof_clause*>> parent;
-  parent[conflict->c]={NULL,conflict};
+  for (auto& c : conflicts) {
+    q.push_back(c->c);
+    parent[c->c]={NULL,c};
+  }
+  assert(not q.empty());
   vector<clause> learnable_clauses;
   for (auto it = branching_seq.rbegin(); it!= first_decision; ++it) {
     literal l = it->to;
@@ -288,6 +291,7 @@ proof_clause cdcl::learn_fuip_all(const branching_sequence::reverse_iterator& fi
 // after restriction). The result is an input regular resolution
 // proof.
 proof_clause cdcl::learn_fuip(const branching_sequence::reverse_iterator& first_decision) {
+  const proof_clause* conflict = conflicts.back();
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
@@ -305,6 +309,7 @@ proof_clause cdcl::learn_fuip(const branching_sequence::reverse_iterator& first_
 // result must be asserting.
 // aka: rel_sat
 proof_clause cdcl::learn_luip(const branching_sequence::reverse_iterator& first_decision) {
+  const proof_clause* conflict = conflicts.back();
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
   for (auto it = branching_seq.rbegin(); it!=first_decision; ++it) {
@@ -319,6 +324,7 @@ proof_clause cdcl::learn_luip(const branching_sequence::reverse_iterator& first_
 
 // Learn a subset of the decision variables
 proof_clause cdcl::learn_decision(const branching_sequence::reverse_iterator& first_decision) {
+  const proof_clause* conflict = conflicts.back();
   proof_clause c(conflict->c);
   c.derivation.push_back(conflict);
   for (auto it = branching_seq.rbegin(); it!=branching_seq.rend(); ++it) {
@@ -341,17 +347,23 @@ void cdcl::minimize(proof_clause& c) const {
   d.restrict(assignment);
   if (d.contradiction()) return;
   literal asserting = d.literals.front();
-  for (auto l:c) {
+  for (auto it=c.c.begin(); it!=c.c.end();) {
+    literal l(*it);
     // We do not minimize asserting literals. We could be a bit bolder
     // here, but then we would require backjumps.
-    if (l==asserting) continue;
-    for (auto d:reasons[(~l).l]) {
+    if (l==asserting) {++it; continue;}
+    for (const proof_clause* d:reasons[(~l).l]) {
       LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
       if (d->c.subsumes(c.c, ~l)) {
+        int i=it-c.begin();
         c.resolve(*d, variable(l));
         LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
+        it=c.c.begin()+i;
+        goto nextliteral;
       }
     }
+    ++it;
+  nextliteral:;
   }
 }
 
@@ -384,7 +396,7 @@ void cdcl::backjump(const proof_clause& learnt_clause,
 }
 
 void cdcl::learn() {
-  LOG(LOG_STATE_SUMMARY) << "Conflict clause " << *conflict << endl;
+  LOG(LOG_STATE_SUMMARY) << "Conflict clause " << *conflicts.back() << endl;
   LOG(LOG_STATE) << "Assignment " << assignment << endl;
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // Backtrack to first decision level.
@@ -444,8 +456,8 @@ void cdcl::learn() {
       propagation_queue.propagate(c);
     }
   }
-  
-  conflict = NULL;
+
+  conflicts.clear();
 }
 
 
@@ -531,21 +543,16 @@ void cdcl::forget_wide() {
 }
 
 void cdcl::forget_domain(const vector<variable>& domain) {
-  vector<literal> dom;
-  dom.reserve(domain.size()*2);
-  for (variable x : domain) {
-    dom.push_back(literal(x,false));
-    dom.push_back(literal(x,true));
-  }
+  vector<variable> dom(domain);
   sort(dom.begin(), dom.end());
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);
   for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
     if (includes(dom.begin(), dom.end(),
-                 it->source->begin(), it->source->end())
+                 it->source->c.dom_begin(), it->source->c.dom_end())
         and busy.count(it->source) == 0) {
       LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-      it = working_clauses.erase(it);      
+      it = working_clauses.erase(it);
     }
     else {
       ++it;

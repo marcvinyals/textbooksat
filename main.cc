@@ -8,7 +8,8 @@
 #include "log.h"
 #include "pebble.h"
 #ifndef NO_VIZ
-#include "viz.h"
+#include "vizpebble.h"
+#include "viztseitin.h"
 #endif
 
 using namespace std;
@@ -44,11 +45,13 @@ static argp_option options[] = {
    "Hint that the formula was substituted with the specified function (default: xor)"},
   {"substitution-arity", 3, "INT", 0,
    "Hint that the formula was substituted with the specified arity (default: 2)"},
-  {"pebbling-strategy",5,"{ask,topo,dfs,permutation}", 0,
+  {"pebbling-strategy",10,"{ask,topo,dfs,permutation}", 0,
    "Substrategy for the pebbling decision strategy (default: topo)"},
 #ifndef NO_VIZ
   {"viz", 4, "BOOL", 0,
    "Visualize pebbling (default: 1)"},
+  {"tseitin", 5, "BOOL", 0,
+   "Visualize Tseitin (default: 0)"},
 #endif
   {"verbose", 'v', "[0..3]", 0,
    "Verbosity level"},
@@ -69,6 +72,7 @@ struct arguments {
   string substitution_fn;
   int substitution_arity;
   bool visualize_pebbling;
+  bool visualize_tseitin;
   string pebbling_strategy;
   int verbose;
 };
@@ -116,7 +120,11 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     arguments->visualize_pebbling = atoi(arg);
     break;
   case 5:
+    arguments->visualize_tseitin = atoi(arg);
+    break;
+  case 10:
     arguments->pebbling_strategy = arg;
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -146,6 +154,7 @@ int main(int argc, char** argv) {
   arguments.substitution_fn = "xor";
   arguments.substitution_arity = 2;
   arguments.visualize_pebbling = true;
+  arguments.visualize_tseitin = false;
   arguments.pebbling_strategy = "topo";
   arguments.verbose = LOG_STATE_SUMMARY;
   argp_parse (&argp, argc, argv, 0, 0, &arguments);
@@ -171,20 +180,25 @@ int main(int argc, char** argv) {
   solver.phase_saving = arguments.phase_saving;
 
   if (not arguments.trace.empty()) {
-    solver.trace.reset(new ofstream(arguments.trace));
+    solver.trace = shared_ptr<ostream>(new ofstream(arguments.trace));
     *solver.trace << "# -*- mode: conf -*-" << endl;
     *solver.trace << "batch 1" << endl;
   }
 
-  if (not arguments.pebbling_graph.empty()) {
 #ifndef NO_VIZ
+  if (not arguments.pebbling_graph.empty()) {
     if (arguments.visualize_pebbling) {
-    ifstream pebbling2(arguments.pebbling_graph);
+      ifstream pebbling(arguments.pebbling_graph);
     solver.vz.reset
-      (new pebble_viz(pebbling2, arguments.substitution_fn,
-                      arguments.substitution_arity));
+        (new pebble_viz(pebbling, arguments.substitution_fn, arguments.substitution_arity));
     }
+  }
+  if (arguments.visualize_tseitin) {
+    solver.vz.reset(new tseitin_viz(f));
+  }
 #endif
+
+  if (not arguments.pebbling_graph.empty()) {
     ifstream pebbling(arguments.pebbling_graph);
     solver.pebble_helper.reset
       (new pebble(pebbling, arguments.substitution_fn,

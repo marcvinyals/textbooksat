@@ -20,7 +20,7 @@ endif
 ifeq ($(VIZ),VIZ)
 $(info Visualization for pebbling formulas active)
 LIBS += $(GRAPHVIZ_LIBS) $(CIMG_LIBS)
-SOURCES += viz.cc
+SOURCES += viz.cc vizpebble.cc viztseitin.cc
 else
 CPPFLAGS += -DNO_VIZ
 endif

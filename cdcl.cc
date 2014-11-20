@@ -145,9 +145,9 @@ proof cdcl::solve(const cnf& f) {
           LOG(LOG_EFFECTS) << "UNSAT" << endl;
           return proof(std::move(formula), std::move(learnt_clauses));
         }
-        forget_plugin(*this);
       }
     }
+    forget_plugin(*this);
     visualizer_plugin(assignment, working_clauses);
     decide();
     if (solved) {
@@ -513,6 +513,7 @@ void cdcl::forget_nothing() {}
 
 // Forget clauses wider than w
 void cdcl::forget_wide(int w) {
+  assert(propagation_queue.empty());
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);
   for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
@@ -531,6 +532,7 @@ void cdcl::forget_wide() {
 }
 
 void cdcl::forget_domain(const vector<variable>& domain) {
+  assert(propagation_queue.empty());
   vector<literal> dom;
   dom.reserve(domain.size()*2);
   for (variable x : domain) {
@@ -554,6 +556,7 @@ void cdcl::forget_domain(const vector<variable>& domain) {
 }
 
 void cdcl::forget_everything() {
+  assert(propagation_queue.empty());
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);
   for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
@@ -568,6 +571,7 @@ void cdcl::forget_everything() {
 }
 
 void cdcl::forget(unsigned int m) {
+  assert(propagation_queue.empty());
   assert (m>=formula.size());
   assert (m<working_clauses.size());
   const auto& target = working_clauses[m];

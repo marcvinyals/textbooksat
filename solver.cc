@@ -19,6 +19,10 @@ proof cdcl_solver::solve(const cnf& f) {
   if (decide == "ask") {
     solver.decide_plugin = bind(&ui::get_decision, ui);
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
+  } else if (decide == "askfile") {
+    solver.commands.open("cmdfile");
+    solver.decide_plugin = &cdcl::decide_askfile;
+    solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
   else {
     solver.decide_plugin = &cdcl::decide_fixed;
@@ -44,6 +48,10 @@ proof cdcl_solver::solve(const cnf& f) {
   if (forget == "nothing") solver.forget_plugin = &cdcl::forget_nothing;
   else if (forget == "everything") solver.forget_plugin = &cdcl::forget_everything;
   else if (forget == "wide") solver.forget_plugin = static_cast<void (cdcl::*)(void)>(&cdcl::forget_wide);
+  else if (forget.substr(0,7) == "tseitin") {
+    solver.forget_plugin = &cdcl::forget_tseitin;
+    std::istringstream(forget.substr(7))>>solver.TSEITIN_H;
+  }
   else {
     cerr << "Invalid forgetting scheme" << endl;
     exit(1);

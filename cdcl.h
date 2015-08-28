@@ -6,6 +6,7 @@
 #include <list>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 #include "data_structures.h"
@@ -80,7 +81,8 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   double config_activity_decay;
 
   literal_or_restart decide_fixed();
-  literal_or_restart decide_ask();
+  std::ifstream commands;
+  literal_or_restart decide_askfile();
 
   proof_clause learn_fuip(const branching_sequence::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const branching_sequence::reverse_iterator& first_decision);
@@ -96,6 +98,8 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   void forget_wide();
   void forget_wide(int w);
   void forget_domain(const std::vector<variable>& domain);
+  int TSEITIN_H;
+  void forget_tseitin();
 
   std::shared_ptr<std::ostream> trace;
   

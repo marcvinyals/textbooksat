@@ -16,11 +16,11 @@ using namespace std;
 static argp_option options[] = {
   {"in", 'i', "FILE", 0,
    "Read formula in dimacs format from FILE (default: stdin)"},
-  {"decide", 'd', "{fixed,reverse,vsids,ask}", 0,
+  {"decide", 'd', "{fixed,reverse,vsids,ask,askfile}", 0,
    "Use the specified decision procedure (default: fixed)"},
   {"learn", 'l', "{1uip,1uip-all,lastuip,decision}", 0,
    "Use the specified learning schema (default: 1uip)"},
-  {"forget", 'f', "{nothing,everything,wide}", 0,
+  {"forget", 'f', "{nothing,everything,wide,tseitinN}", 0,
    "Use the specified forgetting schema (default: nothing)"},
   {"backjump", 'b', "BOOL", 0,
    "On a conflict, backtrack deeper than the decision level as long as the "

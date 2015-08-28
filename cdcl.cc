@@ -201,14 +201,19 @@ void cdcl::assign(literal l) {
 
   // Restrict unit clauses and check for conflicts and new unit
   // propagations.
+  std::set<literal>L;
   for (auto& c : working_clauses) {
     bool wasunit = c.unit();
     c.restrict(l);
     if (c.contradiction()) {
+      if(!conflicts.empty()){puts("multiple conflicts");/*exit(1);*/}
       LOG(LOG_STATE) << "Conflict" << endl;
       conflicts.push_back(c.source);
     }
     if (c.unit() and not wasunit) {
+      literal l = c.literals.front();
+      if(L.count(l)){puts("multiple reasons");/*exit(1);*/}
+      L.insert(l);
       LOG(LOG_STATE) << c << " is now unit" << endl;
       propagation_queue.propagate(c);
     }
@@ -487,6 +492,23 @@ literal_or_restart cdcl::decide_fixed() {
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
+literal_or_restart cdcl::decide_askfile() {
+  while(1) {
+    std::string cmd; if(!(commands >> cmd)){puts("eof cmdfile");exit(1);}
+    //cout << "cmd = " << cmd << "; ";
+    if(cmd[0]=='d') {
+      int l; if(!(commands >> l)){puts("eof cmdfile (2)");exit(1);}
+      if(assignment[variable(from_dimacs(l))] != 0){cout<<"already assigned: "<<l<<endl;exit(1);}
+      return from_dimacs(l);
+    }
+    else { // only for pebbling simulation.
+      int node; if(!(commands >> node)){puts("eof cmdfile (3)");exit(1);}
+      std::vector<variable>vv;vv.push_back(2*node-1),vv.push_back(2*node-2);
+      forget_domain(vv);
+    }
+  }
+}
+
 void cdcl::restart() {
   LOG(LOG_ACTIONS) << "Restarting" << endl;
   for (auto branch:branching_seq) decision_order.insert(variable(branch.to));
@@ -541,6 +563,27 @@ void cdcl::forget_wide(int w) {
 
 void cdcl::forget_wide() {
   /*if (working_clauses.back().source->c.width() <= 2)*/ forget_wide(2);
+}
+
+void cdcl::forget_tseitin() {
+  assert(propagation_queue.empty());
+  unordered_set<const proof_clause*> busy;
+  for (auto branch : branching_seq) busy.insert(branch.reason);
+  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
+    bool bad=!busy.count(it->source);
+    if(it->source->c.width()==TSEITIN_H){
+      bad=false;
+      int what=-1;
+      for(literal l:it->source->c)if(what==-1)what=l.l/2/TSEITIN_H;else if(l.l/2/TSEITIN_H!=what)bad=true;
+    }
+    if(bad){
+      LOG(LOG_ACTIONS) << "Forgetting (T) " << *it->source << endl;
+      it = working_clauses.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 void cdcl::forget_domain(const vector<variable>& domain) {

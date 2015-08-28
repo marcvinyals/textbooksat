@@ -540,7 +540,7 @@ void cdcl::forget_wide(int w) {
 }
 
 void cdcl::forget_wide() {
-  if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
+  /*if (working_clauses.back().source->c.width() <= 2)*/ forget_wide(2);
 }
 
 void cdcl::forget_domain(const vector<variable>& domain) {

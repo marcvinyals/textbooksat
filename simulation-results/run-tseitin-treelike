@@ -1,0 +1,3 @@
+#!/bin/bash
+W=$1; H=$2;
+echo "$W $H" | ./tseitin-treelike > cmdfile && echo "$W $H" | ./tseitin-formula > tmp.cnf && ~/pebbling/textbooksat/satr -d askfile -f everything -v 0 < tmp.cnf

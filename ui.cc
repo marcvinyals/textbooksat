@@ -55,6 +55,8 @@ void ui::usage() {
     cout << " * forget <restricted clause number>" << endl;
     cout << " * forget wide <width>" << endl;
     cout << " * forget domain <variable>*" << endl;
+    cout << " * forget touches all <variable>*" << endl;
+    cout << " * forget touches any <variable>*" << endl;
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
     cout << " * batch {0,1}" << endl;
@@ -88,6 +90,8 @@ literal_or_restart ui::get_decision() {
       | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
       | qi::string("forget wide")[ph::ref(action) = _1] >> -int_[ref(w) = _1]
       | qi::string("forget domain")[ph::ref(action) = _1] >> (*variable_)[ph::ref(domain) = _1]
+      | qi::string("forget touches any")[ph::ref(action) = _1] >> (*variable_)[ph::ref(domain) = _1]
+      | qi::string("forget touches all")[ph::ref(action) = _1] >> (*variable_)[ph::ref(domain) = _1]
       | -lit("assign") >> variable_[ph::ref(var) = _1] >> int_[ref(polarity) = _1] >> eps[ph::ref(action) = "assign"]
       | int_[ref(dimacs) = _1] >> eps[ph::ref(action) = "dimacs"]
                                   , qi::space);
@@ -126,6 +130,16 @@ literal_or_restart ui::get_decision() {
     else if (action=="forget domain") {
       history.push_back(line);
       solver.forget_domain(domain);
+      return solver.decide_plugin(solver);
+    }
+    else if (action=="forget touches any") {
+      history.push_back(line);
+      solver.forget_touches_any(domain);
+      return solver.decide_plugin(solver);
+    }
+    else if (action=="forget touches all") {
+      history.push_back(line);
+      solver.forget_touches_all(domain);
       return solver.decide_plugin(solver);
     }
     else if (action == "assign") {

@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <boost/function_output_iterator.hpp>
+
 #include "formatting.h"
 #include "color.h"
 #include "log.h"
@@ -525,33 +527,19 @@ void cdcl::forget_nothing() {}
 
 // Forget clauses wider than w
 void cdcl::forget_wide(int w) {
-  assert(propagation_queue.empty());
-  unordered_set<const proof_clause*> busy;
-  for (auto branch : branching_seq) busy.insert(branch.reason);
-  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-    if (it->source->c.width() > w and busy.count(it->source) == 0) {
-      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-      it = working_clauses.erase(it);
-    }
-    else {
-      ++it;
-    }
-  }
+  forget_if([w](const clause& c) { return c.width() > w; });
 }
 
 void cdcl::forget_wide() {
   if (working_clauses.back().source->c.width() <= 2) forget_wide(2);
 }
 
-void cdcl::forget_domain(const vector<variable>& domain) {
+void cdcl::forget_if(const function<bool(clause)>& predicate) {
   assert(propagation_queue.empty());
-  vector<variable> dom(domain);
-  sort(dom.begin(), dom.end());
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);
   for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-    if (includes(dom.begin(), dom.end(),
-                 it->source->c.dom_begin(), it->source->c.dom_end())
+    if (predicate(it->source->c)
         and busy.count(it->source) == 0) {
       LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
       it = working_clauses.erase(it);
@@ -560,21 +548,42 @@ void cdcl::forget_domain(const vector<variable>& domain) {
       ++it;
     }
   }
+  
 }
 
+void cdcl::forget_domain(const vector<variable>& domain) {
+  vector<variable> dom(domain);
+  sort(dom.begin(), dom.end());
+  forget_if([&dom](const clause& c) {
+      return includes(dom.begin(), dom.end(),
+                      c.dom_begin(), c.dom_end());
+    });
+}
+
+void cdcl::forget_touches_all(const vector<variable>& domain) {
+  vector<variable> dom(domain);
+  sort(dom.begin(), dom.end());
+  forget_if([&dom](const clause& c) {
+      return includes(c.dom_begin(), c.dom_end(),
+                      dom.begin(), dom.end());
+    });
+}
+
+void cdcl::forget_touches_any(const vector<variable>& domain) {
+  vector<variable> dom(domain);
+  sort(dom.begin(), dom.end());
+  forget_if([&dom](const clause& c) {
+      bool empty = true;
+      auto set_is_empty = [&empty] (variable) { empty=false; };
+      set_intersection(c.dom_begin(), c.dom_end(),
+                       dom.begin(), dom.end(),
+                       boost::make_function_output_iterator(set_is_empty));
+      return not empty;
+    });
+    }
+
 void cdcl::forget_everything() {
-  assert(propagation_queue.empty());
-  unordered_set<const proof_clause*> busy;
-  for (auto branch : branching_seq) busy.insert(branch.reason);
-  for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-    if (busy.count(it->source) == 0) {
-      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-      it = working_clauses.erase(it);
-    }
-    else {
-      ++it;
-    }
-  }
+  forget_if([](const clause& c) { return true; });
 }
 
 void cdcl::forget(unsigned int m) {

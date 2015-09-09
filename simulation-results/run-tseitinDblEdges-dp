@@ -1,0 +1,3 @@
+#!/bin/bash
+W=$1; H=$2;
+echo "$W $H" | ./tseitinDblEdges-dp > cmdfile && echo "$W $H" | ./tseitinDblEdges-formula > tmp.cnf && ~/pebbling/textbooksat/satr -d askfile -f tseitin`python -c "print 2*$H"` -v 0 < tmp.cnf

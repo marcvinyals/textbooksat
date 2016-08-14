@@ -75,13 +75,15 @@ void draw(std::ostream& out, const proof& proof) {
 
 void tikz(std::ostream& out, const proof& proof) {
   pretty.mode = pretty.LATEX;
+  pretty.lor = " \\lor ";
+  pretty.bot = "\\bot";
   unordered_set<const proof_clause*> axioms;
   for (const proof_clause& c:proof.formula) axioms.insert(&c);
   out << "\\documentclass{standalone}" << endl;
   out << "\\usepackage{tikz}" << endl;
   out << "\\usetikzlibrary{graphs,positioning,backgrounds}" << endl;
   out << "\\begin{document}" << endl;
-  out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20}]" << endl;
+  out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20},learned/.style={rectangle,fill=green!40,draw},dc/.style={rectangle,fill=gray!20}]" << endl;
   string previous_lemma;
   for (const proof_clause& c:proof.resolution) {
     // cluster
@@ -108,9 +110,12 @@ void tikz(std::ostream& out, const proof& proof) {
       if (i>=0) {
         d = resolve(d,(*it)->c);
         stringstream ss;
-        ss << "\\node (" << lemma_names[i] << ") [lemma,";
-        if (i+1<int(lemma_names.size())) ss << "below=of " << lemma_names[i+1] << ",yshift=-1cm";
-        else if (not previous_lemma.empty()) ss << "right=of " << previous_lemma << ",xshift=3cm";
+        ss << "\\node (" << lemma_names[i] << ") [";
+        if (i+1<int(lemma_names.size())) ss << "lemma,below=of " << lemma_names[i+1] << ",yshift=-1cm";
+        else {
+          ss << "learned";
+          if (not previous_lemma.empty()) ss << ",right=of " << previous_lemma << ",xshift=3cm";
+        }
         ss <<"] {" << d << "};";
         lines.push(ss.str());
       }
@@ -120,6 +125,17 @@ void tikz(std::ostream& out, const proof& proof) {
       out << lines.top() << endl;
       lines.pop();
     }
+
+    stringstream trail;
+    for (const branch& b : c.trail) {
+      trail << pretty << variable(b.to);
+      if (b.reason) trail << "{=}";
+      else trail << "\\stackrel{d}{=}";
+      trail << b.to.polarity();
+      trail << "\\;";
+    }
+    out << "\\node (dc" << uint64_t(&c) << ") [dc,above=of lemma" << uint64_t(&c) << ",yshift=0.5cm] {\\footnotesize{$" << trail.str() << "$}};" << endl;
+
     out << "\\begin{scope}[on background layer]" << endl;
     out << "\\graph [use existing nodes] {" << endl;
     for (size_t i=1;i<c.derivation.size()-1;++i) {

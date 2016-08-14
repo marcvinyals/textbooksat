@@ -88,9 +88,17 @@ struct cnf {
   std::map<int,std::string> variable_names;
 };
 
+struct proof_clause;
+struct branch {
+  literal to;
+  const proof_clause* reason;
+};
+typedef std::vector<branch> branching_sequence;
+
 struct proof_clause {
   clause c;
   std::vector<const proof_clause*> derivation;
+  branching_sequence trail;
   proof_clause(const clause& c) : c(c) {}
   proof_clause(const proof_clause&) = delete;
   proof_clause(proof_clause&&) = default;
@@ -106,6 +114,7 @@ struct proof {
   std::vector<proof_clause> formula;
   std::list<proof_clause> resolution;
   proof(const proof&) = delete;
+  proof& operator = (const proof&) = delete;
   proof(proof&&) = default;
   proof(std::vector<proof_clause>&& formula,
         std::list<proof_clause>&& resolution) :

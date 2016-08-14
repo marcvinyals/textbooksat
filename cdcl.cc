@@ -423,6 +423,8 @@ void cdcl::learn() {
   for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {
     d = resolve(d,(*it)->c);
   }
+  learnt_clause.trail = branching_seq;
+
   assert(not config_backjump or
          find_if(working_clauses.begin(), working_clauses.end(),
                  [&learnt_clause] (const restricted_clause& i) {

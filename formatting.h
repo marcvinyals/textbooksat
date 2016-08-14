@@ -16,6 +16,8 @@ struct pretty_ {
     LATEX,
     UGLY,
   } mode;
+  std::string lor;
+  std::string bot;
   pretty_() {}
   pretty_(const cnf& f) : variable_names(f.variable_names) {
     for (int i=0; i<f.variables; ++i) {
@@ -59,7 +61,13 @@ inline std::ostream& operator << (std::ostream& o, literal l) {
 }
 inline std::ostream& operator << (std::ostream& o, const clause& c) {
   if (pretty.mode == pretty.LATEX) o << '$';
-  for (auto l:c) o << l;
+  bool first=true;
+  for (auto l:c) {
+    if (first) first=false;
+    else o << pretty.lor;
+    o << l;
+  }
+  if (first) o << pretty.bot;
   if (pretty.mode == pretty.LATEX) o << '$';
   return o;
 }

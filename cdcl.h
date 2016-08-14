@@ -10,11 +10,6 @@
 
 #include "data_structures.h"
 
-struct branch {
-  literal to;
-  const proof_clause* reason;
-};
-
 struct literal_or_restart {
   literal l;
   bool restart;
@@ -59,8 +54,6 @@ struct propagation_queue {
     return q.front();
   }
 };
-
-typedef std::vector<branch> branching_sequence;
 
 class cdcl {
  public:
@@ -134,7 +127,7 @@ private:
   std::vector<restricted_clause> working_clauses;
 
   // List of unit propagations, in chronological order.
-  std::vector<branch> branching_seq;
+  branching_sequence branching_seq;
   // Reasons for propagation, indexed by literal number. If a
   // propagated literal does not have any reason, then it was
   // decided. It is possible for a literal to have multiple reasons

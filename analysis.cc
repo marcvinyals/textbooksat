@@ -74,19 +74,25 @@ void draw(std::ostream& out, const proof& proof) {
 }
 
 void tikz(std::ostream& out, const proof& proof) {
+  bool beamer = true;
   pretty.mode = pretty.LATEX;
   pretty.lor = " \\lor ";
   pretty.bot = "\\bot";
   unordered_set<const proof_clause*> axioms;
   for (const proof_clause& c:proof.formula) axioms.insert(&c);
-  out << "\\documentclass{standalone}" << endl;
+  if (beamer) out << "\\documentclass{beamer}" << endl;
+  else out << "\\documentclass{standalone}" << endl;
   out << "\\usepackage{tikz}" << endl;
   out << "\\usetikzlibrary{graphs,positioning,backgrounds}" << endl;
   out << "\\begin{document}" << endl;
+  if (beamer) out << "\\begin{frame}" << endl;
   out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20},learned/.style={rectangle,fill=green!40,draw},dc/.style={rectangle,fill=gray!20}]" << endl;
+  out << "\\tikzset{arrows=->}" << endl;
+  int overlay=0;
   string previous_lemma;
   for (const proof_clause& c:proof.resolution) {
     // cluster
+    overlay++;
     vector<string> lemma_names;
     for (size_t i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
@@ -118,13 +124,14 @@ void tikz(std::ostream& out, const proof& proof) {
         }
         ss <<"] {" << d << "};";
         lines.push(ss.str());
-      }
-      
+      }      
     }
+    if (beamer) out << "\\visible<" << overlay << "->{";
     while(not lines.empty()) {
       out << lines.top() << endl;
       lines.pop();
     }
+    if (beamer) out << "}" << endl; // visible
 
     stringstream trail;
     for (const branch& b : c.trail) {
@@ -143,6 +150,7 @@ void tikz(std::ostream& out, const proof& proof) {
     }
     out << "\\node (dc" << uint64_t(&c) << ") [dc,above=of lemma" << uint64_t(&c) << ",yshift=0.5cm] {\\footnotesize{$" << trail.str() << "$}};" << endl;
 
+    if (beamer) out << "\\only<" << overlay << "->{" << endl;
     out << "\\begin{scope}[on background layer]" << endl;
     out << "\\graph [use existing nodes] {" << endl;
     for (size_t i=1;i<c.derivation.size()-1;++i) {
@@ -164,10 +172,12 @@ void tikz(std::ostream& out, const proof& proof) {
       lines.pop();
     }
     out << "\\end{scope}" << endl;
+    if (beamer) out << "}" << endl; // only
     previous_lemma = lemma_names.back();
     // cluster
   }
   out << "\\end{tikzpicture}" << endl;
+  if (beamer) out << "\\end{frame}" << endl;
   out << "\\end{document}" << endl;
 }
 

@@ -129,7 +129,14 @@ void tikz(std::ostream& out, const proof& proof) {
     stringstream trail;
     for (const branch& b : c.trail) {
       trail << pretty << variable(b.to);
-      if (b.reason) trail << "{=}";
+      if (b.reason) {
+        trail << "{=}";
+        if (not axioms.count(b.reason)) {
+          stringstream ss;
+          ss << "\\draw [dashed] (lemma" << uint64_t(b.reason) << ") to (dc" << uint64_t(&c) << ");";
+          lines.push(ss.str());
+        }
+      }
       else trail << "\\stackrel{d}{=}";
       trail << b.to.polarity();
       trail << "\\;";
@@ -152,6 +159,10 @@ void tikz(std::ostream& out, const proof& proof) {
       out << " -> " << lemma_names[max(i,0)] << ";" << endl;
     }
     out << "};" << endl; // graph
+    while(not lines.empty()) {
+      out << lines.top() << endl;
+      lines.pop();
+    }
     out << "\\end{scope}" << endl;
     previous_lemma = lemma_names.back();
     // cluster

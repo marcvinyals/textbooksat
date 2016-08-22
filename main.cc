@@ -196,6 +196,7 @@ int main(int argc, char** argv) {
   if (not arguments.dag.empty()) {
     ofstream dag(arguments.dag);
     if (endswith(arguments.dag, ".dot")) draw(dag, proof);
+    else if (endswith(arguments.dag, ".beamer.tex")) tikz(dag, proof, true);
     else if (endswith(arguments.dag, ".tex")) tikz(dag, proof);
     else if (endswith(arguments.dag, ".asy")) asy(dag, proof);
     else {

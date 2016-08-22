@@ -73,8 +73,7 @@ void draw(std::ostream& out, const proof& proof) {
   out << "}" << endl; // digraph
 }
 
-void tikz(std::ostream& out, const proof& proof) {
-  bool beamer = true;
+void tikz(std::ostream& out, const proof& proof, bool beamer) {
   pretty.mode = pretty.LATEX;
   pretty.lor = " \\lor ";
   pretty.bot = "\\bot";
@@ -126,12 +125,11 @@ void tikz(std::ostream& out, const proof& proof) {
         lines.push(ss.str());
       }      
     }
-    if (beamer) out << "\\visible<" << overlay << "->{";
+    if (beamer) out << "\\visible<" << overlay << "->{" << endl;
     while(not lines.empty()) {
       out << lines.top() << endl;
       lines.pop();
     }
-    if (beamer) out << "}" << endl; // visible
 
     stringstream trail;
     for (const branch& b : c.trail) {
@@ -149,24 +147,24 @@ void tikz(std::ostream& out, const proof& proof) {
       trail << "\\;";
     }
     out << "\\node (dc" << uint64_t(&c) << ") [dc,above=of lemma" << uint64_t(&c) << ",yshift=0.5cm] {\\footnotesize{$" << trail.str() << "$}};" << endl;
+    if (beamer) out << "}" << endl; // visible
 
     if (beamer) out << "\\only<" << overlay << "->{" << endl;
     out << "\\begin{scope}[on background layer]" << endl;
-    out << "\\graph [use existing nodes] {" << endl;
     for (size_t i=1;i<c.derivation.size()-1;++i) {
-      out << lemma_names[i-1] << " -> " << lemma_names[i] << ";" << endl;
+      out << "\\draw (" << lemma_names[i-1] << ") to (" << lemma_names[i] << ");" << endl;
     }
     i=-1;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {    
+    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
+      out << "\\draw (";
       if (axioms.count(*it)) {
         out << "axiom" << uint64_t(&c) << "d" << i+1;
       }
       else {
         out << "lemma" << uint64_t(*it);
       }
-      out << " -> " << lemma_names[max(i,0)] << ";" << endl;
+      out << ") to (" << lemma_names[max(i,0)] << ");" << endl;
     }
-    out << "};" << endl; // graph
     while(not lines.empty()) {
       out << lines.top() << endl;
       lines.pop();

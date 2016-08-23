@@ -147,6 +147,7 @@ proof cdcl::solve(const cnf& f) {
           LOG(LOG_EFFECTS) << "UNSAT" << endl;
           return proof(std::move(formula), std::move(learnt_clauses));
         }
+        forget_everything();
       }
     }
     forget_plugin(*this);

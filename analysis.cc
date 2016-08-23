@@ -10,13 +10,30 @@
 
 using namespace std;
 
+template<typename S, typename T>
+map<T,int> count_values(const unordered_map<S,T>& dict) {
+  map<T,int> ret;
+  for (const auto& kv : dict) ret[kv.second]+=1;
+  return ret;
+}
+
+template<typename S, typename T>
+ostream& operator << (ostream& o, const map<S,T>& dict) {
+  for (const auto& kv : dict) o << kv.first << ":" << kv.second << " ";
+  return o;
+}
+
 void measure(const proof& proof) {
   int length=0;
   unordered_map<const proof_clause*, int> last_used;
+  unordered_map<const proof_clause*, int> out_degree;
   int t=0;
   for (const proof_clause& c:proof.resolution) {
     length+=c.derivation.size();
-    for (auto d:c.derivation) last_used[d]=t;
+    for (auto d:c.derivation) {
+      last_used[d]=t;
+      out_degree[d]+=1;
+    }
     ++t;
   }
   for (auto& c:proof.formula) last_used.erase(&c);
@@ -32,9 +49,11 @@ void measure(const proof& proof) {
     ++t;
   }
   assert(in_use==0);
+  auto out_degree_sequence = count_values(out_degree);
   cerr << "Length " << length << endl;
   cerr << "Space " << space << endl;
-  cerr << "Non-trivial length " << proof.resolution.size() << endl;
+  cerr << "Conflicts " << proof.resolution.size() << endl;
+  cerr << "Out degree " << out_degree_sequence << endl;
 }
 
 void draw(std::ostream& out, const proof& proof) {

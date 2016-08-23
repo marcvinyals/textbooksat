@@ -60,10 +60,16 @@ proof cdcl_solver::solve(const cnf& f) {
 #endif
     solver.visualizer_plugin = &visualizer_nothing;
   }
+  if (bump == "learnt") solver.bump_plugin = &cdcl::bump_learnt;
+  else if (bump == "conflict") solver.bump_plugin = &cdcl::bump_conflict;
+  else {
+    cerr << "Invalid bump plugin" << endl;
+    exit(1);
+  }
   solver.config_backjump = backjump;
   solver.config_minimize = minimize;
   solver.config_phase_saving = phase_saving;
-  solver.config_activity_decay = 1.-1./32.;
+  solver.config_activity_decay = decay;
   solver.trace = trace;
   return solver.solve(f);
 }

@@ -81,7 +81,6 @@ namespace std {
   };
 };
 
-
 struct cnf {
   std::vector<clause> clauses;
   int variables;

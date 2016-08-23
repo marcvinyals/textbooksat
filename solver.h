@@ -11,7 +11,8 @@ class graphviz_viz;
 struct cdcl_solver {
  public:
   proof solve(const cnf& f);
-  std::string decide, learn, forget;
+  std::string decide, learn, forget, bump;
+  double decay;
   bool backjump, minimize, phase_saving;
   std::shared_ptr<std::ostream> trace;
   std::shared_ptr<graphviz_viz> vz;

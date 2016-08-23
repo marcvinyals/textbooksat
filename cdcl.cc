@@ -445,7 +445,7 @@ void cdcl::learn() {
   }
   branching_seq.erase(backtrack_limit.base(),branching_seq.end());
 
-  bump_activity(learnt_clause.c);
+  bump_activity(learnt_clause);
   
   // Add the learnt clause to working clauses and immediately start
   // propagating
@@ -462,6 +462,38 @@ void cdcl::learn() {
   }
 
   conflicts.clear();
+}
+
+
+
+/*
+ * Activity
+ */
+
+unordered_set<variable> cdcl::bump_learnt(const proof_clause& c) {
+  return unordered_set<variable>(c.c.dom_begin(), c.c.dom_end());
+}
+
+unordered_set<variable> cdcl::bump_conflict(const proof_clause& c) {
+  unordered_set<variable> dom;
+  for (const proof_clause* d : c.derivation) {
+    dom.insert(d->c.dom_begin(), d->c.dom_end());
+  }
+  return dom;
+}
+
+void cdcl::bump_activity(const proof_clause& c) {
+  for (auto& x : variable_activity) x *= config_activity_decay;
+  vector<int> attach;
+  for (auto v : bump_plugin(c)) {
+    auto it = decision_order.find(v);
+    if (it != decision_order.end()) {
+      attach.push_back(*it);
+      decision_order.erase(it);
+    }
+    variable_activity[v] ++;
+  }
+  decision_order.insert(attach.begin(), attach.end());
 }
 
 
@@ -503,20 +535,6 @@ void cdcl::restart() {
     c.reset();
     if (c.unit()) propagation_queue.propagate(c);
   }
-}
-
-void cdcl::bump_activity(const clause& c) {
-  for (auto& x : variable_activity) x *= config_activity_decay;
-  list<int> attach;
-  for (auto l : c) {
-    auto it = decision_order.find(variable(l));
-    if (it != decision_order.end()) {
-      attach.push_back(*it);
-      decision_order.erase(it);
-    }
-    variable_activity[variable(l)] ++;
-  }
-  decision_order.insert(attach.begin(), attach.end());
 }
 
 

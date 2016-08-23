@@ -22,6 +22,10 @@ static argp_option options[] = {
    "Use the specified learning schema (default: 1uip)"},
   {"forget", 'f', "{nothing,everything,wide}", 0,
    "Use the specified forgetting schema (default: nothing)"},
+  {"decay", 6, "DOUBLE", 0,
+   "Variable activity decay factor (default: 0.96875)"},
+  {"bump", 7, "{learnt,conflict}", 0,
+   "Use the specified bump plugin (default: conflict)"},
   {"backjump", 'b', "BOOL", 0,
    "On a conflict, backtrack deeper than the decision level as long as the "
    "learnt clause is unit (default: 1)\nNote that disabling backjumps may "
@@ -60,6 +64,8 @@ struct arguments {
   string decide;
   string learn;
   string forget;
+  double decay;
+  string bump;
   bool backjump;
   bool minimize;
   bool phase_saving;
@@ -118,6 +124,12 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 5:
     arguments->visualize_tseitin = atoi(arg);
     break;
+  case 6:
+    arguments->decay = atof(arg);
+    break;
+  case 7:
+    arguments->bump = arg;
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -139,6 +151,8 @@ int main(int argc, char** argv) {
   arguments.decide = "fixed";
   arguments.learn = "1uip";
   arguments.forget = "nothing";
+  arguments.decay = 1.-1./32.;
+  arguments.bump = "conflict";
   arguments.backjump = true;
   arguments.minimize = false;
   arguments.phase_saving = true;
@@ -167,6 +181,8 @@ int main(int argc, char** argv) {
   solver.decide = arguments.decide;
   solver.learn = arguments.learn;
   solver.forget = arguments.forget;
+  solver.bump = arguments.bump;
+  solver.decay = arguments.decay;
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
   solver.phase_saving = arguments.phase_saving;

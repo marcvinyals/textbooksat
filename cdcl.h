@@ -7,6 +7,7 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <unordered_set>
 
 #include "data_structures.h"
 
@@ -64,6 +65,7 @@ class cdcl {
   std::function<literal_or_restart(cdcl&)> decide_plugin;
 std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
+  std::function<std::unordered_set<variable>(const proof_clause&)> bump_plugin;
   std::function<void(cdcl&)> forget_plugin;
   std::function<void(const std::vector<int>&, const std::vector<restricted_clause>&)> visualizer_plugin;
 
@@ -83,6 +85,9 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   bool variable_cmp_vsids(variable, variable) const;
   bool variable_cmp_fixed(variable, variable) const;
   bool variable_cmp_reverse(variable, variable) const;
+
+  static std::unordered_set<variable> bump_learnt(const proof_clause& c);
+  static std::unordered_set<variable> bump_conflict(const proof_clause& c);
 
   void forget_nothing();
   void forget_everything();
@@ -111,7 +116,7 @@ private:
                 const branching_sequence::reverse_iterator& first_decision,
                 branching_sequence::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
-  void bump_activity(const clause& c);
+  void bump_activity(const proof_clause& c);
 
   bool consistent() const;
   

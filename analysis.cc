@@ -22,8 +22,15 @@ ostream& operator << (ostream& o, const map<S,T>& dict) {
   for (const auto& kv : dict) o << kv.first << ":" << kv.second << " ";
   return o;
 }
+template<typename T>
+ostream& operator << (ostream& o, const unordered_map<const proof_clause*,T>& dict) {
+  for (const auto& kv : dict) o << kv.first->c << ":" << kv.second << " ";
+  return o;
+}
 
 void measure(const proof& proof) {
+  unordered_set<const proof_clause*> axioms;
+  for (const proof_clause& c:proof.formula) axioms.insert(&c);
   int length=0;
   unordered_map<const proof_clause*, int> last_used;
   unordered_map<const proof_clause*, int> out_degree;
@@ -32,7 +39,7 @@ void measure(const proof& proof) {
     length+=c.derivation.size();
     for (auto d:c.derivation) {
       last_used[d]=t;
-      out_degree[d]+=1;
+      if (not axioms.count(d)) out_degree[d]+=1;
     }
     ++t;
   }

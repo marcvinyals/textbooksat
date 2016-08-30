@@ -312,77 +312,61 @@ void tikz(std::ostream& out, const proof& proof, bool beamer) {
   tikz_drawer(out, proof, beamer).draw();
 }
 
-void asy(std::ostream& out, const proof& proof) {
-  pretty.mode = pretty.LATEX;
-  unordered_set<const proof_clause*> axioms;
-  for (const proof_clause& c:proof.formula) axioms.insert(&c);
-  out << "import node;" << endl;
-  out << "real dx = 7.5cm;" << endl;
-  out << "real dy = 1cm;" << endl;
-  out << "nodestyle lemmastyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightgreen,black));" << endl;
-  out << "nodestyle axiomstyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightblue,black));" << endl;
-  string previous_lemma;
+class asy_drawer : public drawer {
+protected:
+  stack<string> lines;
   vector<string> stuff;
-  for (const proof_clause& c:proof.resolution) {
-    vector<string> lemma_names;
-    vector<string> axiom_names;
-    for (size_t i=0;i<c.derivation.size()-1;++i) {
-      stringstream ss;
-      ss << "lemma" << uint64_t(&c);
-      if (i<c.derivation.size()-2) ss << "d" << i;
-      lemma_names.push_back(ss.str());
-    }
-    // Declare nodes
-    int i=-1;
-    clause d = c.derivation.front()->c;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      if (i>=0) {
-        d = resolve(d,(*it)->c);
-        out << "node " << lemma_names[i] << " = sroundbox(\"" << d << "\", lemmastyle);" << endl;
-      }
-      if (axioms.count(*it)) {
-        stringstream ss;
-        ss << "axiom" << uint64_t(&c) << "d" << i+1;
-        out << "node " << ss.str() << " = sroundbox(\"" << (*it)->c << "\",axiomstyle);" << endl;
-        axiom_names.push_back(ss.str());
-      }
-    }
-    // Position nodes
-    if(not previous_lemma.empty()) out << previous_lemma << " << eright(dx) << " << lemma_names.back() << ";" << endl;    
-    for (auto it = lemma_names.rbegin();it+1!=lemma_names.rend();) {
-      out << *it;
-      ++it;
-      out << " << edown(dy) << " << *it << ";" << endl;
-    }
-    i=-1;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      if (axioms.count(*it)) {
-        out << lemma_names[max(i,0)];
-        if (i==-1) out << " << edown(dy) << ";
-        else out << " << edir(-160,dx/3) << ";
-        out << "axiom" << uint64_t(&c) << "d" << i+1 << ";" << endl;
-      }
-    }
-    // Draw edges
-    for (auto it = lemma_names.begin();it+1!=lemma_names.end();) {
-      out << "draw(" << *it;
-      ++it;
-      out << "--" << *it << ",Arrow);" << endl;
-    }
-    i=-1;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      out << "draw(";
-      if (axioms.count(*it)) {
-        out << "axiom" << uint64_t(&c) << "d" << i+1;
-      }
-      else out << "lemma" << uint64_t(*it);
-      out << "--" << lemma_names[max(i,0)] << ",Arrow);" << endl;
-    }
-
-    for (auto& s : lemma_names) stuff.push_back(s);
-    for (auto& s : axiom_names) stuff.push_back(s);
-    previous_lemma = lemma_names.back();
+  virtual void begin() override {
+    pretty.mode = pretty.LATEX;
+    out << "import node;" << endl;
+    out << "real dx = 7.5cm;" << endl;
+    out << "real dy = 1cm;" << endl;
+    out << "nodestyle lemmastyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightgreen,black));" << endl;
+    out << "nodestyle axiomstyle=nodestyle(xmargin=3pt, ymargin=3pt, drawfn=FillDrawer(lightblue,black));" << endl;
   }
-  // Draw nodes
-  for (auto& s : stuff) out << "draw(" << s << ");" << endl;
+  virtual void new_axiom(const clause& c, const string& name, const string& dest, bool first) override {
+    stuff.push_back(name);
+    out << "node " << name << " = sroundbox(\"" << c << "\", axiomstyle);" << endl;
+    stringstream ss;
+    ss << dest;
+    if (first) ss << " << edown(dy) << ";
+    else ss << " << edir(-160,dx/3) << ";
+    ss << name;
+    lines.push(ss.str());
+  }
+  virtual void new_lemma(const clause& c, const string& name, const string& dest) override {
+    stuff.push_back(name);
+    out << "node " << name << " = sroundbox(\"" << c << "\", lemmastyle);" << endl;
+    stringstream ss;
+    ss << dest << " << edown(dy) << " << name;
+    lines.push(ss.str());
+  }
+  virtual void new_learned(const clause& c, const string& name) override {
+    stuff.push_back(name);
+    out << "node " << name << " = sroundbox(\"" << c << "\", lemmastyle);" << endl;
+    if(not previous_lemma.empty()) {
+      stringstream ss;
+      ss << previous_lemma << " << eright(dx) << " << lemma_names.back();
+      lines.push(ss.str());
+    }
+  }
+  virtual void new_edge(const string& source, const string& dest) override {
+    out << "draw(" << source << "--" << dest << ",Arrow);" << endl;
+  }
+  virtual void end_conflict() override {
+    while(not lines.empty()) {
+      out << lines.top() << ";" << endl;
+      lines.pop();
+    }
+  }
+  virtual void end() override {
+    for (auto& s : stuff) out << "draw(" << s << ");" << endl;
+  }
+public:
+  asy_drawer(std::ostream& out, const struct proof& proof) :
+    drawer(out, proof) {}  
+};
+
+void asy(std::ostream& out, const proof& proof) {
+  asy_drawer(out, proof).draw();
 }

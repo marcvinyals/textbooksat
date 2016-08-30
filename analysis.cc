@@ -99,110 +99,217 @@ void draw(std::ostream& out, const proof& proof) {
   out << "}" << endl; // digraph
 }
 
-void tikz(std::ostream& out, const proof& proof, bool beamer) {
-  pretty.mode = pretty.LATEX;
-  pretty.lor = " \\lor ";
-  pretty.bot = "\\bot";
+class drawer {
+protected:
+  std::ostream& out;
+  const struct proof& proof;
   unordered_set<const proof_clause*> axioms;
-  for (const proof_clause& c:proof.formula) axioms.insert(&c);
-  if (beamer) out << "\\documentclass{beamer}" << endl;
-  else out << "\\documentclass{standalone}" << endl;
-  out << "\\usepackage{tikz}" << endl;
-  out << "\\usetikzlibrary{graphs,positioning,backgrounds}" << endl;
-  out << "\\begin{document}" << endl;
-  if (beamer) out << "\\begin{frame}" << endl;
-  out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20},learned/.style={rectangle,fill=green!40,draw},dc/.style={rectangle,fill=gray!20}]" << endl;
-  out << "\\tikzset{arrows=->}" << endl;
-  int overlay=0;
+  vector<string> lemma_names;
+  int conflict;
   string previous_lemma;
-  for (const proof_clause& c:proof.resolution) {
-    // cluster
-    overlay++;
-    vector<string> lemma_names;
+  void make_lemma_names(const proof_clause& c) {
+    if(not lemma_names.empty()) previous_lemma = lemma_names.back();
+    lemma_names.clear();
     for (size_t i=0;i<c.derivation.size()-1;++i) {
       stringstream ss;
       ss << "lemma" << uint64_t(&c);
       if (i<c.derivation.size()-2) ss << "d" << i;
       lemma_names.push_back(ss.str());
-    }
+    }    
+  }
+  string axiom_name(const proof_clause& c, int i) {
+    stringstream ss;
+    ss << "axiom" << uint64_t(&c) << "d" << i+1;
+    return ss.str();
+  }
+  string lemma_name(const proof_clause& c) {
+    stringstream ss;
+    ss << "lemma" << uint64_t(&c);
+    return ss.str();
+  }
+  string box_name(const proof_clause& c) {
+    stringstream ss;
+    ss << "dc" << uint64_t(&c);
+    return ss.str();
+  }
+  virtual void begin() {}
+  virtual void end() {}
+  virtual void begin_conflict() {}
+  virtual void end_conflict() {}
+  virtual void new_axiom(const clause& c, const string& name, const string& dest, bool first) {}
+  virtual void new_lemma(const clause& c, const string& name, const string& dest) {}
+  virtual void new_learned(const clause& c, const string& name) {}
+  virtual void begin_trail() {}
+  virtual void end_trail() {}
+  virtual void new_assignment(stringstream& trail, literal l, bool propagation) {}
+  virtual void begin_edges() {}
+  virtual void end_edges() {}
+  virtual void trail_edge(const string& source, const string& dest) {}
+  virtual void new_box(const string& name, const string& dest, const string& trail) {}
+  virtual void new_edge(const string& source, const string& dest) {}
+
+  void draw_clauses(const proof_clause& c) {
     int i=-1;
     clause d = c.derivation.front()->c;
     stack<string> lines;
     for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
       if (axioms.count(*it)) {
-        stringstream ss;
-        ss << "\\node (axiom" << uint64_t(&c) << "d" << i+1 << ") [axiom,below";
-        if (i>=0) ss << " left";
-        ss << "=of " << lemma_names[max(i,0)];
-        if (i==-1) ss << ",yshift=-1cm";
-        ss << "]  {" << (*it)->c << "};";
-        lines.push(ss.str());
+        new_axiom((*it)->c,axiom_name(c,i),lemma_names[max(i,0)],i==-1);
       }
       if (i>=0) {
         d = resolve(d,(*it)->c);
-        stringstream ss;
-        ss << "\\node (" << lemma_names[i] << ") [";
-        if (i+1<int(lemma_names.size())) ss << "lemma,below=of " << lemma_names[i+1] << ",yshift=-1cm";
-        else {
-          ss << "learned";
-          if (not previous_lemma.empty()) ss << ",right=of " << previous_lemma << ",xshift=3cm";
+        if (i+1<int(lemma_names.size())) {
+          new_lemma(d,lemma_names[i],lemma_names[i+1]);
         }
-        ss <<"] {" << d << "};";
-        lines.push(ss.str());
-      }      
+        else {
+          new_learned(d,lemma_names[i]);
+        }
+      }
     }
-    if (beamer) out << "\\visible<" << overlay << "->{" << endl;
-    while(not lines.empty()) {
-      out << lines.top() << endl;
-      lines.pop();
-    }
-
+  }
+  
+  void draw_box(const proof_clause& c) {
     stringstream trail;
     for (const branch& b : c.trail) {
-      trail << pretty << variable(b.to);
-      if (b.reason) {
-        trail << "{=}";
-        if (not axioms.count(b.reason)) {
-          stringstream ss;
-          ss << "\\draw [dashed] (lemma" << uint64_t(b.reason) << ") to (dc" << uint64_t(&c) << ");";
-          lines.push(ss.str());
-        }
+      new_assignment(trail, b.to, b.reason);
+      if (b.reason and not axioms.count(b.reason)) {
+        trail_edge(lemma_name(*b.reason), box_name(c));
       }
-      else trail << "\\stackrel{d}{=}";
-      trail << b.to.polarity();
-      trail << "\\;";
     }
-    out << "\\node (dc" << uint64_t(&c) << ") [dc,above=of lemma" << uint64_t(&c) << ",yshift=0.5cm] {\\footnotesize{$" << trail.str() << "$}};" << endl;
-    if (beamer) out << "}" << endl; // visible
+    new_box(box_name(c), lemma_name(c), trail.str());
+  }
 
-    if (beamer) out << "\\only<" << overlay << "->{" << endl;
-    out << "\\begin{scope}[on background layer]" << endl;
+  void draw_edges(const proof_clause& c) {
     for (size_t i=1;i<c.derivation.size()-1;++i) {
-      out << "\\draw (" << lemma_names[i-1] << ") to (" << lemma_names[i] << ");" << endl;
+      new_edge(lemma_names[i-1], lemma_names[i]);
     }
-    i=-1;
+    int i=-1;
     for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      out << "\\draw (";
-      if (axioms.count(*it)) {
-        out << "axiom" << uint64_t(&c) << "d" << i+1;
-      }
-      else {
-        out << "lemma" << uint64_t(*it);
-      }
-      out << ") to (" << lemma_names[max(i,0)] << ");" << endl;
+      string source = axioms.count(*it)?axiom_name(c, i):lemma_name(**it);
+      new_edge(source, lemma_names[max(i,0)]);
     }
+  }
+
+public:
+  drawer(std::ostream& out, const struct proof& proof) : out(out), proof(proof) {
+    for (const proof_clause& c:proof.formula) axioms.insert(&c);
+  }
+  void draw() {
+    begin();
+    conflict=0;
+    for (const proof_clause& c:proof.resolution) {
+      conflict++;
+      begin_conflict();
+      make_lemma_names(c);
+      draw_clauses(c);
+      end_conflict();
+      begin_trail();
+      draw_box(c);
+      end_trail();
+      begin_edges();
+      draw_edges(c);
+      end_edges();
+    }
+    end();
+  }
+  virtual ~drawer() {}
+};
+
+class tikz_drawer : public drawer {
+protected:
+  bool beamer;
+  stack<string> lines;
+  void flush() {
     while(not lines.empty()) {
       out << lines.top() << endl;
       lines.pop();
     }
+  }
+  virtual void begin() override {
+    pretty.mode = pretty.LATEX;
+    pretty.lor = " \\lor ";
+    pretty.bot = "\\bot";
+    if (beamer) out << "\\documentclass{beamer}" << endl;
+    else out << "\\documentclass{standalone}" << endl;
+    out << "\\usepackage{tikz}" << endl;
+    out << "\\usetikzlibrary{graphs,positioning,backgrounds}" << endl;
+    out << "\\begin{document}" << endl;
+    if (beamer) out << "\\begin{frame}" << endl;
+    out << "\\begin{tikzpicture}[on grid,axiom/.style={rectangle,fill=blue!20},lemma/.style={rectangle,fill=green!20},learned/.style={rectangle,fill=green!40,draw},dc/.style={rectangle,fill=gray!20}]" << endl;
+    out << "\\tikzset{arrows=->}" << endl;
+  }
+  virtual void end() override {
+    out << "\\end{tikzpicture}" << endl;
+    if (beamer) out << "\\end{frame}" << endl;
+    out << "\\end{document}" << endl;
+  }
+  virtual void new_axiom(const clause& c, const string& name, const string& dest, bool first) override {
+    stringstream ss;
+    ss << "\\node (" << name << ") [axiom,below";
+    if (not first) ss << " left";
+    ss << "=of " << dest;
+    if (first) ss << ",yshift=-1cm";
+    ss << "]  {" << c << "};";
+    lines.push(ss.str());
+  }
+  virtual void new_lemma(const clause& c, const string& name, const string& dest) override {
+    stringstream ss;
+    ss << "\\node (" << name << ") [";
+    ss << "lemma,below=of " << dest << ",yshift=-1cm";
+    ss <<"] {" << c << "};";
+    lines.push(ss.str());
+  }
+  virtual void new_learned(const clause& c, const string& name) override {
+    stringstream ss;
+    ss << "\\node (" << name << ") [";
+    ss << "learned";
+    if (not previous_lemma.empty()) ss << ",right=of " << previous_lemma << ",xshift=3cm";
+    ss <<"] {" << c << "};";
+    lines.push(ss.str());
+  }
+  virtual void begin_conflict() override {
+    if (beamer) out << "\\visible<" << conflict << "->{" << endl;
+  }
+  virtual void end_conflict() override {
+    flush();
+  }
+  virtual void end_trail() override {
+    if (beamer) out << "}" << endl; // visible
+  }
+  virtual void trail_edge(const string& source, const string& dest) override {
+    stringstream ss;
+    ss << "\\draw [dashed] (" << source << ") to (" << dest << ");";
+    lines.push(ss.str());
+  }
+  virtual void new_assignment(stringstream& trail, literal l, bool propagation) override {
+    trail << pretty << variable(l);
+    if (propagation) trail << "{=}";
+    else trail << "\\stackrel{d}{=}";
+    trail << l.polarity();
+    trail << "\\;";      
+  }
+  virtual void new_box(const string& name, const string& dest, const string& trail) override {
+    out << "\\node (" << name << ") [dc,above=of " << dest << ",yshift=0.5cm] {\\footnotesize{$" << trail << "$}};" << endl;
+  }
+  virtual void begin_edges() override {
+    if (beamer) out << "\\only<" << conflict << "->{" << endl;
+    out << "\\begin{scope}[on background layer]" << endl;
+    flush();
+  }
+  virtual void end_edges() override {
     out << "\\end{scope}" << endl;
     if (beamer) out << "}" << endl; // only
-    previous_lemma = lemma_names.back();
-    // cluster
   }
-  out << "\\end{tikzpicture}" << endl;
-  if (beamer) out << "\\end{frame}" << endl;
-  out << "\\end{document}" << endl;
+  virtual void new_edge(const string& source, const string& dest) override {
+    out << "\\draw (" << source << ") to (" << dest << ");" << endl;
+  }
+public:
+  tikz_drawer(std::ostream& out, const struct proof& proof, bool beamer) :
+    drawer(out, proof), beamer(beamer) {}
+};
+
+void tikz(std::ostream& out, const proof& proof, bool beamer) {
+  tikz_drawer(out, proof, beamer).draw();
 }
 
 void asy(std::ostream& out, const proof& proof) {

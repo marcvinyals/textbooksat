@@ -48,8 +48,14 @@ $ rlwrap ./sat -d ask
 
 ### Resolution proof logging
 
-Use `sat -i input.cnf -p proof.tex; pdflatex proof` to obtain a
-graphical representation of the resolution proof the solver
-found. This is only intended for small proofs (at most tens of
-conflicts); otherwise the picture will be too large for LaTeX to
-handle.
+Use `sat -i input.cnf -p proof.ext` to obtain a graphical representation
+of the resolution proof the solver found. This is only intended for
+small proofs (at most tens of conflicts); otherwise the picture will
+be too large to handle. The output format gets chosen from the extension among:
+
+* `.tex`: Standalone tikz. Compile with `pdflatex proof.tex`.
+* `.beamer.tex`: Beamer slides. Compile with `pdflatex proof.tex`.
+* `.asy`: Asymptote. Compile with `asy -f pdf proof.asy`. Requires
+  [node.asy](https://github.com/taoari/asy-graphtheory) version 4.0,
+  not tested with 5.0.
+* `.dot`: Graphviz. Compile with `dot -O -Tpdf out2.dot`.

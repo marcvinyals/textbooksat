@@ -6,6 +6,16 @@ CIMG_LIBS = -lX11 -lpthread
 LIBS =
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
 
+BUILD ?= debug
+ifeq ($(BUILD),debug)
+CPPFLAGS += -g -Og -DDEBUG
+else ifeq ($(BUILD),release)
+CPPFLAGS += -O2 -DNDEBUG
+else ifeq ($(BUILD),asan)
+CXX=clang++
+CPPFLAGS += -g -DDEBUG -U_FORTIFY_SOURCE -fsanitize=address -fsanitize=undefined
+endif
+
 # Visualization only on Marc machines by default
 ifeq ($(shell hostname -s),wille)
 VIZ=VIZ
@@ -29,7 +39,7 @@ CPPFLAGS += -DNO_VIZ
 endif
 
 OBJS = $(SOURCES:.cc=.o)
-ROBJS = $(addprefix release/,$(OBJS))
+ROBJS = $(addprefix $(BUILD)/,$(OBJS))
 
 
 
@@ -49,30 +59,36 @@ LDFLAGS+=-L/opt/gcc/4.8.1 -Wl,-rpath=/opt/gcc/4.8.1/lib64
 endif
 endif
 
-all: sat satr
+all: debug
 
 -include $(OBJS:.o=.d)
 
-%.o : %.cc
+$(BUILD)/%.o : %.cc $(HEADERS)
+	@-mkdir -p $(BUILD)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
 	$(CXX) $(CPPFLAGS) -MM $< > $*.d
 
-sat: main.o $(OBJS)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -g -o  $@ $+ $(LIBS)
+$(BUILD)/sat: $(BUILD)/main.o $(ROBJS)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o  $@ $+ $(LIBS)
 
 clean:
 	rm -f sat *.o satr release/*.o *.d
-	rm -fr release/
+	rm -fr debug/ release/
 
-test: test.o $(OBJS)
-	$(CXX) $(CPPFLAGS) -g -o $@ $+ -lgtest -lpthread
+test: $(BUILD)/test.o $(ROBJS)
+	$(CXX) $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
 	./test
 
-release/%.o: %.cc $(HEADERS)
-	@-mkdir -p release/
-	$(CXX) $(CPPFLAGS) -O2 -DNDEBUG -c -o $@ $<
+sat: $(BUILD)/sat
 
-satr: release/main.o $(ROBJS)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -O2 -o $@ $+ $(LIBS)
+debug:
+	$(MAKE) BUILD=debug sat
+	cp debug/sat sat
 
-.PHONY : all clean test
+release:
+	$(MAKE) BUILD=release sat
+
+asan:
+	$(MAKE) BUILD=asan sat
+
+.PHONY : all clean test sat debug release asan

@@ -15,6 +15,9 @@ endif
 ifeq ($(shell hostname -s),pcbox-marc)
 VIZ=VIZ
 endif
+ifeq ($(shell hostname -s),tcs57)
+VIZ=VIZ
+endif
 
 
 ifeq ($(VIZ),VIZ)

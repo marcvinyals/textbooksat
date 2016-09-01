@@ -63,42 +63,6 @@ void measure(const proof& proof) {
   cerr << "Out degree " << out_degree_sequence << endl;
 }
 
-void draw(std::ostream& out, const proof& proof) {
-  unordered_set<const proof_clause*> axioms;
-  for (const proof_clause& c:proof.formula) axioms.insert(&c);
-  out << "digraph G {" << endl;
-  for (const proof_clause& c:proof.resolution) {
-    out << "subgraph cluster" << uint64_t(&c) << " {";
-    out << "style=filled;" << endl;
-    out << "color=lightgrey;" << endl;
-    out << "node [style=filled,color=white];" << endl;
-    vector<string> lemma_names;
-    for (size_t i=0;i<c.derivation.size()-1;++i) {
-      stringstream ss;
-      ss << "lemma" << uint64_t(&c);
-      if (i<c.derivation.size()-2) ss << "d" << i;
-      if (i) out << lemma_names.back() << " -> " << ss.str() << endl;
-      lemma_names.push_back(ss.str());
-    }
-    int i=-1;
-    clause d = c.derivation.front()->c;
-    for (auto it=c.derivation.begin();it!=c.derivation.end();++it,++i) {
-      if (i>=0) {
-        d = resolve(d,(*it)->c);
-        out << lemma_names[i] << " [label=\"" << d << "\"];" << endl;
-      }
-      if (axioms.count(*it)) {
-        out << "axiom" << uint64_t(&c) << "d" << i+1 << " [label=\"" << (*it)->c << "\"];" << endl;
-        out << "axiom" << uint64_t(&c) << "d" << i+1;
-      }
-      else out << "lemma" << uint64_t(*it);
-      out << " -> " << lemma_names[max(i,0)] << endl;
-    }
-    out << "}" << endl; // cluster
-  }
-  out << "}" << endl; // digraph
-}
-
 class drawer {
 protected:
   std::ostream& out;
@@ -199,8 +163,8 @@ public:
     conflict=0;
     for (const proof_clause& c:proof.resolution) {
       conflict++;
-      begin_conflict();
       make_lemma_names(c);
+      begin_conflict();
       draw_clauses(c);
       end_conflict();
       begin_trail();
@@ -214,6 +178,44 @@ public:
   }
   virtual ~drawer() {}
 };
+
+class graphviz_drawer : public drawer {
+protected:
+  virtual void begin() override {
+    out << "digraph G {" << endl;
+  }
+  virtual void end() override {
+    out << "}" << endl; // digraph
+  }
+  virtual void begin_conflict() override {
+    out << "subgraph cluster" << lemma_names.back() << " {" << endl;
+    out << "style=filled;" << endl;
+    out << "color=lightgrey;" << endl;
+    out << "node [style=filled,color=white];" << endl;
+  }
+  virtual void end_conflict() override {
+    out << "}" << endl; // cluster
+  }
+  virtual void new_edge(const string& source, const string& dest) override {
+    out << source << " -> " << dest << endl;
+  }
+  virtual void new_axiom(const clause& c, const string& name, const string& dest, bool first) {
+    out << name << " [label=\"" << c << "\"];" << endl;
+  }
+  virtual void new_lemma(const clause& c, const string& name, const string& dest) {
+    out << name << " [label=\"" << c << "\"];" << endl;
+  }
+  virtual void new_learned(const clause& c, const string& name) {
+    out << name << " [label=\"" << c << "\"];" << endl;
+  }
+public:
+  graphviz_drawer(std::ostream& out, const struct proof& proof) :
+    drawer(out, proof) {}
+};
+
+void draw(std::ostream& out, const proof& proof) {
+  graphviz_drawer(out,proof).draw();
+}
 
 class tikz_drawer : public drawer {
 protected:
@@ -301,7 +303,7 @@ protected:
     if (beamer) out << "}" << endl; // only
   }
   virtual void new_edge(const string& source, const string& dest) override {
-    out << "\\draw (" << source << ") to (" << dest << ");" << endl;
+    out << "\\draw[bend left=5] (" << source << ") to (" << dest << ");" << endl;
   }
 public:
   tikz_drawer(std::ostream& out, const struct proof& proof, bool beamer) :

@@ -52,6 +52,7 @@ protected:
     solver.decide = "fixed";
     solver.learn = "1uip";
     solver.forget = "nothing";
+    solver.bump = "learnt";
     solver.backjump = true;
     solver.minimize = false;
     solver.phase_saving = false;
@@ -62,28 +63,28 @@ TEST_F(SolverTest, empty) {
   istringstream s("p cnf 0 0\n");
   cnf f = parse_dimacs(s);
   proof pi = solver.solve(f);
-  EXPECT_EQ(pi.proof.size(), 0);
+  EXPECT_EQ(pi.resolution.size(), 0);
 }
 
 TEST_F(SolverTest, contradiction) {
   istringstream s("p cnf 0 1\n0\n");
   cnf f = parse_dimacs(s);
   proof pi = solver.solve(f);
-  EXPECT_EQ(pi.proof.size(), 0);
+  EXPECT_EQ(pi.resolution.size(), 0);
 }
 
 TEST_F(SolverTest, sat) {
   istringstream s("p cnf 1 1\n1 0\n");
   cnf f = parse_dimacs(s);
   proof pi = solver.solve(f);
-  EXPECT_EQ(pi.proof.size(), 0);
+  EXPECT_EQ(pi.resolution.size(), 0);
 }
 
 TEST_F(SolverTest, unit) {
   istringstream s("p cnf 1 2\n1 0\n-1 0\n");
   cnf f = parse_dimacs(s);
   proof pi = solver.solve(f);
-  EXPECT_EQ(pi.proof.size(), 1);
+  EXPECT_EQ(pi.resolution.size(), 1);
 }
 
 int main(int argc, char** argv) {

@@ -1,6 +1,6 @@
-CXX = g++
-CPPFLAGS = -std=c++0x -Wall
-LDFLAGS=
+CXX ?= g++
+CPPFLAGS ?= -std=c++0x -Wall
+LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
@@ -12,7 +12,7 @@ CPPFLAGS += -g -Og -DDEBUG
 else ifeq ($(BUILD),release)
 CPPFLAGS += -O2 -DNDEBUG
 else ifeq ($(BUILD),asan)
-CXX=clang++
+CXX = clang++
 CPPFLAGS += -g -DDEBUG -U_FORTIFY_SOURCE -fsanitize=address -fsanitize=undefined
 endif
 
@@ -29,6 +29,7 @@ ifeq ($(shell hostname -s),tcs57)
 VIZ=VIZ
 endif
 
+TSOURCES := $(SOURCES)
 
 ifeq ($(VIZ),VIZ)
 $(info Visualization for pebbling formulas active)
@@ -38,9 +39,8 @@ else
 CPPFLAGS += -DNO_VIZ
 endif
 
-OBJS = $(SOURCES:.cc=.o)
-ROBJS = $(addprefix $(BUILD)/,$(OBJS))
-
+OBJS = $(addprefix $(BUILD)/,$(SOURCES:.cc=.o))
+TOBJS = $(addprefix $(BUILD)/,$(TSOURCES:.cc=.o))
 
 
 
@@ -68,14 +68,15 @@ $(BUILD)/%.o : %.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
 	$(CXX) $(CPPFLAGS) -MM $< > $*.d
 
-$(BUILD)/sat: $(BUILD)/main.o $(ROBJS)
+$(BUILD)/sat: $(BUILD)/main.o $(OBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o  $@ $+ $(LIBS)
 
 clean:
 	rm -f sat *.o satr release/*.o *.d
 	rm -fr debug/ release/
 
-test: $(BUILD)/test.o $(ROBJS)
+test: $(BUILD)/test.o $(TOBJS)
+	echo $(TSOURCES)
 	$(CXX) $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
 	./test
 

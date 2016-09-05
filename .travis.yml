@@ -1,0 +1,16 @@
+# Need gcc-4.8
+sudo: required
+dist: trusty
+
+language: cpp
+script: make test
+
+# Dependencies
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libboost-dev libgtest-dev
+  - pushd /usr/src/gtest
+  - sudo cmake .
+  - sudo make
+  - sudo mv libgtest* /usr/lib/
+  - popd

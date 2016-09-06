@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 language: cpp
-script: make test
+script: make coverage
 
 # Dependencies
 before_install:
@@ -14,3 +14,8 @@ before_install:
   - sudo make
   - sudo mv libgtest* /usr/lib/
   - popd
+  - pip install --user cpp-coveralls
+
+after_success:
+  - cp *.h *.cc coverage
+  - coveralls --gcov-options '\-lp'

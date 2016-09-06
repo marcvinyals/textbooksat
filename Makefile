@@ -5,6 +5,7 @@ GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
 SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
+GTEST_LIBS ?= -lgtest
 
 BUILD ?= debug
 ifeq ($(BUILD),debug)
@@ -79,7 +80,7 @@ clean:
 	rm -fr debug/ release/
 
 test: $(BUILD)/test.o $(TOBJS)
-	$(CXX) $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
+	$(CXX) $(CPPFLAGS) -o $@ $+ $(GTEST_LIBS) -lpthread
 	./test
 
 sat: $(BUILD)/sat

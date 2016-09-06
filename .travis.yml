@@ -8,12 +8,16 @@ script: make coverage
 # Dependencies
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libboost-dev libgtest-dev
-  - pushd /usr/src/gtest
-  - sudo cmake .
-  - sudo make
+  - sudo apt-get install -y libboost-dev
+  - wget https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+  - tar -xf release-1.8.0.tar.gz
+  - mkdir gtest
+  - pushd gtest
+  - cmake ../googletest-release-1.8.0/googletest
+  - make
   - sudo mv libgtest* /usr/lib/
   - popd
+  - sudo mv googletest-release-1.8.0/googletest/include/gtest /usr/include
   - pip install --user cpp-coveralls
 
 after_success:

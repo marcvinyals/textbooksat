@@ -14,6 +14,9 @@ CPPFLAGS += -O2 -DNDEBUG
 else ifeq ($(BUILD),asan)
 CXX = clang++
 CPPFLAGS += -g -DDEBUG -U_FORTIFY_SOURCE -fsanitize=address -fsanitize=undefined
+else ifeq ($(BUILD),coverage)
+CPPFLAGS += -g -Og -DDEBUG --coverage
+LDFLAGS += --coverage
 endif
 
 # Visualization only on Marc machines by default
@@ -76,7 +79,6 @@ clean:
 	rm -fr debug/ release/
 
 test: $(BUILD)/test.o $(TOBJS)
-	echo $(TSOURCES)
 	$(CXX) $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
 	./test
 
@@ -91,5 +93,8 @@ release:
 
 asan:
 	$(MAKE) BUILD=asan sat
+
+coverage:
+	$(MAKE) BUILD=coverage test
 
 .PHONY : all clean test sat debug release asan

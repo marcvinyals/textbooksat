@@ -102,6 +102,9 @@ bool cdcl::consistent() const {
   for (auto v:decision_order) {
     assert(not assignment[v]);
   }
+  for (auto& c : working_clauses) {
+    assert(not c.contradiction());
+  }
   assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
   return true;
 }

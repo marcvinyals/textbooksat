@@ -76,7 +76,8 @@ literal_or_restart ui::get_decision() {
     }
     if (line.empty()) return solver.decide_fixed();
     string action, file;
-    int m, polarity, w = 2, dimacs;
+    unsigned int m, polarity, w = 2;
+    int dimacs;
     variable var;
     std::vector<variable> domain;
     auto it = line.begin();
@@ -154,7 +155,7 @@ literal_or_restart ui::get_decision() {
     }
     else if (action == "save") {
       std::ofstream out(file);
-      for (const auto& line : history) out << line << endl;
+      for (const auto& history_line : history) out << history_line << endl;
       continue;
     }
     else if (action == "batch") return solver.decide_plugin(solver);

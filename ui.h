@@ -7,7 +7,7 @@
 
 class ui {
  public:
-  ui(cdcl& solver) : solver(solver), batch(false) {}
+  ui(cdcl& from_solver) : solver(from_solver), batch(false) {}
   literal_or_restart get_decision();
 
  private:

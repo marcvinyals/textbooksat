@@ -357,11 +357,11 @@ void cdcl::minimize(proof_clause& c) const {
     // We do not minimize asserting literals. We could be a bit bolder
     // here, but then we would require backjumps.
     if (l==asserting) {++it; continue;}
-    for (const proof_clause* d:reasons[(~l).l]) {
-      LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *d << endl;
-      if (d->c.subsumes(c.c, ~l)) {
+    for (const proof_clause* e:reasons[(~l).l]) {
+      LOG(LOG_DETAIL) << "        Minimize? " << c.c << " vs " << *e << endl;
+      if (e->c.subsumes(c.c, ~l)) {
         int i=it-c.begin();
-        c.resolve(*d, variable(l));
+        c.resolve(*e, variable(l));
         LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
         it=c.c.begin()+i;
         goto nextliteral;
@@ -549,7 +549,7 @@ void cdcl::restart() {
 void cdcl::forget_nothing() {}
 
 // Forget clauses wider than w
-void cdcl::forget_wide(int w) {
+void cdcl::forget_wide(unsigned int w) {
   forget_if([w](const clause& c) { return c.width() > w; });
 }
 

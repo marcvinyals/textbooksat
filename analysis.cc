@@ -155,7 +155,7 @@ protected:
   }
 
 public:
-  drawer(std::ostream& out, const struct proof& proof) : out(out), proof(proof) {
+  drawer(std::ostream& from_out, const struct proof& from_proof) : out(from_out), proof(from_proof) {
     for (const proof_clause& c:proof.formula) axioms.insert(&c);
   }
   void draw() {
@@ -209,8 +209,8 @@ protected:
     out << name << " [label=\"" << c << "\"];" << endl;
   }
 public:
-  graphviz_drawer(std::ostream& out, const struct proof& proof) :
-    drawer(out, proof) {}
+  graphviz_drawer(std::ostream& from_out, const struct proof& from_proof) :
+    drawer(from_out, from_proof) {}
 };
 
 void draw(std::ostream& out, const proof& proof) {
@@ -306,8 +306,8 @@ protected:
     out << "\\draw[bend left=5] (" << source << ") to (" << dest << ");" << endl;
   }
 public:
-  tikz_drawer(std::ostream& out, const struct proof& proof, bool beamer) :
-    drawer(out, proof), beamer(beamer) {}
+  tikz_drawer(std::ostream& from_out, const struct proof& from_proof, bool from_beamer) :
+    drawer(from_out, from_proof), beamer(from_beamer) {}
 };
 
 void tikz(std::ostream& out, const proof& proof, bool beamer) {
@@ -365,8 +365,8 @@ protected:
     for (auto& s : stuff) out << "draw(" << s << ");" << endl;
   }
 public:
-  asy_drawer(std::ostream& out, const struct proof& proof) :
-    drawer(out, proof) {}  
+  asy_drawer(std::ostream& from_out, const struct proof& from_proof) :
+    drawer(from_out, from_proof) {}
 };
 
 void asy(std::ostream& out, const proof& proof) {

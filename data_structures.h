@@ -10,8 +10,8 @@
 typedef unsigned int variable;
 
 struct literal {
-  int l;
-  literal(int variable, bool polarity) : l(variable<<1) {
+  unsigned int l;
+  literal(variable index, bool polarity) : l(index<<1) {
     if (polarity) l|=1;
   }
   bool operator == (const literal& a) const { return l==a.l; }
@@ -50,7 +50,7 @@ inline literal from_dimacs(int x) {
 struct clause {
   // Sorted vector
   clause() {}
-  clause(std::vector<literal> literals) : literals(literals) {}
+  clause(std::vector<literal> from_literals) : literals(from_literals) {}
   bool subsumes(const clause& c) const;
   bool subsumes(const clause& c, literal l) const;
   bool operator == (const clause& c) const { return literals == c.literals; }
@@ -98,7 +98,7 @@ struct proof_clause {
   clause c;
   std::vector<const proof_clause*> derivation;
   branching_sequence trail;
-  proof_clause(const clause& c) : c(c) {}
+  proof_clause(const clause& from_c) : c(from_c) {}
   proof_clause(const proof_clause&) = delete;
   proof_clause(proof_clause&&) = default;
   void resolve(const proof_clause& d, int x) {
@@ -115,7 +115,7 @@ struct proof {
   proof(const proof&) = delete;
   proof& operator = (const proof&) = delete;
   proof(proof&&) = default;
-  proof(std::vector<proof_clause>&& formula,
-        std::list<proof_clause>&& resolution) :
-  formula(std::move(formula)), resolution(std::move(resolution)) {}
+  proof(std::vector<proof_clause>&& from_formula,
+        std::list<proof_clause>&& from_resolution) :
+  formula(std::move(from_formula)), resolution(std::move(from_resolution)) {}
 };

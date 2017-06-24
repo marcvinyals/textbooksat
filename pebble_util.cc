@@ -69,19 +69,19 @@ set<vector<int>> filter(const set<vector<int>>& assignments) {
   return ret;
 }
 
-substitution::substitution(const string& fn, int arity) : arity(arity) {
+substitution::substitution(const string& fn, unsigned int from_arity) : arity(from_arity) {
   int mmax=1;
-  for (int i=0; i<arity; ++i) mmax*=3;
+  for (unsigned int i=0; i<arity; ++i) mmax*=3;
   for (int m=0; m<mmax; ++m) {
     vector<int> a(arity);
-    for (int i=0, mm=m; i<arity; ++i, mm/=3) a[i]=mm%3-1;
+    for (unsigned int i=0, mm=m; i<arity; ++i, mm/=3) a[i]=mm%3-1;
     int is_true = 0;
     if (fn == "xor") {
       is_true=-1;
       for (int x : a) is_true*=-x;
     }
     else if (fn == "maj") {
-      vector<int> n(3);
+      vector<unsigned int> n(3);
       for (int x : a) n[x+1]++;
       if (n[0]*2>arity) is_true=-1;
       else if (n[2]*2>arity) is_true=1;
@@ -97,7 +97,7 @@ substitution::substitution(const string& fn, int arity) : arity(arity) {
   false_minimal = filter(false_assignments);
 }
 
-bool substitution::is_clause(const clause& c, int& u, int& value) {
+bool substitution::is_clause(const clause& c, unsigned int& u, int& value) {
   if (c.width() > arity) return false;
   vector<int> forbidden(arity);
   u = variable(*c.begin())/arity;

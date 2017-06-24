@@ -1,12 +1,11 @@
 #pragma once
 
-#include "data_structures.h"
-
 #include <string>
 #include <ostream>
 #include <memory>
 
-class graphviz_viz;
+#include "data_structures.h"
+#include "viz.h"
 
 struct cdcl_solver {
  public:

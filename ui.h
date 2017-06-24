@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 
-class cdcl;
-struct literal_or_restart;
+#include "cdcl.h"
 
 class ui {
  public:

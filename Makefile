@@ -64,12 +64,12 @@ endif
 
 all: debug
 
--include $(OBJS:.o=.d)
+-include $(addprefix $(BUILD)/,$(SOURCES:.cc=.d))
 
 $(BUILD)/%.o : %.cc $(HEADERS)
 	@-mkdir -p $(BUILD)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
-	$(CXX) $(CPPFLAGS) -MM $< > $*.d
+	$(CXX) $(CPPFLAGS) -MM $< -MT $@ > $(BUILD)/$*.d
 
 $(BUILD)/sat: $(BUILD)/main.o $(OBJS)
 	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o  $@ $+ $(LIBS)

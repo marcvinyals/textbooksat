@@ -1,15 +1,22 @@
 #pragma once
 
+#ifdef NO_VIZ
+
+class graphviz_viz;
+
+#else
+
 #include <string>
 #include <vector>
 
 #include <CImg.h>
 
+#include "data_structures.h"
+
 typedef struct Agraph_s Agraph_t;
 typedef struct Agnode_s Agnode_t;
 typedef struct Agedge_s Agedge_t;
 typedef struct GVC_s GVC_t;
-class restricted_clause;
 
 class graphviz_viz {
  public:
@@ -26,3 +33,5 @@ class graphviz_viz {
   std::string tmpfile;
   cimg_library::CImgDisplay display;
 };
+
+#endif

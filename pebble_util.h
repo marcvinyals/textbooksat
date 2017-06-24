@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 
-class clause;
-class literal;
+#include "data_structures.h"
 
 typedef std::set<std::vector<int>> assignment_set;
 class substitution {

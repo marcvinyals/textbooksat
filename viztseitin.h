@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "viz.h"
-class cnf;
+#include "data_structures.h"
 
 class tseitin_viz : public graphviz_viz {
  public:

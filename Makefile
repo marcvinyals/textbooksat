@@ -21,7 +21,7 @@ endif
 
 # Visualization only on Marc machines by default
 ifeq ($(shell hostname -s),wille)
-VIZ=VIZ
+VIZ?=VIZ
 LDFLAGS+=-L/usr/local-noprio/lib -Wl,-rpath=/usr/local-noprio/lib
 CPPFLAGS+=-I/usr/local-noprio/include
 endif

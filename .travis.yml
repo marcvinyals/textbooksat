@@ -8,9 +8,11 @@ script: make test
 # Dependencies
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libboost-dev libgtest-dev
-  - pushd /usr/src/gtest
-  - sudo cmake .
-  - sudo make
-  - sudo mv libgtest* /usr/lib/
+  - sudo apt-get install -y libboost-dev
+  - wget https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+  - tar -xf release-1.8.0.tar.gz
+  - pushd googletest-release-1.8.0
+  - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr
+  - make
+  - sudo make install
   - popd

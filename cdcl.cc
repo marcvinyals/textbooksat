@@ -521,9 +521,24 @@ void cdcl::decide() {
 }
 
 literal_or_restart cdcl::decide_fixed() {
+  if (restart_plugin(*this)) return true;
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);
+}
+
+bool cdcl::restart_none() {
+  return false;
+}
+
+bool cdcl::restart_fixed() {
+  static uint last_conflict = 0;
+  uint num_conflicts = learnt_clauses.size();
+  if (num_conflicts > last_conflict) {
+    last_conflict = num_conflicts;
+    return true;
+  }
+  return false;
 }
 
 void cdcl::restart() {

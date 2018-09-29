@@ -18,6 +18,8 @@ static argp_option options[] = {
    "Read formula in dimacs format from FILE (default: stdin)"},
   {"decide", 'd', "{fixed,reverse,vsids,ask}", 0,
    "Use the specified decision procedure (default: fixed)"},
+  {"restart", 'r', "{none,fixed}", 0,
+   "Use the specified restart interval (default: none)"},
   {"learn", 'l', "{1uip,1uip-all,lastuip,decision}", 0,
    "Use the specified learning schema (default: 1uip)"},
   {"forget", 'f', "{nothing,everything,wide}", 0,
@@ -62,6 +64,7 @@ static argp_option options[] = {
 struct arguments {
   string in;
   string decide;
+  string restart;
   string learn;
   string forget;
   double decay;
@@ -87,6 +90,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 'd':
     arguments->decide = arg;
+    break;
+  case 'r':
+    arguments->restart = arg;
     break;
   case 'l':
     arguments->learn = arg;
@@ -149,6 +155,7 @@ int main(int argc, char** argv) {
   arguments arguments;
   arguments.in = "-";
   arguments.decide = "fixed";
+  arguments.restart = "none";
   arguments.learn = "1uip";
   arguments.forget = "nothing";
   arguments.decay = 1.-1./32.;
@@ -179,6 +186,7 @@ int main(int argc, char** argv) {
 
   cdcl_solver solver;
   solver.decide = arguments.decide;
+  solver.restart = arguments.restart;
   solver.learn = arguments.learn;
   solver.forget = arguments.forget;
   solver.bump = arguments.bump;

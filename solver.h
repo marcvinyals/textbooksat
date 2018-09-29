@@ -10,7 +10,7 @@
 struct cdcl_solver {
  public:
   proof solve(const cnf& f);
-  std::string decide, learn, forget, bump;
+  std::string decide, restart, learn, forget, bump;
   double decay;
   bool backjump, minimize, phase_saving;
   std::shared_ptr<std::ostream> trace;

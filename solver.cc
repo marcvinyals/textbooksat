@@ -33,6 +33,12 @@ proof cdcl_solver::solve(const cnf& f) {
       exit(1);
     }
   }
+  if (restart == "none") solver.restart_plugin = &cdcl::restart_none;
+  else if (restart == "fixed") solver.restart_plugin = &cdcl::restart_fixed;
+  else {
+    cerr << "Invalid restart interval" << endl;
+    exit(1);
+  }
   if (learn == "1uip") solver.learn_plugin = &cdcl::learn_fuip;
   else if (learn == "lastuip") solver.learn_plugin = &cdcl::learn_luip;
   else if (learn == "1uip-all") solver.learn_plugin = &cdcl::learn_fuip_all;

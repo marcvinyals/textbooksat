@@ -63,6 +63,7 @@ class cdcl {
   proof solve(const cnf& f);
 
   std::function<literal_or_restart(cdcl&)> decide_plugin;
+  std::function<bool(cdcl&)> restart_plugin;
 std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
   std::function<std::unordered_set<variable>(const proof_clause&)> bump_plugin;
@@ -76,6 +77,9 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
 
   literal_or_restart decide_fixed();
   literal_or_restart decide_ask();
+
+  bool restart_none();
+  bool restart_fixed();
 
   proof_clause learn_fuip(const branching_sequence::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const branching_sequence::reverse_iterator& first_decision);

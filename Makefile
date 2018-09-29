@@ -1,5 +1,5 @@
 CXX ?= g++
-CPPFLAGS ?= -std=c++0x -Wall
+CPPFLAGS ?= -std=c++11 -Wall
 LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
@@ -11,6 +11,7 @@ ifeq ($(BUILD),debug)
 CPPFLAGS += -g -Og -DDEBUG
 else ifeq ($(BUILD),release)
 CPPFLAGS += -O2 -DNDEBUG
+LDFLAGS += -static
 else ifeq ($(BUILD),asan)
 CXX = clang++
 CPPFLAGS += -g -DDEBUG -U_FORTIFY_SOURCE -fsanitize=address -fsanitize=undefined

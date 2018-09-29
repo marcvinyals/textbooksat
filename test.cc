@@ -57,6 +57,7 @@ protected:
   cdcl_solver solver;
   void SetUp() {
     solver.decide = "fixed";
+    solver.restart = "none";
     solver.learn = "1uip";
     solver.forget = "nothing";
     solver.bump = "learnt";
@@ -93,6 +94,7 @@ TEST_F(SolverTest, unit) {
 
 
 typedef tuple<const char*, // decide
+              const char*, // restart
               const char*, // learn
               const char*, // forget
               const char*, // bump
@@ -106,6 +108,7 @@ protected:
   cdcl_solver solver;
   virtual void SetUp() {
     std::tie(solver.decide,
+             solver.restart,
              solver.learn,
              solver.forget,
              solver.bump,
@@ -126,6 +129,7 @@ TEST_P(SolverCoverageTest, CT2) {
 INSTANTIATE_TEST_CASE_P(ParametersTest,
                         SolverCoverageTest,
                         Combine(Values("fixed"),
+                                Values("none","fixed"),
                                 Values("1uip","1uip-all","lastuip","decision"),
                                 Values("nothing","everything","wide"),
                                 Values("learnt","conflict"),

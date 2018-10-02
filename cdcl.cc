@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <random>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -518,6 +519,16 @@ void cdcl::decide() {
     if(trace) *trace << "assign " << pretty << variable(decision.l) << ' ' << decision.l.polarity() << endl;
     propagation_queue.decide(decision.l);
   }
+}
+
+literal_or_restart cdcl::decide_random() {
+  static minstd_rand prg;
+  if (restart_plugin(*this)) return true;
+  auto it = decision_order.begin();
+  advance(it, prg()%decision_order.size());
+  int decision_variable = *it;
+  decision_order.erase(it);
+  return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
 literal_or_restart cdcl::decide_fixed() {

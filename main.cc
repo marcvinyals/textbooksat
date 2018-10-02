@@ -16,7 +16,7 @@ using namespace std;
 static argp_option options[] = {
   {"in", 'i', "FILE", 0,
    "Read formula in dimacs format from FILE (default: stdin)"},
-  {"decide", 'd', "{fixed,reverse,vsids,ask}", 0,
+  {"decide", 'd', "{fixed,reverse,vsids,random,ask}", 0,
    "Use the specified decision procedure (default: fixed)"},
   {"restart", 'r', "{none,fixed}", 0,
    "Use the specified restart interval (default: none)"},

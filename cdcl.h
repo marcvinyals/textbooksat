@@ -76,6 +76,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   double config_activity_decay;
 
   literal_or_restart decide_fixed();
+  literal_or_restart decide_random();
   literal_or_restart decide_ask();
 
   bool restart_none();

@@ -20,6 +20,10 @@ proof cdcl_solver::solve(const cnf& f) {
     solver.decide_plugin = bind(&ui::get_decision, ui);
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
+  else if (decide == "random") {
+    solver.decide_plugin = &cdcl::decide_random;
+    solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
+  }
   else {
     solver.decide_plugin = &cdcl::decide_fixed;
     if (decide == "fixed")

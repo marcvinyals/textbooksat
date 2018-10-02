@@ -65,11 +65,9 @@ proof cdcl_solver::solve(const cnf& f) {
            std::placeholders::_1, std::placeholders::_2);
   }
   else {
-#else
-  {
-#endif
     solver.visualizer_plugin = &visualizer_nothing;
   }
+#endif
   if (bump == "learnt") solver.bump_plugin = &cdcl::bump_learnt;
   else if (bump == "conflict") solver.bump_plugin = &cdcl::bump_conflict;
   else {

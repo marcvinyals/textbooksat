@@ -16,6 +16,7 @@ struct literal {
   }
   bool operator == (const literal& a) const { return l==a.l; }
   bool opposite(const literal& a) const { return (l^a.l) == 1; }
+  literal abs() const { return l&(-2); }
   literal operator ~ () const { return l^1; }
   explicit operator variable() const { return l >> 1; }
   bool polarity() const { return l&1; }

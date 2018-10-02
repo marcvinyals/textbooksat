@@ -22,18 +22,29 @@ ostream& operator << (ostream& o, const list<proof_clause>& v) {
 ostream& operator << (ostream& o, const branch& b) {
   return o << pretty << variable(b.to) << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
-ostream& operator << (ostream& o, const restricted_clause& c) {
+ostream& operator << (ostream& o, const eager_restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;
   if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
   return o;
+}
+ostream& operator << (ostream& o, const lazy_restricted_clause& c) {
+  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  for (auto it = c.source->begin(); it!=c.source->end(); ++it) {
+    if (c.literals[it-c.source->begin()]) o << *it;
+  }
+  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  return o;
+}
+ostream& operator << (ostream& o, const proof_clause& c) {
+  return o << (eager_restricted_clause(c));
 }
 ostream& operator << (ostream& o, const vector<clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
 
-void restricted_clause::restrict(literal l) {
+void eager_restricted_clause::restrict(literal l) {
   for (auto a = literals.begin(); a!= literals.end(); ++a) {
     if (*a==l) {
       satisfied++;
@@ -46,7 +57,7 @@ void restricted_clause::restrict(literal l) {
   }
 }
 
-void restricted_clause::loosen(literal l) {
+void eager_restricted_clause::loosen(literal l) {
   for (literal a : *source) {
     if (a==l) {
       satisfied--;
@@ -59,7 +70,7 @@ void restricted_clause::loosen(literal l) {
   }
 }
 
-void restricted_clause::restrict(const std::vector<int>& assignment) {
+void eager_restricted_clause::restrict(const std::vector<int>& assignment) {
   literals.erase(remove_if(literals.begin(), literals.end(),
                            [this,&assignment](literal a) {
                              int al = assignment[variable(a)];
@@ -71,9 +82,53 @@ void restricted_clause::restrict(const std::vector<int>& assignment) {
                            }), literals.end());
 }
 
-void restricted_clause::reset() {
+void eager_restricted_clause::reset() {
   literals.assign(source->begin(), source->end());
   satisfied = 0;
+}
+
+void lazy_restricted_clause::restrict(literal l) {
+  if (satisfied) return;
+  literal labs = l.abs();
+  auto it = lower_bound(source->begin(), source->end(), labs);
+  if (it==source->end()) return;
+  if (*it==l) satisfied=true;
+  else if (it->opposite(l)) {
+    unassigned--;
+    literals.reset(it-source->begin());
+  }
+}
+
+void lazy_restricted_clause::loosen(literal l) {
+  literal labs = l.abs();
+  auto it = lower_bound(source->begin(), source->end(), labs);
+  if (it==source->end()) return;
+  if (*it==l) satisfied=false;
+  else if (not satisfied and it->opposite(l)) {
+    unassigned++;
+    literals.set(it-source->begin());
+  }
+}
+
+void lazy_restricted_clause::restrict_to_unit(const std::vector<int>& assignment) {
+  for (auto it=source->begin();it!=source->end();++it) {
+    int al = assignment[variable(*it)];
+    if (al) {
+      assert((al==1)!=it->polarity());
+      unassigned--;
+      literals.reset(it-source->begin());
+    }
+  }
+}
+
+branch lazy_restricted_clause::propagate() const {
+  return {*(source->begin()+literals.find_first()),source};
+}
+
+void lazy_restricted_clause::reset() {
+  satisfied = false;
+  unassigned = source->c.width();
+  literals.set();
 }
 
 
@@ -146,7 +201,9 @@ proof cdcl::solve(const cnf& f) {
       unit_propagate();
       if (not conflicts.empty()) {
         learn();
+#ifndef NO_VIZ
         visualizer_plugin(assignment, working_clauses);
+#endif
         if (solved) {
           LOG(LOG_EFFECTS) << "UNSAT" << endl;
           return proof(std::move(formula), std::move(learnt_clauses));
@@ -154,7 +211,9 @@ proof cdcl::solve(const cnf& f) {
       }
     }
     forget_plugin(*this);
+#ifndef NO_VIZ
     visualizer_plugin(assignment, working_clauses);
+#endif
     decide();
     if (solved) {
       LOG(LOG_EFFECTS) << "This is a satisfying assignment:" << endl << assignment << endl;
@@ -241,7 +300,7 @@ void cdcl::unassign(literal l) {
  */
 
 bool cdcl::asserting(const proof_clause& c) const {
-  restricted_clause d(c);
+  eager_restricted_clause d(c);
   d.restrict(assignment);
   if (solved) return d.contradiction();
   return d.unit();
@@ -349,7 +408,7 @@ proof_clause cdcl::learn_decision(const branching_sequence::reverse_iterator& fi
 // resolving them with a reason.
 void cdcl::minimize(proof_clause& c) const {
   LOG(LOG_DETAIL) << Color::Modifier(Color::FG_RED) << "Minimize:" << Color::Modifier(Color::FG_DEFAULT) << endl;
-  restricted_clause d(c.c);
+  eager_restricted_clause d(c.c);
   d.restrict(assignment);
   if (d.contradiction()) return;
   literal asserting = d.literals.front();
@@ -454,13 +513,13 @@ void cdcl::learn() {
   // Add the learnt clause to working clauses and immediately start
   // propagating
   working_clauses.push_back(learnt_clauses.back());
-  working_clauses.back().restrict(assignment);
+  working_clauses.back().restrict_to_unit(assignment);
   assert(working_clauses.back().unit());
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
   for (const auto& c : working_clauses) {
-    if (c.unit() and not assignment[variable(c.literals.front())]) {
+    if (c.unit() and not assignment[variable(c.propagate().to)]) {
       propagation_queue.propagate(c);
     }
   }

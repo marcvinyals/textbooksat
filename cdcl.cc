@@ -92,7 +92,10 @@ void lazy_restricted_clause::restrict(literal l) {
   literal labs = l.abs();
   auto it = lower_bound(source->begin(), source->end(), labs);
   if (it==source->end()) return;
-  if (*it==l) satisfied=true;
+  if (*it==l) {
+    satisfied=true;
+    satisfied_literal=l;
+  }
   else if (it->opposite(l)) {
     unassigned--;
     literals.reset(it-source->begin());
@@ -100,13 +103,17 @@ void lazy_restricted_clause::restrict(literal l) {
 }
 
 void lazy_restricted_clause::loosen(literal l) {
-  literal labs = l.abs();
-  auto it = lower_bound(source->begin(), source->end(), labs);
-  if (it==source->end()) return;
-  if (*it==l) satisfied=false;
-  else if (not satisfied and it->opposite(l)) {
-    unassigned++;
-    literals.set(it-source->begin());
+  if (satisfied) {
+    if (l==satisfied_literal) satisfied=false;
+  }
+  else {
+    literal nl = ~l;
+    auto it = lower_bound(source->begin(), source->end(), nl);
+    if (it==source->end()) return;
+    if (*it==nl) {
+      unassigned++;
+      literals.set(it-source->begin());
+    }
   }
 }
 

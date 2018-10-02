@@ -10,7 +10,9 @@ BUILD ?= debug
 ifeq ($(BUILD),debug)
 CPPFLAGS += -g -Og -DDEBUG
 else ifeq ($(BUILD),release)
-CPPFLAGS += -O2 -DNDEBUG
+CPPFLAGS += -O2 -DNDEBUG -march=native
+else ifeq ($(BUILD),hpc2n)
+CPPFLAGS = -O2 -DNDEBUG -march=bdver1
 LDFLAGS += -static
 else ifeq ($(BUILD),asan)
 CXX = clang++
@@ -91,6 +93,9 @@ debug:
 
 release:
 	$(MAKE) BUILD=release sat
+
+hpc2n:
+	$(MAKE) BUILD=hpc2n sat
 
 asan:
 	$(MAKE) BUILD=asan sat

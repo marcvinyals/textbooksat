@@ -43,10 +43,12 @@ struct eager_restricted_clause {
 struct lazy_restricted_clause {
   const proof_clause* source;
   bool satisfied;
+  literal satisfied_literal;
   int unassigned;
   boost::dynamic_bitset<> literals;
   lazy_restricted_clause(const proof_clause& c) :
-  source(&c), satisfied(false), unassigned(source->c.width()), literals(unassigned) {
+    source(&c), satisfied(false), satisfied_literal(0,false),
+    unassigned(source->c.width()), literals(unassigned) {
       assert(std::is_sorted(source->begin(), source->end()));
       literals.set();
     }
@@ -60,7 +62,7 @@ struct lazy_restricted_clause {
   void reset();
 };
 
-typedef eager_restricted_clause restricted_clause;
+typedef lazy_restricted_clause restricted_clause;
 
 struct propagation_queue {
   std::deque<branch> q;

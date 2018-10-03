@@ -30,8 +30,39 @@ bool clause::contains(literal l) const {
   return binary_search(literals.begin(), literals.end(), l);
 }
 
+clause resolve(const clause& c, const clause& d) {
+  vector<literal> ret;
+  ret.reserve(c.width()+d.width()-1);
+  int found=0;
+  auto it=c.begin(), jt=d.begin();
+  for (;it!=c.end() and jt!=d.end();) {
+    if (*it==~*jt) {
+      ++it;
+      ++jt;
+      ++found;
+      continue;
+    }
+    if (*it<*jt) {
+      ret.push_back(*it);
+      ++it;
+    }
+    else {
+      if (*it==*jt) ++it;
+      ret.push_back(*jt);
+      ++jt;
+    }
+  }
+  copy(it,c.end(),back_inserter(ret));
+  copy(jt,d.end(),back_inserter(ret));
+  assert(found==1);
+  return ret;
+}
+
 clause resolve(const clause& c, const clause& d, variable x) {
-  // TODO: make linear
+  return resolve(c,d);
+}
+
+clause reference_resolve(const clause& c, const clause& d, variable x) {
   set<literal> ret;
   int found = 0;
   for (auto l:c) {
@@ -46,8 +77,7 @@ clause resolve(const clause& c, const clause& d, variable x) {
   return vector<literal>(ret.begin(), ret.end());
 }
 
-clause resolve(const clause& c, const clause& d) {
-  // TODO: make linear
+clause reference_resolve(const clause& c, const clause& d) {
   set<literal> ret(c.begin(), c.end());
   int found = 0;
   for (auto l:d) {

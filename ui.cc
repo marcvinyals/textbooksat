@@ -81,7 +81,7 @@ literal_or_restart ui::get_decision() {
     variable var;
     std::vector<variable> domain;
     auto it = line.begin();
-    auto token = qi::as_string[qi::lexeme[+~qi::space]];
+    auto token = qi::copy(qi::as_string[qi::lexeme[+~qi::space]]);
     bool parse = qi::phrase_parse(it, line.end(),
         qi::string("#")[ph::ref(action) = _1]
       | qi::string("state")[ph::ref(action) = _1]

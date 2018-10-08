@@ -155,6 +155,7 @@ private:
                 branching_sequence::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
   void bump_activity(const proof_clause& c);
+  std::vector<double> initial_variable_activity(const cnf& f);
 
   bool consistent() const;
   

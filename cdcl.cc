@@ -186,7 +186,7 @@ proof cdcl::solve(const cnf& f) {
   for (const auto& c : f.clauses) formula.push_back(c);
   
   decision_polarity.assign(f.variables,false);
-  variable_activity.assign(f.variables, 0.);
+  variable_activity = initial_variable_activity(f);
   decision_order = set<variable, variable_cmp>
     (bind(variable_order_plugin,
           cref(*this),
@@ -564,6 +564,36 @@ void cdcl::bump_activity(const proof_clause& c) {
     variable_activity[v] ++;
   }
   decision_order.insert(attach.begin(), attach.end());
+}
+
+// Used in Minisat
+vector<double> variable_activity_none(const cnf& f) {
+  return vector<double>(f.variables,0);
+}
+
+vector<double> variable_activity_random(const cnf& f) {
+  vector<double> variable_activity(f.variables);
+  minstd_rand prg;
+  for (double& x : variable_activity) {
+    x = generate_canonical<double, 64>(prg);
+  }
+  return variable_activity;
+}
+
+// Used in Chaff
+vector<double> variable_activity_weighted(const cnf& f) {
+  vector<double> variable_activity(f.variables,0);
+  for (const auto& c : f.clauses) {
+    for (auto it = c.dom_begin(); it != c.dom_end(); ++it) {
+      ++variable_activity[*it];
+    }
+  }
+  return variable_activity;
+}
+
+
+vector<double> cdcl::initial_variable_activity(const cnf& f) {
+  return variable_activity_none(f);
 }
 
 

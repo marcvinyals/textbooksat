@@ -6,9 +6,30 @@
 #include <iostream>
 using namespace std;
 
-void parse_header(istream& in, int& nvars, int& nclauses, map<int,string>& variable_names) {
+class parser {
+public:
+  parser(istream& in);
+  operator cnf() { return f; }
+private:
+  cnf f;
+  istream& in;
+  int& nvars;
+  int nclauses;
+  unordered_map<int, string>& variable_names;
+  int lineno;
+  void parse_header();
+  void parse_body();
+};
+
+#define ERROR(message) {\
+    cerr << "Error on line " << lineno << ": " << message << endl;\
+    exit(1);}
+#define WARNING(message) {\
+    cerr << "Warning on line " << lineno << ": " << message << endl;}
+
+void parser::parse_header() {
   string s;
-  while(getline(in, s)) {
+  for (; getline(in, s); ++lineno) {
     if (s.empty()) continue;
     if (s[0]=='c') {
       stringstream ss(s);
@@ -24,29 +45,41 @@ void parse_header(istream& in, int& nvars, int& nclauses, map<int,string>& varia
   char p;
   string t;
   ss >> p >> t >> nvars >> nclauses;
-  if (p!='p' or t!="cnf") {
-    cerr << "Not a dimacs file" << endl;
-    exit(1);
-  }
+  if (p!='p' or t!="cnf") ERROR("header not found");
 }
 
-cnf parse_dimacs(istream& in) {
-  cnf f;
-  int nclauses;
-  parse_header(in, f.variables, nclauses, f.variable_names);
+void parser::parse_body() {
   string s;
-  while(getline(in, s)) {
+  for (; getline(in, s); ++lineno) {
     istringstream ss(s);
     set<literal> c;
     int x;
     while(ss >> x and x) {
-      c.insert(from_dimacs(x));
+      literal l=from_dimacs(x);
+      if (c.count(l)) WARNING("repeated literal " << x);
+      if (c.count(~l)) WARNING("opposite literals " << x << " and " << (~x));
+      variable v=variable(l);
+      if (v >= nvars) {
+        WARNING("variable " << v << " out of range");
+        nvars=v+1;
+      }
+      c.insert(l);
     }
-    if (x!=0) {
-      cerr << "Not a zero-terminated line" << endl;
-      exit(1);
-    }
+    if (x!=0) ERROR("not zero-terminated");
     f.clauses.push_back(vector<literal>(c.begin(), c.end()));
   }
-  return f;
+  if (f.clauses.size() != nclauses) {
+    WARNING("expected " << nclauses << " clauses but read " << f.clauses.size());
+  }
+}
+
+parser::parser(istream& in) :
+  in(in), nvars(f.variables),
+  variable_names(f.variable_names), lineno(1) {
+  parse_header();
+  parse_body();
+}
+
+cnf parse_dimacs(istream& in) {
+  return parser(in);
 }

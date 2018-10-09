@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <list>
-#include <map>
+#include <unordered_map>
 
 #include <boost/functional/hash.hpp>
 
@@ -85,7 +85,7 @@ namespace std {
 struct cnf {
   std::vector<clause> clauses;
   int variables;
-  std::map<int,std::string> variable_names;
+  std::unordered_map<int,std::string> variable_names;
 };
 
 struct proof_clause;

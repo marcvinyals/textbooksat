@@ -6,11 +6,11 @@
 #include <string>
 #include <sstream>
 #include <cassert>
-#include <map>
+#include <unordered_map>
 
 struct pretty_ {
-  std::map<int,std::string> variable_names;
-  std::map<std::string,int> name_variables;
+  std::unordered_map<int,std::string> variable_names;
+  std::unordered_map<std::string,int> name_variables;
   enum {
     TERMINAL,
     LATEX,

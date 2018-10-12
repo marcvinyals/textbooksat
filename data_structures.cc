@@ -32,6 +32,7 @@ bool clause::contains(literal l) const {
 
 clause resolve(const clause& c, const clause& d) {
   vector<literal> ret;
+  assert(c.width() and d.width());
   ret.reserve(c.width()+d.width()-1);
   int found=0;
   auto it=c.begin(), jt=d.begin();

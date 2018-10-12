@@ -3,16 +3,15 @@
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <deque>
 #include <list>
 #include <cassert>
 #include <iostream>
 #include <memory>
 #include <unordered_set>
 
-#include <boost/dynamic_bitset.hpp>
-
+#include "clause_database.h"
 #include "data_structures.h"
+#include "propagation_queue.h"
 
 struct literal_or_restart {
   literal l;
@@ -21,75 +20,9 @@ struct literal_or_restart {
   literal_or_restart(bool restart_) : l(0,0), restart(restart_) {}
 };
 
-struct eager_restricted_clause {
-  std::vector<literal> literals;
-  const proof_clause* source;
-  int satisfied;
-  eager_restricted_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), satisfied(0) {}
-  bool unit() const { return not satisfied and literals.size() == 1; }
-  bool contradiction() const { return not satisfied and literals.empty(); }
-  branch propagate() const { return {literals.front(), source}; }
-
-  void restrict(literal l);
-  void loosen(literal l);
-  void restrict(const std::vector<int>& assignment);
-  void restrict_to_unit(const std::vector<int>& assignment) {
-    restrict(assignment);
-  }
-  void reset();
-};
-
-struct lazy_restricted_clause {
-  const proof_clause* source;
-  bool satisfied;
-  literal satisfied_literal;
-  int unassigned;
-  boost::dynamic_bitset<> literals;
-  lazy_restricted_clause(const proof_clause& c) :
-    source(&c), satisfied(false), satisfied_literal(0,false),
-    unassigned(source->c.width()), literals(unassigned) {
-      assert(std::is_sorted(source->begin(), source->end()));
-      literals.set();
-    }
-  bool unit() const { return not satisfied and unassigned == 1; }
-  bool contradiction() const { return not satisfied and unassigned == 0; }
-  branch propagate() const;
-
-  void restrict(literal l);
-  void loosen(literal l);
-  void restrict_to_unit(const std::vector<int>& assignment);
-  void reset();
-};
-
-typedef lazy_restricted_clause restricted_clause;
-
-struct propagation_queue {
-  std::deque<branch> q;
-  void propagate(const restricted_clause& c) {
-    assert(c.unit());
-    q.push_back(c.propagate());
-  }
-  void decide(literal l) {
-    q.push_back({l,NULL});
-  }
-  void clear() {
-    q.clear();
-  }
-  void pop() {
-    q.pop_front();
-  }
-  bool empty() const {
-    return q.empty();
-  }
-  const branch& front() const {
-    return q.front();
-  }
-};
-
 class cdcl {
  public:
-  cdcl() {}
+  cdcl() : working_clauses(conflicts, propagation_queue) {}
   
   proof solve(const cnf& f);
 
@@ -168,7 +101,7 @@ private:
   // they should not be erased or reallocated.
   std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
-  std::vector<restricted_clause> working_clauses;
+  clause_database working_clauses;
 
   // List of unit propagations, in chronological order.
   branching_sequence branching_seq;
@@ -193,8 +126,6 @@ private:
   std::vector<double> variable_activity;
 };
 
-std::ostream& operator << (std::ostream& o, const eager_restricted_clause& c);
-std::ostream& operator << (std::ostream& o, const lazy_restricted_clause& c);
 std::ostream& operator << (std::ostream& o, const std::list<proof_clause>& v);
 std::ostream& operator << (std::ostream& o, const branch& b);
 

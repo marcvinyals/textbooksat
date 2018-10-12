@@ -4,7 +4,7 @@ LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
-SOURCES = solver.cc cdcl.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
+SOURCES = solver.cc cdcl.cc clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
 
 BUILD ?= debug
 ifeq ($(BUILD),debug)
@@ -75,14 +75,14 @@ $(BUILD)/%.o : %.cc $(HEADERS)
 	$(CXX) $(CPPFLAGS) -MM $< -MT $@ > $(BUILD)/$*.d
 
 $(BUILD)/sat: $(BUILD)/main.o $(OBJS)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -o  $@ $+ $(LIBS)
+	$(CXX) $(LDFLAGS) -o  $@ $+ $(LIBS)
 
 clean:
 	rm -f sat *.o satr release/*.o *.d
 	rm -fr debug/ release/
 
 test: $(BUILD)/test.o $(TOBJS)
-	$(CXX) $(CPPFLAGS) -o $@ $+ -lgtest -lpthread
+	$(CXX) $(LDFLAGS) -o $@ $+ -lgtest -lpthread
 	./test
 
 sat: $(BUILD)/sat

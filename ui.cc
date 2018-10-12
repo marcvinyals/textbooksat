@@ -10,6 +10,7 @@
 
 #include "cdcl.h"
 #include "formatting.h"
+#include "clause_database.h"
 
 using std::cout;
 using std::cin;
@@ -26,15 +27,16 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
-std::ostream& operator << (std::ostream& o, const std::vector<restricted_clause>& v) {
-  for (size_t i = 0; i<v.size(); ++i) {
+std::ostream& operator << (std::ostream& o, const clause_database& v) {
+  size_t i = 0;
+  for (auto it=v.begin(); it!=v.end(); ++it, ++i) {
     o << std::setw(5) << i << ":";
-    if (v[i].satisfied) o << std::setw(35+8);
+    if (it->satisfied) o << std::setw(35+8);
     else o << std::setw(35);
     std::stringstream ss;
-    ss << v[i];
+    ss << *it;
     o << ss.str();
-    o << " | " << v[i].source->c << std::endl;
+    o << " | " << it->source->c << std::endl;
   }
   return o;
 }

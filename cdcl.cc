@@ -22,20 +22,6 @@ ostream& operator << (ostream& o, const list<proof_clause>& v) {
 ostream& operator << (ostream& o, const branch& b) {
   return o << pretty << variable(b.to) << ' ' << (b.reason?'=':'d') << ' ' << b.to.polarity() << "   ";
 }
-ostream& operator << (ostream& o, const eager_restricted_clause& c) {
-  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
-  for (auto l:c.literals) o << l;
-  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
-  return o;
-}
-ostream& operator << (ostream& o, const lazy_restricted_clause& c) {
-  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
-  for (auto it = c.source->begin(); it!=c.source->end(); ++it) {
-    if (c.literals[it-c.source->begin()]) o << *it;
-  }
-  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
-  return o;
-}
 ostream& operator << (ostream& o, const proof_clause& c) {
   return o << (eager_restricted_clause(c));
 }
@@ -43,101 +29,6 @@ ostream& operator << (ostream& o, const vector<clause>& v) {
   for (size_t i = 0; i<v.size(); ++i) o << setw(5) << i << ": " << v[i] << endl;
   return o;
 }
-
-void eager_restricted_clause::restrict(literal l) {
-  for (auto a = literals.begin(); a!= literals.end(); ++a) {
-    if (*a==l) {
-      satisfied++;
-      break;
-    }
-    if (a->opposite(l)) {
-      literals.erase(a);
-      break;
-    }
-  }
-}
-
-void eager_restricted_clause::loosen(literal l) {
-  for (literal a : *source) {
-    if (a==l) {
-      satisfied--;
-      break;
-    }
-    if (a.opposite(l)) {
-      literals.push_back(a);
-      break;
-    }      
-  }
-}
-
-void eager_restricted_clause::restrict(const std::vector<int>& assignment) {
-  literals.erase(remove_if(literals.begin(), literals.end(),
-                           [this,&assignment](literal a) {
-                             int al = assignment[variable(a)];
-                             if (al) {
-                               if ((al==1)==a.polarity()) satisfied++;
-                               else return true;
-                             }
-                             return false;
-                           }), literals.end());
-}
-
-void eager_restricted_clause::reset() {
-  literals.assign(source->begin(), source->end());
-  satisfied = 0;
-}
-
-void lazy_restricted_clause::restrict(literal l) {
-  if (satisfied) return;
-  literal labs = l.abs();
-  auto it = lower_bound(source->begin(), source->end(), labs);
-  if (it==source->end()) return;
-  if (*it==l) {
-    satisfied=true;
-    satisfied_literal=l;
-  }
-  else if (it->opposite(l)) {
-    unassigned--;
-    literals.reset(it-source->begin());
-  }
-}
-
-void lazy_restricted_clause::loosen(literal l) {
-  if (satisfied) {
-    if (l==satisfied_literal) satisfied=false;
-  }
-  else {
-    literal nl = ~l;
-    auto it = lower_bound(source->begin(), source->end(), nl);
-    if (it==source->end()) return;
-    if (*it==nl) {
-      unassigned++;
-      literals.set(it-source->begin());
-    }
-  }
-}
-
-void lazy_restricted_clause::restrict_to_unit(const std::vector<int>& assignment) {
-  for (auto it=source->begin();it!=source->end();++it) {
-    int al = assignment[variable(*it)];
-    if (al) {
-      assert((al==1)!=it->polarity());
-      unassigned--;
-      literals.reset(it-source->begin());
-    }
-  }
-}
-
-branch lazy_restricted_clause::propagate() const {
-  return {*(source->begin()+literals.find_first()),source};
-}
-
-void lazy_restricted_clause::reset() {
-  satisfied = false;
-  unassigned = source->c.width();
-  literals.set();
-}
-
 
 bool cdcl::variable_cmp_vsids(variable x, variable y) const {
   double d = variable_activity[y] - variable_activity[x];
@@ -196,7 +87,7 @@ proof cdcl::solve(const cnf& f) {
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
-  for (const auto& c : formula) working_clauses.push_back(c);
+  for (const auto& c : formula) working_clauses.insert(c);
   restart();
 
   // Main loop
@@ -273,18 +164,7 @@ void cdcl::assign(literal l) {
 
   // Restrict unit clauses and check for conflicts and new unit
   // propagations.
-  for (auto& c : working_clauses) {
-    bool wasunit = c.unit();
-    c.restrict(l);
-    if (c.contradiction()) {
-      LOG(LOG_STATE) << "Conflict" << endl;
-      conflicts.push_back(c.source);
-    }
-    if (c.unit() and not wasunit) {
-      LOG(LOG_STATE) << c << " is now unit" << endl;
-      propagation_queue.propagate(c);
-    }
-  }
+  working_clauses.assign(l);
   
   decision_order.erase(variable(l));
   if (config_phase_saving) decision_polarity[variable(l)] = l.polarity();
@@ -296,7 +176,8 @@ void cdcl::unassign(literal l) {
   assert(al);
   al = 0;
 
-  for (auto& c : working_clauses) c.loosen(l);
+  working_clauses.unassign(l);
+
   decision_order.insert(variable(l));
 }
 
@@ -519,9 +400,8 @@ void cdcl::learn() {
   
   // Add the learnt clause to working clauses and immediately start
   // propagating
-  working_clauses.push_back(learnt_clauses.back());
-  working_clauses.back().restrict_to_unit(assignment);
-  assert(working_clauses.back().unit());
+  working_clauses.insert(learnt_clauses.back(), assignment);
+
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
@@ -735,7 +615,8 @@ void cdcl::forget(unsigned int m) {
   assert(propagation_queue.empty());
   assert (m>=formula.size());
   assert (m<working_clauses.size());
-  const auto& target = working_clauses[m];
+  auto it = working_clauses.begin()+m;
+  const auto& target = *it;
   LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
   for (const auto& branch : branching_seq) {
     if (branch.reason == target.source) {
@@ -743,5 +624,5 @@ void cdcl::forget(unsigned int m) {
       return;
     }
   }
-  working_clauses.erase(working_clauses.begin()+m);
+  working_clauses.erase(it);
 }

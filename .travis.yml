@@ -1,6 +1,6 @@
 # Need gcc-4.8
 sudo: required
-dist: trusty
+dist: xenial
 
 language: cpp
 script: make test

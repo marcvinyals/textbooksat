@@ -379,7 +379,7 @@ void cdcl::learn() {
 
   assert(not config_backjump or
          find_if(working_clauses.begin(), working_clauses.end(),
-                 [&learnt_clause] (const restricted_clause& i) {
+                 [&learnt_clause] (const auto& i) {
                    return i.source->c == learnt_clause.c;
                  }) == working_clauses.end());
   

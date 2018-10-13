@@ -129,7 +129,8 @@ struct watched_clause {
 
   literal restrict(literal l, const std::vector<int>& assignment);
   literal satisfy(literal l);
-  void loosen(literal l);
+  literal loosen_satisfied(literal l);
+  void loosen_falsified(literal l);
   void restrict_to_unit(const std::vector<int>& assignment);
   void reset();
 private:
@@ -150,7 +151,7 @@ struct source_cmp {
 
 class watched_clause_database : public clause_database<watched_clause> {
 private:
-  std::vector<std::unordered_set<watched_clause*>> watches;
+  std::vector<std::unordered_set<size_t>> watches;
 public:
   watched_clause_database(std::vector<const proof_clause*>& conflicts,
                           struct propagation_queue& propagation_queue,

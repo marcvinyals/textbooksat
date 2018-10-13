@@ -24,9 +24,11 @@ ostream& operator << (ostream& o, const lazy_restricted_clause& c) {
   return o;
 }
 ostream& operator << (ostream& o, const watched_clause& c) {
-  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  //for (auto l:*c.source) o << l;
+
+  //if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;
-  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  //if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
   return o;
 }
 
@@ -164,32 +166,31 @@ template class reference_clause_database<lazy_restricted_clause>;
 
 
 constexpr literal NONE = literal::from_raw(-1);
-constexpr literal SATISFIED = literal::from_raw(-2);
 
 literal watched_clause::restrict(literal l, const std::vector<int>& assignment) {
   assert(not satisfied);
-  cerr << unassigned << endl;
+  //cerr << unassigned << endl;
   if (literals[0]==~l) {
-    cerr << "Lit 0 dies" << endl;
+    //cerr << "Lit 0 dies" << endl;
     literal new_watch = find_new_watch(0, assignment);
-    cerr << "New watch " << new_watch << endl;
+    //cerr << "New watch " << new_watch << endl;
     if (new_watch == NONE) {
       if (--unassigned==1) {
         swap(literals[0],literals[1]);
       }
     }
-    cerr << unassigned << endl;
+    //cerr << unassigned << endl;
     return new_watch;
   }
   assert (literals[1]==~l);
   {
-    cerr << "Lit 1 dies" << endl;
+    //cerr << "Lit 1 dies" << endl;
     literal new_watch = find_new_watch(1, assignment);
-    cerr << "New watch " << new_watch << endl;
+    //cerr << "New watch " << new_watch << endl;
     if (new_watch == NONE) {
       --unassigned;
     }
-    cerr << unassigned << endl;
+    //cerr << unassigned << endl;
     return new_watch;
   }
   assert(false);
@@ -197,6 +198,7 @@ literal watched_clause::restrict(literal l, const std::vector<int>& assignment) 
 
 literal watched_clause::satisfy(literal l) {
   assert(unassigned);
+  satisfied=true;
   if (literals[0]==l) {
     if (unassigned>=2) return literals[1];
     return NONE;
@@ -205,11 +207,21 @@ literal watched_clause::satisfy(literal l) {
   return literals[0];
 }
 
-void watched_clause::loosen(literal l) {
-  cerr << "Loosen?!" << endl;
-  satisfied=false;
+void watched_clause::loosen_falsified(literal l) {
   ++unassigned;
   literals_visible_size=literals.size();
+}
+
+literal watched_clause::loosen_satisfied(literal l) {
+  assert(unassigned);
+  satisfied=false;
+  literals_visible_size=literals.size();
+  if (literals[0]==l) {
+    if (unassigned>=2) return literals[1];
+    return NONE;
+  }
+  assert(literals[1]==l);
+  return literals[0];
 }
 
 void watched_clause::restrict_to_unit(const std::vector<int>& assignment) {
@@ -223,16 +235,21 @@ void watched_clause::restrict_to_unit(const std::vector<int>& assignment) {
       --literals_visible_size;
     }
   }
+  cerr << "Oy this is rt1 have " << literals_visible_size << endl;
 }
 
 literal watched_clause::find_new_watch(size_t replaces, const std::vector<int>& assignment) {
+  int iters=0;
   while(literals_visible_size>2) {
+    assert(iters<=2*literals.size());
+    ++iters;
     literal& l = literals[literals_visible_size-1];
     int al = assignment[variable(l)];
     if (al) {
       if ((al==1)==l.polarity()) {
         swap(literals[replaces],l);
-        return SATISFIED;
+        satisfied=true;
+        return literals[replaces];
       }
       else {
         --literals_visible_size;
@@ -248,26 +265,47 @@ literal watched_clause::find_new_watch(size_t replaces, const std::vector<int>& 
 }
 
 void watched_clause::reset() {
-  cerr << "Reset?!" << endl;
+  //cerr << "Reset?!" << endl;
   literals_visible_size = literals.size();
   unassigned = min(2, int(literals_visible_size));
   satisfied = false;
 }
 
 void watched_clause_database::assign(literal l) {
-  for (auto& c : watches[l.l]) {
-    literal stop_watch = const_cast<watched_clause&>(*c).satisfy(l);
+  /*for (size_t i=0; i<watches.size(); ++i) {
+    const auto& w = watches[i];
+    cerr << literal::from_raw(i) << " watches ";
+    for (size_t j : w) cerr << working_clauses[j] << "   ";
+    cerr << endl;
+  }*/
+  
+  for (size_t i : watches[l.l]) {
+    watched_clause& c = working_clauses[i];
+    if (i==79046) cerr << "Satisfying " << c << endl;
+    literal stop_watch = c.satisfy(l);
     if (not (stop_watch == NONE)) {
-      watches[stop_watch.l].erase(c);
+      watches[stop_watch.l].erase(i);
     }
   }
   auto& this_watch = watches[(~l).l];
   for (auto it = this_watch.begin(); it!=this_watch.end();) {
-    watched_clause& c = const_cast<watched_clause&>(**it);
-    cerr << "Hitting " << c << endl;
+    watched_clause& c = working_clauses[*it];
+
+    if (*it==79046) cerr << "Hitting " << c << endl;
+    
+    if (c.satisfied) {
+      cerr << "Fail incoming " << *it << endl << c << endl;
+    }
+
     literal new_watch = c.restrict(l, assignment);
-    if (new_watch == SATISFIED) {
-      continue;
+    if (c.satisfied) {
+      assert (not (new_watch == NONE));
+      cerr << "Satisfying " << c << endl;
+      literal stop_watch = c.satisfy(new_watch);
+      assert(not (stop_watch == NONE));
+      watches[stop_watch.l].erase(*it);
+      watches[new_watch.l].insert(*it);
+      it=this_watch.erase(it);
     }
     else if (new_watch == NONE) {
       if (c.contradiction()) {
@@ -281,23 +319,31 @@ void watched_clause_database::assign(literal l) {
       ++it;
     }
     else {
-      watches[new_watch.l].insert(&c);
+      watches[new_watch.l].insert(*it);
       it=this_watch.erase(it);
     }
   }
 }
 
 void watched_clause_database::unassign(literal l) {
-  for (auto& c : watches[l.l]) const_cast<watched_clause&>(*c).loosen(l);
-  for (auto& c : watches[(~l).l]) const_cast<watched_clause&>(*c).loosen(l);
+  //cerr << "Unwatching " << l << endl;
+  for (size_t i : watches[l.l]) {
+    watched_clause& c = working_clauses[i];
+    literal new_watch = c.loosen_satisfied(l);
+    if (not (new_watch == NONE)) {
+      watches[new_watch.l].insert(i);
+    }
+  }
+  for (size_t i : watches[(~l).l]) working_clauses[i].loosen_falsified(l);
 }
 
 void watched_clause_database::reset() {
   for (auto& w : watches) w.clear();
-  for (auto& c : working_clauses) {
+  for (size_t i=0; i< working_clauses.size(); ++i) {
+    watched_clause& c = working_clauses[i];
     c.reset();
-    if(c.literals.size()>=1) watches[c.literals[0].l].insert(&c);
-    if(c.literals.size()>=2) watches[c.literals[1].l].insert(&c);
+    if(c.literals.size()>=1) watches[c.literals[0].l].insert(i);
+    if(c.literals.size()>=2) watches[c.literals[1].l].insert(i);
     if (c.unit()) propagation_queue.propagate(c);
   }
 }
@@ -307,7 +353,8 @@ void watched_clause_database::insert(const proof_clause& c, const std::vector<in
   watched_clause& cc = working_clauses.back();
   cc.restrict_to_unit(assignment);
   assert(cc.unit());
-  watches[cc.literals[0].l].insert(&cc);
+  //cerr << "Asserting watch " << cc.literals[0].l << endl;
+  watches[cc.literals[0].l].insert(working_clauses.size()-1);
 }
 
 void watched_clause_database::insert(const proof_clause& c) {

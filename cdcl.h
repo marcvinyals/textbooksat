@@ -100,7 +100,8 @@ private:
   // they should not be erased or reallocated.
   std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
-  watched_clause_database working_clauses;
+  lazy_clause_database working_clauses;
+  //watched_clause_database working_clauses;
 
   // List of unit propagations, in chronological order.
   branching_sequence branching_seq;

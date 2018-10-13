@@ -14,6 +14,11 @@ struct literal {
   literal(variable index, bool polarity) : l(index<<1) {
     if (polarity) l|=1;
   }
+  static literal from_dimacs(int x) {
+    if (x>0) return literal(x-1,true);
+    else return literal(-x-1,false);
+  }
+  constexpr static literal from_raw(unsigned int x) { return x; }
   bool operator == (const literal& a) const { return l==a.l; }
   bool opposite(const literal& a) const { return (l^a.l) == 1; }
   literal abs() const { return l&(-2); }
@@ -23,8 +28,7 @@ struct literal {
   bool operator < (const literal& a) const { return l < a.l; }
 protected:
   literal();
-  literal(int l_) : l(l_) {}
-  friend literal from_dimacs(int);
+  constexpr literal(unsigned int l_) : l(l_) {}
 };
 namespace std {
   template<>
@@ -42,11 +46,6 @@ namespace boost {
     }
   };
 };
-
-inline literal from_dimacs(int x) {
-  if (x>0) return literal(x-1,true);
-  else return literal(-x-1,false);
-}
 
 struct clause {
   // Sorted vector

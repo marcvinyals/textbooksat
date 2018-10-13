@@ -27,7 +27,8 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
-std::ostream& operator << (std::ostream& o, const clause_database& v) {
+template<typename T>
+std::ostream& operator << (std::ostream& o, const clause_database<T>& v) {
   size_t i = 0;
   for (auto it=v.begin(); it!=v.end(); ++it, ++i) {
     o << std::setw(5) << i << ":";
@@ -75,7 +76,7 @@ void ui::usage() {
 literal_or_restart ui::get_decision() {
   qi::symbols<char, variable> variable_;
   for (const auto& it : pretty.variable_names) variable_.add(it.second, it.first);
-  literal decision = from_dimacs(0);
+  literal decision = literal::from_raw(0);
   while (true) {
     string line;
     getline(cin, line);
@@ -117,7 +118,7 @@ literal_or_restart ui::get_decision() {
     }
     if (action=="restart") {
       history.push_back(line);
-      return true;
+      return RESTART;
     }
     else if (action=="forget") {
       if (m < solver.formula.size()) {
@@ -160,7 +161,7 @@ literal_or_restart ui::get_decision() {
       decision = literal(var, polarity);
     }
     else if (action == "dimacs") {
-      decision = from_dimacs(dimacs);
+      decision = literal::from_dimacs(dimacs);
     }
     else if (action == "save") {
       std::ofstream out(file);

@@ -13,6 +13,8 @@ using testing::Combine;
 using testing::Values;
 using testing::Bool;
 
+literal from_dimacs (int x) { return literal::from_dimacs(x); }
+
 TEST(ClauseTest, subsumes) {
   clause c;
   clause d(vector<literal>({from_dimacs(1)}));

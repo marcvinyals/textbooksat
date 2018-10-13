@@ -55,7 +55,7 @@ void parser::parse_body() {
     set<literal> c;
     int x;
     while(ss >> x and x) {
-      literal l=from_dimacs(x);
+      literal l=literal::from_dimacs(x);
       if (c.count(l)) WARNING("repeated literal " << x);
       if (c.count(~l)) WARNING("opposite literals " << x << " and " << (~x));
       variable v=variable(l);

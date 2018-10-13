@@ -37,6 +37,7 @@ struct pretty_ {
     return (*o) << variable_names[x];
   }
   std::ostream& operator << (literal l) {
+    if (variable(l)>=variable_names.size()) return (*o) << int(l.l); // REMOVE
     assert(variable(l)<variable_names.size());
     if (mode == LATEX) {
       if (not l.polarity()) (*o) << "\\overline{";

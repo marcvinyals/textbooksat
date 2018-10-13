@@ -167,6 +167,8 @@ template class reference_clause_database<lazy_restricted_clause>;
 
 constexpr literal NONE = literal::from_raw(-1);
 
+const size_t BUGGY = 136217; //12583;
+
 literal watched_clause::restrict(literal l, const std::vector<int>& assignment) {
   assert(not satisfied);
   //cerr << unassigned << endl;
@@ -208,7 +210,7 @@ literal watched_clause::satisfy(literal l) {
 }
 
 void watched_clause::loosen_falsified(literal l) {
-  ++unassigned;
+  if(unassigned<2) ++unassigned;
   literals_visible_size=literals.size();
 }
 
@@ -229,13 +231,19 @@ void watched_clause::restrict_to_unit(const std::vector<int>& assignment) {
     int al = assignment[variable(*it)];
     if (not al) {
       swap(literals[0],*it);
+#ifndef DEBUG
+      break;
+#endif
     }
     else {
       assert((al==1)!=it->polarity());
+#ifdef DEBUG
       --literals_visible_size;
+#endif
     }
   }
-  cerr << "Oy this is rt1 have " << literals_visible_size << endl;
+  assert(literals_visible_size==1);
+  unassigned=1;
 }
 
 literal watched_clause::find_new_watch(size_t replaces, const std::vector<int>& assignment) {
@@ -281,31 +289,38 @@ void watched_clause_database::assign(literal l) {
   
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
-    if (i==79046) cerr << "Satisfying " << c << endl;
+    // if (i==BUGGY) cerr << "Satisfying " << c << endl;
     literal stop_watch = c.satisfy(l);
     if (not (stop_watch == NONE)) {
       watches[stop_watch.l].erase(i);
     }
   }
   auto& this_watch = watches[(~l).l];
-  for (auto it = this_watch.begin(); it!=this_watch.end();) {
+  for (auto it = this_watch.begin(); it!=this_watch.end(); ++it) {
     watched_clause& c = working_clauses[*it];
 
-    if (*it==79046) cerr << "Hitting " << c << endl;
+    /*
+    if (*it==BUGGY) {
+      cerr << "Hitting " << c << " with " << l << endl;
+      cerr << "  have " << c.literals_visible_size << " visibles" << endl;
+    }
     
     if (c.satisfied) {
       cerr << "Fail incoming " << *it << endl << c << endl;
     }
 
+    if (not (c.literals[0]==~l) and not (c.literals[1]==~l)) {
+      cerr << "Fail incoming " << *it << endl << c << endl;
+    }
+    */
+
     literal new_watch = c.restrict(l, assignment);
     if (c.satisfied) {
       assert (not (new_watch == NONE));
-      cerr << "Satisfying " << c << endl;
       literal stop_watch = c.satisfy(new_watch);
       assert(not (stop_watch == NONE));
       watches[stop_watch.l].erase(*it);
       watches[new_watch.l].insert(*it);
-      it=this_watch.erase(it);
     }
     else if (new_watch == NONE) {
       if (c.contradiction()) {
@@ -313,14 +328,17 @@ void watched_clause_database::assign(literal l) {
         this->conflicts.push_back(c.source);
       }
       if (c.unit()) {
+#ifdef DEBUG
+        eager_restricted_clause cc(*c.source);
+        cc.restrict(assignment);
+        assert(cc.unit());
+#endif
         LOG(LOG_STATE) << c << " is now unit" << endl;
         this->propagation_queue.propagate(c);
       }
-      ++it;
     }
     else {
       watches[new_watch.l].insert(*it);
-      it=this_watch.erase(it);
     }
   }
 }
@@ -329,12 +347,25 @@ void watched_clause_database::unassign(literal l) {
   //cerr << "Unwatching " << l << endl;
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
+    // if (i==BUGGY) cerr << "Sat-Loosening " << c << " with " << l << endl;
     literal new_watch = c.loosen_satisfied(l);
     if (not (new_watch == NONE)) {
       watches[new_watch.l].insert(i);
     }
   }
-  for (size_t i : watches[(~l).l]) working_clauses[i].loosen_falsified(l);
+  auto& this_watch = watches[(~l).l];
+  for (auto it = this_watch.begin(); it!=this_watch.end();) {
+    size_t i = *it;
+    watched_clause& c = working_clauses[i];
+    // if (i==BUGGY) cerr << "Loosening " << c << " with " << l << endl;
+    c.loosen_falsified(l);
+    if (c.literals[0]==~l or (c.unassigned==2 and c.literals[1]==~l)) {
+      ++it;
+    }
+    else {
+      it=this_watch.erase(it);
+    }
+  }
 }
 
 void watched_clause_database::reset() {

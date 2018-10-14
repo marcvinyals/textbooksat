@@ -87,6 +87,7 @@ proof cdcl::solve(const cnf& f) {
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
+  decision_level.resize(f.variables*2,-1);
   for (const auto& c : formula) working_clauses.insert(c);
   restart();
 
@@ -129,19 +130,19 @@ proof cdcl::solve(const cnf& f) {
  */
 
 void cdcl::unit_propagate() {
-  literal l = propagation_queue.front().to;
-  if (propagation_queue.front().reason) {
+  const branch& b = propagation_queue.front();
+  literal l = b.to;
+  if (b.reason) {
     LOG(LOG_ACTIONS) << "Unit propagating " << l;
-    LOG(LOG_ACTIONS) << " because of " << *propagation_queue.front().reason;
+    LOG(LOG_ACTIONS) << " because of " << *b.reason;
     LOG(LOG_ACTIONS) << endl;
   }
   else {
-    LOG(LOG_DETAIL) << "Unit propagating " << l;
+    LOG(LOG_DETAIL) << "Unit propagating " << l << endl;
   }
 
   auto& al = assignment[variable(l)];
-  if (propagation_queue.front().reason)
-    reasons[l.l].push_back(propagation_queue.front().reason);
+  if (b.reason) reasons[l.l].push_back(b.reason);
   if (al) {
     // A literal may be propagated more than once for different
     // reasons. We keep a list of them.
@@ -149,8 +150,13 @@ void cdcl::unit_propagate() {
     propagation_queue.pop();
     return;
   }
+  int last_decision_level = 0;
+  if (not branching_seq.empty()) {
+    last_decision_level = decision_level[branching_seq.back().to.l];
+  }
+  decision_level[l.l] = last_decision_level + (b.reason?0:1);
 
-  branching_seq.push_back(propagation_queue.front());
+  branching_seq.push_back(b);
   propagation_queue.pop();
   LOG(LOG_STATE_SUMMARY) << "Branching " << branching_seq << endl;
 
@@ -393,6 +399,7 @@ void cdcl::learn() {
   if (config_backjump) backjump(learnt_clause, first_decision, backtrack_limit);
   for (auto it=backtrack_limit.base(); it!=branching_seq.end(); ++it) {
     reasons[it->to.l].clear();
+    decision_level[it->to.l]=-1;
   }
   branching_seq.erase(backtrack_limit.base(),branching_seq.end());
 
@@ -533,6 +540,7 @@ void cdcl::restart() {
   for (auto branch:branching_seq) decision_order.insert(variable(branch.to));
   fill(assignment.begin(), assignment.end(), 0);
   fill(reasons.begin(), reasons.end(), list<const proof_clause*>());
+  fill(decision_level.begin(), decision_level.end(), -1);
   branching_seq.clear();
   propagation_queue.clear();
 

@@ -21,7 +21,7 @@ constexpr literal_or_restart RESTART = {literal::from_raw(-1)};
 
 class cdcl {
  public:
-  cdcl() : working_clauses(conflicts, propagation_queue, assignment) {}
+  cdcl() : working_clauses(conflicts, propagation_queue, assignment, decision_level) {}
   
   proof solve(const cnf& f);
 

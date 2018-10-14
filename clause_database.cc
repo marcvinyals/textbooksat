@@ -167,7 +167,7 @@ template class reference_clause_database<lazy_restricted_clause>;
 
 constexpr literal NONE = literal::from_raw(-1);
 
-const size_t BUGGY = 136217; //12583;
+const size_t BUGGY = -1;//133;// 81; //136217; //12583;
 
 literal watched_clause::restrict(literal l, const std::vector<int>& assignment) {
   assert(not satisfied);
@@ -226,24 +226,30 @@ literal watched_clause::loosen_satisfied(literal l) {
   return literals[0];
 }
 
-void watched_clause::restrict_to_unit(const std::vector<int>& assignment) {
+void watched_clause::restrict_to_unit(const std::vector<int>& assignment,
+                                      const std::vector<int>& decision_level) {
+  //cerr << *this << endl;
+  auto other_watch=literals.begin();
+  //cerr << "Maybe " << *other_watch << endl;
   for (auto it=literals.begin();it!=literals.end();++it) {
     int al = assignment[variable(*it)];
     if (not al) {
       swap(literals[0],*it);
-#ifndef DEBUG
-      break;
-#endif
+      if (other_watch==literals.begin()) other_watch=it;
     }
     else {
       assert((al==1)!=it->polarity());
-#ifdef DEBUG
+      if (decision_level[(~*it).l]>decision_level[(~*other_watch).l]) {
+        //cerr << "Rather pick " << *it << " than " << *other_watch << endl;
+        other_watch=it;
+      }
       --literals_visible_size;
-#endif
     }
   }
+  if (literals.size()>1) swap(literals[1],*other_watch);
   assert(literals_visible_size==1);
   unassigned=1;
+  //cerr << *this << endl;
 }
 
 literal watched_clause::find_new_watch(size_t replaces, const std::vector<int>& assignment) {
@@ -289,7 +295,7 @@ void watched_clause_database::assign(literal l) {
   
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
-    // if (i==BUGGY) cerr << "Satisfying " << c << endl;
+    if (i==BUGGY) cerr << "Satisfying " << c << endl;
     literal stop_watch = c.satisfy(l);
     if (not (stop_watch == NONE)) {
       watches[stop_watch.l].erase(i);
@@ -299,7 +305,6 @@ void watched_clause_database::assign(literal l) {
   for (auto it = this_watch.begin(); it!=this_watch.end(); ++it) {
     watched_clause& c = working_clauses[*it];
 
-    /*
     if (*it==BUGGY) {
       cerr << "Hitting " << c << " with " << l << endl;
       cerr << "  have " << c.literals_visible_size << " visibles" << endl;
@@ -312,9 +317,14 @@ void watched_clause_database::assign(literal l) {
     if (not (c.literals[0]==~l) and not (c.literals[1]==~l)) {
       cerr << "Fail incoming " << *it << endl << c << endl;
     }
-    */
 
     literal new_watch = c.restrict(l, assignment);
+
+    if (*it==BUGGY) {
+      cerr << "Now it is " << c << " watched by " << new_watch << endl;
+      cerr << "  have " << c.literals_visible_size << " visibles" << endl;
+    }
+
     if (c.satisfied) {
       assert (not (new_watch == NONE));
       literal stop_watch = c.satisfy(new_watch);
@@ -331,6 +341,9 @@ void watched_clause_database::assign(literal l) {
 #ifdef DEBUG
         eager_restricted_clause cc(*c.source);
         cc.restrict(assignment);
+        if (not cc.unit()) {
+          cerr << "Fail incoming " << *it << endl << c << endl;
+        }
         assert(cc.unit());
 #endif
         LOG(LOG_STATE) << c << " is now unit" << endl;
@@ -347,7 +360,7 @@ void watched_clause_database::unassign(literal l) {
   //cerr << "Unwatching " << l << endl;
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
-    // if (i==BUGGY) cerr << "Sat-Loosening " << c << " with " << l << endl;
+    if (i==BUGGY) cerr << "Sat-Loosening " << c << " with " << l << endl;
     literal new_watch = c.loosen_satisfied(l);
     if (not (new_watch == NONE)) {
       watches[new_watch.l].insert(i);
@@ -357,7 +370,7 @@ void watched_clause_database::unassign(literal l) {
   for (auto it = this_watch.begin(); it!=this_watch.end();) {
     size_t i = *it;
     watched_clause& c = working_clauses[i];
-    // if (i==BUGGY) cerr << "Loosening " << c << " with " << l << endl;
+    if (i==BUGGY) cerr << "Loosening " << c << " with " << l << endl;
     c.loosen_falsified(l);
     if (c.literals[0]==~l or (c.unassigned==2 and c.literals[1]==~l)) {
       ++it;
@@ -382,10 +395,19 @@ void watched_clause_database::reset() {
 void watched_clause_database::insert(const proof_clause& c, const std::vector<int>& assignment) {
   working_clauses.push_back(c);
   watched_clause& cc = working_clauses.back();
-  cc.restrict_to_unit(assignment);
+  cc.restrict_to_unit(assignment, decision_level);
   assert(cc.unit());
+#ifdef DEBUG
+  eager_restricted_clause ccc(*cc.source);
+  ccc.restrict(assignment);
+  assert(ccc.unit());
+#endif
   //cerr << "Asserting watch " << cc.literals[0].l << endl;
-  watches[cc.literals[0].l].insert(working_clauses.size()-1);
+  size_t i = working_clauses.size()-1;
+  if (i==BUGGY) max_log_level = LOG_STATE_SUMMARY;
+  for (literal l : cc.literals) {
+    watches[l.l].insert(i);
+  }
 }
 
 void watched_clause_database::insert(const proof_clause& c) {

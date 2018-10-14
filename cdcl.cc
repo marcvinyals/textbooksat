@@ -87,7 +87,7 @@ proof cdcl::solve(const cnf& f) {
 
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
-  decision_level.resize(f.variables*2);
+  decision_level.resize(f.variables*2,-1);
   working_clauses.set_variables(f.variables);
   for (const auto& c : formula) working_clauses.insert(c);
   restart();
@@ -155,7 +155,7 @@ void cdcl::unit_propagate() {
   if (not branching_seq.empty()) {
     last_decision_level = decision_level[branching_seq.back().to.l];
   }
-  if (b.reason) decision_level[l.l] = last_decision_level + (b.reason?0:1);
+  decision_level[l.l] = last_decision_level + (b.reason?0:1);
 
   branching_seq.push_back(b);
   propagation_queue.pop();
@@ -413,8 +413,18 @@ void cdcl::learn() {
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
-  for (const auto& c : working_clauses) {
+  //  for (const auto& c : working_clauses) {
+  for (auto it = working_clauses.begin(); it!=working_clauses.end(); ++it) {
+    auto& c = *it;
     if (c.unit() and not assignment[variable(c.propagate().to)]) {
+#ifdef DEBUG
+      eager_restricted_clause cc(*c.source);
+      cc.restrict(assignment);
+      if (not cc.unit()) {
+        cerr << "Fail incoming " << it-working_clauses.begin() << endl << c << endl;
+      }
+      assert(cc.unit());
+#endif
       propagation_queue.propagate(c);
     }
   }

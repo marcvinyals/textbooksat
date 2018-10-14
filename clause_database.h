@@ -57,15 +57,12 @@ protected:
   std::vector<T> working_clauses;
   std::vector<const proof_clause*>& conflicts;
   struct propagation_queue& propagation_queue;
-  std::vector<int>& assignment;
 public:
   clause_database(std::vector<const proof_clause*>& conflicts,
-                  struct propagation_queue& propagation_queue,
-                  std::vector<int>& assignment) :
+                  struct propagation_queue& propagation_queue) :
     conflicts(conflicts),
-    propagation_queue(propagation_queue),
-    assignment(assignment) {}
-  
+    propagation_queue(propagation_queue) {}
+
   virtual void assign(literal l)=0;
   virtual void unassign(literal l)=0;
   virtual void reset()=0;
@@ -93,8 +90,9 @@ class reference_clause_database : public clause_database<T> {
 public:
   reference_clause_database(std::vector<const proof_clause*>& conflicts,
                             struct propagation_queue& propagation_queue,
-                            std::vector<int>& assignment) :
-    clause_database<T>(conflicts, propagation_queue, assignment) {}
+                  std::vector<int>& assignment,
+                  std::vector<int>& decision_level) :
+    clause_database<T>(conflicts, propagation_queue) {}
   virtual void assign(literal l);
   virtual void unassign(literal l);
   virtual void reset();
@@ -131,7 +129,9 @@ struct watched_clause {
   literal satisfy(literal l);
   literal loosen_satisfied(literal l);
   void loosen_falsified(literal l);
-  void restrict_to_unit(const std::vector<int>& assignment);
+  void restrict_to_unit(const std::vector<int>& assignment) { assert(false); }
+  void restrict_to_unit(const std::vector<int>& assignment,
+                        const std::vector<int>& decision_level);
   void reset();
 private:
   literal find_new_watch(size_t replaces, const std::vector<int>& assignment);
@@ -152,11 +152,16 @@ struct source_cmp {
 class watched_clause_database : public clause_database<watched_clause> {
 private:
   std::vector<std::unordered_set<size_t>> watches;
+  const std::vector<int>& assignment;
+  const std::vector<int>& decision_level;
 public:
   watched_clause_database(std::vector<const proof_clause*>& conflicts,
                           struct propagation_queue& propagation_queue,
-                          std::vector<int>& assignment) :
-    clause_database(conflicts, propagation_queue, assignment) {}
+                          const std::vector<int>& assignment,
+                          const std::vector<int>& decision_level) :
+    clause_database(conflicts, propagation_queue),
+    assignment(assignment),
+    decision_level(decision_level) {}
   virtual void assign(literal l);
   virtual void unassign(literal l);
   virtual void reset();

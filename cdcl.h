@@ -116,6 +116,9 @@ private:
   // number. Possible values are 1 (true), -1 (false) or 0
   // (unassigned).
   std::vector<int> assignment;
+  // Number of decisions appearing before or at a literal in the
+  // branching sequence. -1 if the literal is not assigned.
+  std::vector<int> decision_level;
 
   // Queue of variables waiting to be decided.
   typedef std::function<bool(variable, variable)> variable_cmp;

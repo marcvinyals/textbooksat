@@ -1,21 +1,26 @@
-# Need gcc-4.8
-sudo: required
-dist: xenial
+sudo: false
+dist: trusty
 
 language: cpp
 script: make test
 env:
-  - CPPFLAGS='-std=c++14'
-  - CPPFLAGS='-std=c++14 -DWATCHED'
+  - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include'
+  - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include -DWATCHED'
+  - LDFLAGS='-Lgoogletest-release-1.8.0/googlemock/gtest'
 
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-6
+    - libboost1.60-dev
+  
 # Dependencies
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libboost-dev
   - wget https://github.com/google/googletest/archive/release-1.8.0.tar.gz
   - tar -xf release-1.8.0.tar.gz
   - pushd googletest-release-1.8.0
-  - cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr
+  - cmake .
   - make
-  - sudo make install
   - popd

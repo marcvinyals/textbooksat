@@ -1,11 +1,11 @@
 sudo: false
 dist: trusty
 
-#language: cpp
+language: cpp
+compiler: g++-6
 script: make test
 env:
   global:
-    - CXX='g++-6'
     - LDFLAGS='-Lgoogletest-release-1.8.0/googlemock/gtest'
   matrix:
     - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include'

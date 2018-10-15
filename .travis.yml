@@ -4,9 +4,12 @@ dist: trusty
 language: cpp
 script: make test
 env:
-  - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include'
-  - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include -DWATCHED'
-  - LDFLAGS='-Lgoogletest-release-1.8.0/googlemock/gtest'
+  global:
+    - CXX='g++-6'
+    - LDFLAGS='-Lgoogletest-release-1.8.0/googlemock/gtest'
+  matrix:
+    - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include'
+    - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include -DWATCHED'
 
 # https://stackoverflow.com/questions/45276457/how-to-use-latest-boost-version-in-travis-ci
 addons:

@@ -131,7 +131,7 @@ TEST_P(SolverCoverageTest, CT2) {
 INSTANTIATE_TEST_CASE_P(ParametersTest,
                         SolverCoverageTest,
                         Combine(Values("fixed"),
-                                Values("none","fixed"),
+                                Values("none","always","luby"),
                                 Values("1uip","1uip-all","lastuip","decision"),
                                 Values("nothing","everything","wide"),
                                 Values("learnt","conflict"),

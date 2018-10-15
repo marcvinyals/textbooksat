@@ -18,7 +18,7 @@ static argp_option options[] = {
    "Read formula in dimacs format from FILE (default: stdin)"},
   {"decide", 'd', "{fixed,reverse,vsids,random,ask}", 0,
    "Use the specified decision procedure (default: fixed)"},
-  {"restart", 'r', "{none,fixed}", 0,
+  {"restart", 'r', "{none,always,luby}", 0,
    "Use the specified restart interval (default: none)"},
   {"learn", 'l', "{1uip,1uip-all,lastuip,decision}", 0,
    "Use the specified learning schema (default: 1uip)"},

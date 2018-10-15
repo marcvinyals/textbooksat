@@ -39,7 +39,8 @@ proof cdcl_solver::solve(const cnf& f) {
   }
   if (decide == "ask") solver.restart_plugin = bind(&ui::get_restart, ref(ui));
   else if (restart == "none") solver.restart_plugin = &cdcl::restart_none;
-  else if (restart == "fixed") solver.restart_plugin = &cdcl::restart_fixed;
+  else if (restart == "always") solver.restart_plugin = &cdcl::restart_always;
+  else if (restart == "luby") solver.restart_plugin = &cdcl::restart_luby;
   else {
     cerr << "Invalid restart interval" << endl;
     exit(1);

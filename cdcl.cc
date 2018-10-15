@@ -524,11 +524,29 @@ bool cdcl::restart_none() {
   return false;
 }
 
-bool cdcl::restart_fixed() {
-  static uint last_conflict = 0;
+bool cdcl::restart_always() {
+  static uint next_restart = 1;
   uint num_conflicts = learnt_clauses.size();
-  if (num_conflicts > last_conflict) {
-    last_conflict = num_conflicts;
+  if (num_conflicts >= next_restart) {
+    next_restart = num_conflicts + 1;
+    return true;
+  }
+  return false;
+}
+
+uint luby(uint i) {
+  if (__builtin_popcount(i+1)==1) return (i+1)>>1;
+  int msb=sizeof(int)*8-1-__builtin_clz(i);
+  return luby((i^(1<<msb))+1);
+}
+
+bool cdcl::restart_luby() {
+  const uint luby_factor = 100;
+  static uint next_restart = luby_factor;
+  static uint luby_i = 0;
+  uint num_conflicts = learnt_clauses.size();
+  if (num_conflicts >= next_restart) {
+    next_restart = num_conflicts + luby_factor*luby(++luby_i);
     return true;
   }
   return false;

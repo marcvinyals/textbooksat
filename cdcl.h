@@ -40,7 +40,8 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   literal decide_random();
 
   bool restart_none();
-  bool restart_fixed();
+  bool restart_always();
+  bool restart_luby();
 
   proof_clause learn_fuip(const branching_sequence::reverse_iterator& first_decision);
   proof_clause learn_fuip_all(const branching_sequence::reverse_iterator& first_decision);

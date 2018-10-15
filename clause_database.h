@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_set>
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
@@ -115,19 +114,19 @@ struct watched_clause {
   const proof_clause* source;
   size_t literals_visible_size;
   int unassigned;
-  bool satisfied;
+  int satisfied;
 
   watched_clause(const proof_clause& c) :
     literals(c.begin(), c.end()), source(&c), literals_visible_size(literals.size()),
-    unassigned(std::min(2,int(literals_visible_size))), satisfied(false) {}
+    unassigned(std::min(2,int(literals_visible_size))), satisfied(0) {}
 
   bool unit() const { return not satisfied and unassigned == 1; }
   bool contradiction() const { return not satisfied and unassigned == 0; }
   branch propagate() const { return {literals[0], source}; }
 
   literal restrict(literal l, const std::vector<int>& assignment);
-  literal satisfy(literal l);
-  literal loosen_satisfied(literal l);
+  void satisfy();
+  void loosen_satisfied(literal l);
   void loosen_falsified(literal l);
   void restrict_to_unit(const std::vector<int>& assignment) { assert(false); }
   void restrict_to_unit(const std::vector<int>& assignment,
@@ -151,7 +150,7 @@ struct source_cmp {
 
 class watched_clause_database : public clause_database<watched_clause> {
 private:
-  std::vector<std::unordered_set<size_t>> watches;
+  std::vector<std::vector<size_t>> watches;
   const std::vector<int>& assignment;
   const std::vector<int>& decision_level;
 public:

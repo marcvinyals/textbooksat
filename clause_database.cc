@@ -170,7 +170,7 @@ constexpr literal NONE = literal::from_raw(-1);
 const size_t BUGGY = -1;//133;// 81; //136217; //12583;
 
 literal watched_clause::restrict(literal l, const std::vector<int>& assignment) {
-  assert(not satisfied);
+  if(satisfied) return NONE;
   //cerr << unassigned << endl;
   if (literals[0]==~l) {
     //cerr << "Lit 0 dies" << endl;
@@ -198,15 +198,9 @@ literal watched_clause::restrict(literal l, const std::vector<int>& assignment) 
   assert(false);
 }
 
-literal watched_clause::satisfy(literal l) {
+void watched_clause::satisfy() {
   assert(unassigned);
-  satisfied=true;
-  if (literals[0]==l) {
-    if (unassigned>=2) return literals[1];
-    return NONE;
-  }
-  assert(literals[1]==l);
-  return literals[0];
+  satisfied++;
 }
 
 void watched_clause::loosen_falsified(literal l) {
@@ -214,16 +208,10 @@ void watched_clause::loosen_falsified(literal l) {
   literals_visible_size=literals.size();
 }
 
-literal watched_clause::loosen_satisfied(literal l) {
+void watched_clause::loosen_satisfied(literal l) {
   assert(unassigned);
-  satisfied=false;
+  satisfied--;
   literals_visible_size=literals.size();
-  if (literals[0]==l) {
-    if (unassigned>=2) return literals[1];
-    return NONE;
-  }
-  assert(literals[1]==l);
-  return literals[0];
 }
 
 void watched_clause::restrict_to_unit(const std::vector<int>& assignment,
@@ -262,7 +250,7 @@ literal watched_clause::find_new_watch(size_t replaces, const std::vector<int>& 
     if (al) {
       if ((al==1)==l.polarity()) {
         swap(literals[replaces],l);
-        satisfied=true;
+        satisfy();
         return literals[replaces];
       }
       else {
@@ -282,7 +270,7 @@ void watched_clause::reset() {
   //cerr << "Reset?!" << endl;
   literals_visible_size = literals.size();
   unassigned = min(2, int(literals_visible_size));
-  satisfied = false;
+  satisfied = 0;
 }
 
 void watched_clause_database::assign(literal l) {
@@ -296,10 +284,7 @@ void watched_clause_database::assign(literal l) {
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
     if (i==BUGGY) cerr << "Satisfying " << c << endl;
-    literal stop_watch = c.satisfy(l);
-    if (not (stop_watch == NONE)) {
-      watches[stop_watch.l].erase(i);
-    }
+    c.satisfy();
   }
   auto& this_watch = watches[(~l).l];
   for (auto it = this_watch.begin(); it!=this_watch.end(); ++it) {
@@ -308,10 +293,6 @@ void watched_clause_database::assign(literal l) {
     if (*it==BUGGY) {
       cerr << "Hitting " << c << " with " << l << endl;
       cerr << "  have " << c.literals_visible_size << " visibles" << endl;
-    }
-    
-    if (c.satisfied) {
-      cerr << "Fail incoming " << *it << endl << c << endl;
     }
 
     if (not (c.literals[0]==~l) and not (c.literals[1]==~l)) {
@@ -326,11 +307,9 @@ void watched_clause_database::assign(literal l) {
     }
 
     if (c.satisfied) {
-      assert (not (new_watch == NONE));
-      literal stop_watch = c.satisfy(new_watch);
-      assert(not (stop_watch == NONE));
-      watches[stop_watch.l].erase(*it);
-      watches[new_watch.l].insert(*it);
+      if (not (new_watch == NONE)) {
+        watches[new_watch.l].push_back(*it);
+      }
     }
     else if (new_watch == NONE) {
       if (c.contradiction()) {
@@ -351,7 +330,7 @@ void watched_clause_database::assign(literal l) {
       }
     }
     else {
-      watches[new_watch.l].insert(*it);
+      watches[new_watch.l].push_back(*it);
     }
   }
 }
@@ -361,14 +340,12 @@ void watched_clause_database::unassign(literal l) {
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
     if (i==BUGGY) cerr << "Sat-Loosening " << c << " with " << l << endl;
-    literal new_watch = c.loosen_satisfied(l);
-    if (not (new_watch == NONE)) {
-      watches[new_watch.l].insert(i);
-    }
+    c.loosen_satisfied(l);
   }
   auto& this_watch = watches[(~l).l];
-  for (auto it = this_watch.begin(); it!=this_watch.end();) {
-    size_t i = *it;
+  size_t this_watch_size=this_watch.size();
+  for (size_t it = 0; it<this_watch_size;) {
+    size_t i = this_watch[it];
     watched_clause& c = working_clauses[i];
     if (i==BUGGY) cerr << "Loosening " << c << " with " << l << endl;
     c.loosen_falsified(l);
@@ -376,9 +353,11 @@ void watched_clause_database::unassign(literal l) {
       ++it;
     }
     else {
-      it=this_watch.erase(it);
+      swap(this_watch[it],this_watch[this_watch_size-1]);
+      --this_watch_size;
     }
   }
+  this_watch.resize(this_watch_size);
 }
 
 void watched_clause_database::reset() {
@@ -386,8 +365,8 @@ void watched_clause_database::reset() {
   for (size_t i=0; i< working_clauses.size(); ++i) {
     watched_clause& c = working_clauses[i];
     c.reset();
-    if(c.literals.size()>=1) watches[c.literals[0].l].insert(i);
-    if(c.literals.size()>=2) watches[c.literals[1].l].insert(i);
+    if(c.literals.size()>=1) watches[c.literals[0].l].push_back(i);
+    if(c.literals.size()>=2) watches[c.literals[1].l].push_back(i);
     if (c.unit()) propagation_queue.propagate(c);
   }
 }
@@ -406,7 +385,7 @@ void watched_clause_database::insert(const proof_clause& c, const std::vector<in
   size_t i = working_clauses.size()-1;
   if (i==BUGGY) max_log_level = LOG_STATE_SUMMARY;
   for (literal l : cc.literals) {
-    watches[l.l].insert(i);
+    watches[l.l].push_back(i);
   }
 }
 

@@ -6,7 +6,8 @@
 
 struct propagation_queue {
   std::deque<branch> q;
-  void propagate(const restricted_clause& c) {
+  template<typename T>
+  void propagate(const T& c) {
     assert(c.unit());
     q.push_back(c.propagate());
   }

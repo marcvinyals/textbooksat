@@ -118,21 +118,34 @@ void lazy_restricted_clause::reset() {
   literals.set();
 }
 
-void clause_database::assign(literal l) {
-  for (auto& c : working_clauses) {
+template<typename T>
+void reference_clause_database<T>::assign(literal l) {
+  for (auto& c : this->working_clauses) {
     bool wasunit = c.unit();
     c.restrict(l);
     if (c.contradiction()) {
       LOG(LOG_STATE) << "Conflict" << endl;
-      conflicts.push_back(c.source);
+      this->conflicts.push_back(c.source);
     }
     if (c.unit() and not wasunit) {
       LOG(LOG_STATE) << c << " is now unit" << endl;
-      propagation_queue.propagate(c);
+      this->propagation_queue.propagate(c);
     }
   }
 }
 
-void clause_database::unassign(literal l) {
-  for (auto& c : working_clauses) c.loosen(l);
+template<typename T>
+void reference_clause_database<T>::unassign(literal l) {
+  for (auto& c : this->working_clauses) c.loosen(l);
 }
+
+template<typename T>
+void reference_clause_database<T>::reset() {
+  for (auto& c : this->working_clauses) {
+    c.reset();
+    if (c.unit()) this->propagation_queue.propagate(c);
+  }
+}
+
+template class reference_clause_database<eager_restricted_clause>;
+template class reference_clause_database<lazy_restricted_clause>;

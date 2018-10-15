@@ -88,6 +88,7 @@ proof cdcl::solve(const cnf& f) {
   assignment.resize(f.variables,0);
   reasons.resize(f.variables*2);
   decision_level.resize(f.variables*2,-1);
+  working_clauses.set_variables(f.variables);
   for (const auto& c : formula) working_clauses.insert(c);
   restart();
 
@@ -494,8 +495,8 @@ void cdcl::decide() {
     solved=true;
     return;
   }
-  literal_or_restart decision = decide_plugin(*this);
-  if (decision.restart) restart();
+  const literal_or_restart decision = decide_plugin(*this);
+  if (decision.l == RESTART.l) restart();
   else {
     LOG(LOG_DECISIONS) << "Deciding " << decision.l <<
       " with activity " << variable_activity[variable(decision.l)] << endl;
@@ -506,7 +507,7 @@ void cdcl::decide() {
 
 literal_or_restart cdcl::decide_random() {
   static minstd_rand prg;
-  if (restart_plugin(*this)) return true;
+  if (restart_plugin(*this)) return RESTART;
   auto it = decision_order.begin();
   advance(it, prg()%decision_order.size());
   int decision_variable = *it;
@@ -515,7 +516,7 @@ literal_or_restart cdcl::decide_random() {
 }
 
 literal_or_restart cdcl::decide_fixed() {
-  if (restart_plugin(*this)) return true;
+  if (restart_plugin(*this)) return RESTART;
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);
@@ -544,10 +545,7 @@ void cdcl::restart() {
   branching_seq.clear();
   propagation_queue.clear();
 
-  for (auto& c : working_clauses) {
-    c.reset();
-    if (c.unit()) propagation_queue.propagate(c);
-  }
+  working_clauses.reset();
 }
 
 

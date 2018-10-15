@@ -51,9 +51,10 @@ std::ostream& operator << (std::ostream& o, const lazy_restricted_clause& c);
 
 typedef lazy_restricted_clause restricted_clause;
 
+template<typename T>
 class clause_database {
-private:
-  std::vector<restricted_clause> working_clauses;
+protected:
+  std::vector<T> working_clauses;
   std::vector<const proof_clause*>& conflicts;
   struct propagation_queue& propagation_queue;
 public:
@@ -62,11 +63,13 @@ public:
     conflicts(conflicts),
     propagation_queue(propagation_queue) {}
   
-  virtual void assign(literal l);
-  virtual void unassign(literal l);
+  virtual void assign(literal l)=0;
+  virtual void unassign(literal l)=0;
+  virtual void reset()=0;
 
-  void insert(const proof_clause& c) { working_clauses.push_back(c); }
-  void insert(const proof_clause& c, const std::vector<int>& assignment) {
+  virtual void set_variables(size_t variables) {}
+  virtual void insert(const proof_clause& c) { working_clauses.push_back(c); }
+  virtual void insert(const proof_clause& c, const std::vector<int>& assignment) {
     insert(c);
     working_clauses.back().restrict_to_unit(assignment);
     assert(working_clauses.back().unit());
@@ -77,7 +80,22 @@ public:
   auto end() { return working_clauses.end(); }
   auto& back() { return working_clauses.back(); }
   size_t size() const { return working_clauses.size(); }
-  auto erase(std::vector<restricted_clause>::iterator it) {
+  auto erase(typename std::vector<T>::iterator it) {
     return working_clauses.erase(it);
   }
 };
+
+template<typename T>
+class reference_clause_database : public clause_database<T> {
+public:
+  reference_clause_database(std::vector<const proof_clause*>& conflicts,
+                            struct propagation_queue& propagation_queue) :
+    clause_database<T>(conflicts, propagation_queue) {}
+  virtual void assign(literal l);
+  virtual void unassign(literal l);
+  virtual void reset();
+};
+
+typedef reference_clause_database<eager_restricted_clause> eager_clause_database;
+typedef reference_clause_database<lazy_restricted_clause> lazy_clause_database;
+

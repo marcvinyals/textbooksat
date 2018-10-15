@@ -15,10 +15,9 @@
 
 struct literal_or_restart {
   literal l;
-  bool restart;
-  literal_or_restart(literal l_) : l(l_), restart(false) {}
-  literal_or_restart(bool restart_) : l(0,0), restart(restart_) {}
+  constexpr literal_or_restart (literal l) : l(l) {}
 };
+constexpr literal_or_restart RESTART = {literal::from_raw(-1)};
 
 class cdcl {
  public:
@@ -101,7 +100,7 @@ private:
   // they should not be erased or reallocated.
   std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
-  clause_database working_clauses;
+  lazy_clause_database working_clauses;
 
   // List of unit propagations, in chronological order.
   branching_sequence branching_seq;

@@ -17,7 +17,7 @@ proof cdcl_solver::solve(const cnf& f) {
   cdcl solver;
   class ui ui (solver);
   if (decide == "ask") {
-    solver.decide_plugin = bind(&ui::get_decision, ui);
+    solver.decide_plugin = bind(&ui::get_decision, ref(ui));
     solver.variable_order_plugin = &cdcl::variable_cmp_fixed;
   }
   else if (decide == "random") {
@@ -37,7 +37,8 @@ proof cdcl_solver::solve(const cnf& f) {
       exit(1);
     }
   }
-  if (restart == "none") solver.restart_plugin = &cdcl::restart_none;
+  if (decide == "ask") solver.restart_plugin = bind(&ui::get_restart, ref(ui));
+  else if (restart == "none") solver.restart_plugin = &cdcl::restart_none;
   else if (restart == "fixed") solver.restart_plugin = &cdcl::restart_fixed;
   else {
     cerr << "Invalid restart interval" << endl;

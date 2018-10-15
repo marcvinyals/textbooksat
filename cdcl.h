@@ -13,19 +13,15 @@
 #include "data_structures.h"
 #include "propagation_queue.h"
 
-struct literal_or_restart {
-  literal l;
-  constexpr literal_or_restart (literal l) : l(l) {}
-};
-constexpr literal_or_restart RESTART = {literal::from_raw(-1)};
-
 class cdcl {
  public:
   cdcl() : working_clauses(conflicts, propagation_queue, assignment, decision_level) {}
+  cdcl(const cdcl&) = delete;
+  cdcl& operator = (const cdcl&) = delete;
   
   proof solve(const cnf& f);
 
-  std::function<literal_or_restart(cdcl&)> decide_plugin;
+  std::function<literal(cdcl&)> decide_plugin;
   std::function<bool(cdcl&)> restart_plugin;
 std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> learn_plugin;
   std::function<bool(const cdcl&, int, int)> variable_order_plugin;
@@ -40,9 +36,8 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   bool config_phase_saving;
   double config_activity_decay;
 
-  literal_or_restart decide_fixed();
-  literal_or_restart decide_random();
-  literal_or_restart decide_ask();
+  literal decide_fixed();
+  literal decide_random();
 
   bool restart_none();
   bool restart_fixed();

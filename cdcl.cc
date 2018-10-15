@@ -496,19 +496,17 @@ void cdcl::decide() {
     solved=true;
     return;
   }
-  const literal_or_restart decision = decide_plugin(*this);
-  if (decision.l == RESTART.l) restart();
-  else {
-    LOG(LOG_DECISIONS) << "Deciding " << decision.l <<
-      " with activity " << variable_activity[variable(decision.l)] << endl;
-    if(trace) *trace << "assign " << pretty << variable(decision.l) << ' ' << decision.l.polarity() << endl;
-    propagation_queue.decide(decision.l);
-  }
+  bool should_restart = restart_plugin(*this);
+  if (should_restart) return restart();
+  literal decision = decide_plugin(*this);
+  LOG(LOG_DECISIONS) << "Deciding " << decision <<
+    " with activity " << variable_activity[variable(decision)] << endl;
+  if(trace) *trace << "assign " << pretty << variable(decision) << ' ' << decision.polarity() << endl;
+  propagation_queue.decide(decision);
 }
 
-literal_or_restart cdcl::decide_random() {
+literal cdcl::decide_random() {
   static minstd_rand prg;
-  if (restart_plugin(*this)) return RESTART;
   auto it = decision_order.begin();
   advance(it, prg()%decision_order.size());
   int decision_variable = *it;
@@ -516,8 +514,7 @@ literal_or_restart cdcl::decide_random() {
   return literal(decision_variable,decision_polarity[decision_variable]);
 }
 
-literal_or_restart cdcl::decide_fixed() {
-  if (restart_plugin(*this)) return RESTART;
+literal cdcl::decide_fixed() {
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);

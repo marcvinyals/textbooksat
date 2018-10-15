@@ -73,7 +73,20 @@ void ui::usage() {
   }
 }
 
-literal_or_restart ui::get_decision() {
+bool ui::get_restart() {
+  next_answer=ask();
+  if (next_answer.action==DECISION) return false;
+  next_answer=ASK;
+  return true;
+}
+
+literal ui::get_decision() {
+  while (next_answer.action!=DECISION) next_answer = ask();
+  next_answer.action=ASK;
+  return next_answer.decision;
+}
+
+ui::answer ui::ask() {
   qi::symbols<char, variable> variable_;
   for (const auto& it : pretty.variable_names) variable_.add(it.second, it.first);
   literal decision = literal::from_raw(0);
@@ -176,11 +189,11 @@ literal_or_restart ui::get_decision() {
   variable x(decision);
   if (x >= solver.assignment.size()) {
     cerr << "Variable not found" << endl;
-    return get_decision();
+    return ask();
   }
   if (solver.assignment[x]) {
     cerr << "Refusing to decide an assigned variable" << endl;
-    return get_decision();
+    return ask();
   }
   return decision;
 }

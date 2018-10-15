@@ -6,7 +6,7 @@ CIMG_LIBS = -lX11 -lpthread
 LIBS =
 SOURCES = solver.cc cdcl.cc clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
 
-BUILD ?= debug
+BUILD := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),debug)
 ifeq ($(BUILD),debug)
 CPPFLAGS += -g -Og -DDEBUG
 else ifeq ($(BUILD),release)
@@ -17,6 +17,8 @@ LDFLAGS += -static
 else ifeq ($(BUILD),asan)
 CXX = clang++
 CPPFLAGS += -g -DDEBUG -U_FORTIFY_SOURCE -fsanitize=address -fsanitize=undefined
+else ifeq ($(BUILD),test)
+CPPFLAGS += -g -Og -DDEBUG
 else ifeq ($(BUILD),coverage)
 CPPFLAGS += -g -Og -DDEBUG --coverage
 LDFLAGS += --coverage
@@ -81,26 +83,17 @@ clean:
 	rm -f sat *.o satr release/*.o *.d
 	rm -fr debug/ release/
 
-test: $(BUILD)/test.o $(TOBJS)
+$(BUILD)/gtest: $(BUILD)/test.o $(TOBJS)
 	$(CXX) $(LDFLAGS) -o $@ $+ -lgtest -lpthread
-	./test
+	$(BUILD)/gtest
 
 sat: $(BUILD)/sat
-
-debug:
-	$(MAKE) BUILD=debug sat
-	cp debug/sat sat
-
-release:
-	$(MAKE) BUILD=release sat
-
-hpc2n:
-	$(MAKE) BUILD=hpc2n sat
-
-asan:
-	$(MAKE) BUILD=asan sat
-
-coverage:
-	$(MAKE) BUILD=coverage test
+gtest: $(BUILD)/gtest
+debug: sat
+release: sat
+hpc2n: sat
+asan: sat
+test: gtest
+coverage: gtest
 
 .PHONY : all clean test sat debug release asan

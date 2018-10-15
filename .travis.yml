@@ -8,13 +8,15 @@ env:
   - CPPFLAGS='-std=c++14 -Igoogletest-release-1.8.0/googletest/include -DWATCHED'
   - LDFLAGS='-Lgoogletest-release-1.8.0/googlemock/gtest'
 
+# https://stackoverflow.com/questions/45276457/how-to-use-latest-boost-version-in-travis-ci
 addons:
   apt:
     sources:
+    - sourceline: 'ppa:mhier/libboost-latest'
     - ubuntu-toolchain-r-test
     packages:
     - g++-6
-    - libboost1.60-dev
+    - boost1.67
   
 # Dependencies
 before_install:

@@ -13,6 +13,9 @@ struct eager_restricted_clause {
   eager_restricted_clause(const proof_clause& c) :
     literals(c.begin(), c.end()), source(&c), satisfied(0) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
+  void assert_unit(const std::vector<int>& assignment) const {
+    assert(unit());
+  }
   bool contradiction() const { return not satisfied and literals.empty(); }
   branch propagate() const { return {literals.front(), source}; }
 
@@ -39,6 +42,9 @@ struct lazy_restricted_clause {
       literals.set();
     }
   bool unit() const { return not satisfied and unassigned == 1; }
+  void assert_unit(const std::vector<int>& assignment) const {
+    assert(unit());
+  }
   bool contradiction() const { return not satisfied and unassigned == 0; }
   branch propagate() const;
 
@@ -48,8 +54,6 @@ struct lazy_restricted_clause {
   void reset();
 };
 std::ostream& operator << (std::ostream& o, const lazy_restricted_clause& c);
-
-typedef lazy_restricted_clause restricted_clause;
 
 template<typename T>
 class clause_database {
@@ -62,6 +66,7 @@ public:
                   struct propagation_queue& propagation_queue) :
     conflicts(conflicts),
     propagation_queue(propagation_queue) {}
+  virtual ~clause_database() {}
   
   virtual void assign(literal l)=0;
   virtual void unassign(literal l)=0;
@@ -89,8 +94,11 @@ template<typename T>
 class reference_clause_database : public clause_database<T> {
 public:
   reference_clause_database(std::vector<const proof_clause*>& conflicts,
-                            struct propagation_queue& propagation_queue) :
+                            struct propagation_queue& propagation_queue,
+                            std::vector<int>& assignment,
+                            std::vector<int>& decision_level) :
     clause_database<T>(conflicts, propagation_queue) {}
+  virtual ~reference_clause_database() {}
   virtual void assign(literal l);
   virtual void unassign(literal l);
   virtual void reset();
@@ -99,3 +107,83 @@ public:
 typedef reference_clause_database<eager_restricted_clause> eager_clause_database;
 typedef reference_clause_database<lazy_restricted_clause> lazy_clause_database;
 
+
+
+
+
+
+
+
+
+
+struct watched_clause {
+  std::vector<literal> literals;
+  const proof_clause* source;
+  size_t literals_visible_size;
+  int unassigned;
+  int satisfied;
+
+  watched_clause(const proof_clause& c) :
+    literals(c.begin(), c.end()), source(&c), literals_visible_size(literals.size()),
+    unassigned(std::min(2,int(literals_visible_size))), satisfied(0) {}
+
+  bool unit() const { return not satisfied and unassigned == 1; }
+  void assert_unit(const std::vector<int>& assignment) const {
+#ifdef DEBUG
+    assert(unit());
+    eager_restricted_clause c(*source);
+    c.restrict(assignment);
+    assert(c.unit());
+#endif
+  }
+  bool contradiction() const { return not satisfied and unassigned == 0; }
+  branch propagate() const { return {literals[0], source}; }
+
+  literal restrict(literal l, const std::vector<int>& assignment);
+  void satisfy();
+  void loosen_satisfied(literal l);
+  void loosen_falsified(literal l);
+  void restrict_to_unit(const std::vector<int>& assignment) { assert(false); }
+  void restrict_to_unit(const std::vector<int>& assignment,
+                        const std::vector<int>& decision_level);
+  void reset();
+private:
+  literal find_new_watch(size_t replaces, const std::vector<int>& assignment);
+};
+std::ostream& operator << (std::ostream& o, const watched_clause& c);
+
+struct source_hash {
+  size_t operator () (const watched_clause* key) const {
+    return std::hash<const proof_clause*>()(key->source);
+  }
+};
+struct source_cmp {
+  bool operator () (const watched_clause* c1, const watched_clause* c2) const {
+    return c1->source==c2->source;
+  }
+};
+
+class watched_clause_database : public clause_database<watched_clause> {
+private:
+  std::vector<std::vector<size_t>> watches;
+  const std::vector<int>& assignment;
+  const std::vector<int>& decision_level;
+public:
+  watched_clause_database(std::vector<const proof_clause*>& conflicts,
+                          struct propagation_queue& propagation_queue,
+                          const std::vector<int>& assignment,
+                          const std::vector<int>& decision_level) :
+    clause_database(conflicts, propagation_queue),
+    assignment(assignment),
+    decision_level(decision_level) {}
+  virtual ~watched_clause_database() {}
+  virtual void assign(literal l);
+  virtual void unassign(literal l);
+  virtual void reset();
+
+  virtual void set_variables(size_t variables) { watches.resize(2*variables); }
+  virtual void insert(const proof_clause& c);
+  virtual void insert(const proof_clause& c, const std::vector<int>& assignment);
+};
+
+typedef watched_clause restricted_clause;

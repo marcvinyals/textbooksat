@@ -21,7 +21,7 @@ constexpr literal_or_restart RESTART = {literal::from_raw(-1)};
 
 class cdcl {
  public:
-  cdcl() : working_clauses(conflicts, propagation_queue) {}
+  cdcl() : working_clauses(conflicts, propagation_queue, assignment, decision_level) {}
   
   proof solve(const cnf& f);
 
@@ -100,7 +100,11 @@ private:
   // they should not be erased or reallocated.
   std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
+#ifdef WATCHED
+  watched_clause_database working_clauses;
+#else
   lazy_clause_database working_clauses;
+#endif
 
   // List of unit propagations, in chronological order.
   branching_sequence branching_seq;

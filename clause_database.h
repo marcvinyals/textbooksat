@@ -3,15 +3,20 @@
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
+#include <boost/iterator/indirect_iterator.hpp>
 
 #include "data_structures.h"
 
-struct eager_restricted_clause {
-  std::vector<literal> literals;
+struct clause_pointer {
   const proof_clause* source;
+};
+std::ostream& operator << (std::ostream& o, const clause_pointer& c);
+
+struct eager_restricted_clause : clause_pointer {
+  std::vector<literal> literals;
   int satisfied;
   eager_restricted_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), satisfied(0) {}
+  clause_pointer({&c}), literals(c.begin(), c.end()), satisfied(0) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
   void assert_unit(const std::vector<int>& assignment) const {
     assert(unit());
@@ -29,14 +34,13 @@ struct eager_restricted_clause {
 };
 std::ostream& operator << (std::ostream& o, const eager_restricted_clause& c);
 
-struct lazy_restricted_clause {
-  const proof_clause* source;
+struct lazy_restricted_clause : clause_pointer {
   bool satisfied;
   literal satisfied_literal;
   int unassigned;
   boost::dynamic_bitset<> literals;
   lazy_restricted_clause(const proof_clause& c) :
-    source(&c), satisfied(false), satisfied_literal(0,false),
+  clause_pointer({&c}), satisfied(false), satisfied_literal(0,false),
     unassigned(source->c.width()), literals(unassigned) {
       assert(std::is_sorted(source->begin(), source->end()));
       literals.set();
@@ -55,10 +59,9 @@ struct lazy_restricted_clause {
 };
 std::ostream& operator << (std::ostream& o, const lazy_restricted_clause& c);
 
-template<typename T>
 class clause_database {
 protected:
-  std::vector<T> working_clauses;
+  std::vector<std::unique_ptr<clause_pointer>> working_clauses;
   std::vector<const proof_clause*>& conflicts;
   struct propagation_queue& propagation_queue;
 public:
@@ -71,37 +74,52 @@ public:
   virtual void assign(literal l)=0;
   virtual void unassign(literal l)=0;
   virtual void reset()=0;
+  virtual void fill_propagation_queue()=0;
 
   virtual void set_variables(size_t variables) {}
-  virtual void insert(const proof_clause& c) { working_clauses.push_back(c); }
-  virtual void insert(const proof_clause& c, const std::vector<int>& assignment) {
-    insert(c);
-    working_clauses.back().restrict_to_unit(assignment);
-    assert(working_clauses.back().unit());
-  }
-  auto begin() const { return working_clauses.begin(); }
-  auto end() const { return working_clauses.end(); }
-  auto begin() { return working_clauses.begin(); }
-  auto end() { return working_clauses.end(); }
-  auto& back() { return working_clauses.back(); }
+  virtual void insert(const proof_clause& c)=0;
+  virtual void insert(const proof_clause& c, const std::vector<int>& assignment)=0;
+  typedef boost::indirect_iterator<decltype(working_clauses.begin())> it_t;
+  typedef boost::indirect_iterator<decltype(working_clauses.cbegin())> cit_t;
+  cit_t begin() const { return working_clauses.cbegin(); }
+  cit_t end() const { return working_clauses.cend(); }
+  it_t begin() { return working_clauses.begin(); }
+  it_t end() { return working_clauses.end(); }
+  auto& back() { return *working_clauses.back(); }
   size_t size() const { return working_clauses.size(); }
-  auto erase(typename std::vector<T>::iterator it) {
-    return working_clauses.erase(it);
+  auto erase(it_t it) {
+    return working_clauses.erase(it.base());
   }
 };
 
 template<typename T>
-class reference_clause_database : public clause_database<T> {
+class reference_clause_database : public clause_database {
 public:
   reference_clause_database(std::vector<const proof_clause*>& conflicts,
                             struct propagation_queue& propagation_queue,
                             std::vector<int>& assignment,
                             std::vector<int>& decision_level) :
-    clause_database<T>(conflicts, propagation_queue) {}
+    clause_database(conflicts, propagation_queue) {}
   virtual ~reference_clause_database() {}
   virtual void assign(literal l);
   virtual void unassign(literal l);
+  virtual void insert(const proof_clause& c) {
+    working_clauses.push_back(std::make_unique<T>(c));
+  }
+  virtual void insert(const proof_clause& c, const std::vector<int>& assignment) {
+    insert(c);
+    ((T*)working_clauses.back().get())->restrict_to_unit(assignment);
+    assert(((T*)working_clauses.back().get())->unit());
+  }
   virtual void reset();
+  virtual void fill_propagation_queue();
+
+  typedef boost::indirect_iterator<decltype(working_clauses.begin()),T> it_t;
+  typedef boost::indirect_iterator<decltype(working_clauses.cbegin()),T> cit_t;
+  cit_t begin() const { return working_clauses.cbegin(); }
+  cit_t end() const { return working_clauses.cend(); }
+  it_t begin() { return working_clauses.begin(); }
+  it_t end() { return working_clauses.end(); }
 };
 
 typedef reference_clause_database<eager_restricted_clause> eager_clause_database;
@@ -116,15 +134,15 @@ typedef reference_clause_database<lazy_restricted_clause> lazy_clause_database;
 
 
 
-struct watched_clause {
+struct watched_clause : clause_pointer {
   std::vector<literal> literals;
-  const proof_clause* source;
   size_t literals_visible_size;
   int unassigned;
   int satisfied;
 
   watched_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), literals_visible_size(literals.size()),
+  clause_pointer({&c}),
+    literals(c.begin(), c.end()), literals_visible_size(literals.size()),
     unassigned(std::min(2,int(literals_visible_size))), satisfied(0) {}
 
   bool unit() const { return not satisfied and unassigned == 1; }
@@ -163,9 +181,9 @@ struct source_cmp {
   }
 };
 
-class watched_clause_database : public clause_database<watched_clause> {
+class watched_clause_database : public clause_database {
 private:
-  std::vector<std::vector<size_t>> watches;
+  std::vector<std::vector<watched_clause*>> watches;
   const std::vector<int>& assignment;
   const std::vector<int>& decision_level;
 public:
@@ -180,6 +198,7 @@ public:
   virtual void assign(literal l);
   virtual void unassign(literal l);
   virtual void reset();
+  virtual void fill_propagation_queue();
 
   virtual void set_variables(size_t variables) { watches.resize(2*variables); }
   virtual void insert(const proof_clause& c);

@@ -55,17 +55,18 @@ struct clause {
   bool subsumes(const clause& c, literal l) const;
   bool operator == (const clause& c) const { return literals == c.literals; }
   bool contains(literal l) const;
-  std::vector<literal>::const_iterator begin() const { return literals.begin(); }
-  std::vector<literal>::const_iterator end() const { return literals.end(); }
+  typedef std::vector<literal>::const_iterator literal_iterator;
+  literal_iterator begin() const { return literals.begin(); }
+  literal_iterator end() const { return literals.end(); }
   std::size_t width() const { return literals.size(); }
-  struct domain_iterator : public std::vector<literal>::const_iterator {
-  domain_iterator(std::vector<literal>::const_iterator it) : std::vector<literal>::const_iterator(it) {}
+  struct variable_iterator : public literal_iterator {
+  variable_iterator(const literal_iterator&& it) : literal_iterator(it) {}
     variable operator * () const {
-      return variable(std::vector<literal>::const_iterator::operator *());
+      return variable(literal_iterator::operator *());
     }
   };
-  domain_iterator dom_begin() const { return literals.begin(); }
-  domain_iterator dom_end() const { return literals.end(); }
+  variable_iterator dom_begin() const { return literals.begin(); }
+  variable_iterator dom_end() const { return literals.end(); }
 private:
   std::vector<literal> literals;
   friend struct std::hash<clause>;

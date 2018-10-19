@@ -57,7 +57,7 @@ bool cdcl::consistent() const {
     assert(not assignment[v]);
   }
   for (auto& c : working_clauses) {
-    assert(not c.contradiction());
+    // assert(not c.contradiction());    // TODO: re-add
   }
   assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
   return true;
@@ -413,12 +413,7 @@ void cdcl::learn() {
   LOG(LOG_STATE) << "Branching " << branching_seq << endl;
   // There may be a more efficient way to do this.
   propagation_queue.clear();
-  for (const auto& c : working_clauses) {
-    if (c.unit() and not assignment[variable(c.propagate().to)]) {
-      c.assert_unit(assignment);
-      propagation_queue.propagate(c);
-    }
-  }
+  working_clauses.fill_propagation_queue();
 
   conflicts.clear();
 }

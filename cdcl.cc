@@ -584,7 +584,7 @@ void cdcl::forget_if(const function<bool(clause)>& predicate) {
     if (predicate(it->source->c)
         and busy.count(it->source) == 0) {
       LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-      it = working_clauses.erase(it);
+      //it = working_clauses.erase(it); // FIXME
     }
     else {
       ++it;
@@ -641,5 +641,5 @@ void cdcl::forget(unsigned int m) {
       return;
     }
   }
-  working_clauses.erase(it);
+  // working_clauses.erase(it); // FIXME
 }

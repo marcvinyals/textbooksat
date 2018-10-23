@@ -9,6 +9,12 @@
 
 using namespace std;
 
+ostream& operator << (ostream& o, const clause_pointer& c) {
+  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  for (auto l:*c.source) o << l;
+  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  return o;
+}
 ostream& operator << (ostream& o, const eager_restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;
@@ -125,9 +131,18 @@ void lazy_restricted_clause::reset() {
 }
 
 template<typename T>
+void clause_database<T>::fill_propagation_queue() {
+  for (const auto& c : working_clauses) {
+    if (c.unit() and not assignment[variable(c.propagate().to)]) {
+      c.assert_unit(assignment);
+      propagation_queue.propagate(c);
+    }
+  }
+}
+
+template<typename T>
 void reference_clause_database<T>::assign(literal l) {
-  for (auto& c_ptr : this->working_clauses) {
-    T& c(*((T*)c_ptr.get()));
+  for (auto& c : this->working_clauses) {
     bool wasunit = c.unit();
     c.restrict(l);
     if (c.contradiction()) {
@@ -322,11 +337,13 @@ void watched_clause_database::insert(const proof_clause& c, const std::vector<in
   watched_clause& cc = working_clauses.back();
   cc.restrict_to_unit(assignment, decision_level);
   cc.assert_unit(assignment);
-  fill_propagation_queue() {
-  for (const auto& c : working_clauses) {
-    if (c.unit() and not assignment[variable(c.propagate().to)]) {
-      c.assert_unit(assignment);
-      propagation_queue.propagate(c);
-    }
+
+  size_t i = working_clauses.size()-1;
+  for (literal l : cc.literals) {
+    watches[l.l].push_back(i);
   }
+}
+
+void watched_clause_database::insert(const proof_clause& c) {
+  working_clauses.push_back(c);
 }

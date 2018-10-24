@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
@@ -7,16 +8,42 @@
 
 #include "data_structures.h"
 
-struct clause_pointer {
+class polymorphic_restricted_clause_i {
+public:
+  virtual const proof_clause* source() const =0;
+  virtual bool satisfied() const =0;
+  virtual bool unit() const =0;
+  virtual bool contradiction() const =0;
+  friend std::ostream& operator << (std::ostream& o, const polymorphic_restricted_clause_i& c)  {
+    return c.to_ostream(o);
+  }
+protected:
+  virtual std::ostream& to_ostream(std::ostream& o) const =0;
+};
+
+template<typename T>
+class polymorphic_restricted_clause : polymorphic_restricted_clause_i {
+private:
+  const T& ref;
+public:
+  polymorphic_restricted_clause(const T& ref) : ref(ref) {}
+  virtual const proof_clause* source() const { return ref.source; }
+  virtual bool satisfied() const { return ref.satisfied; }
+  virtual bool unit() const { return ref.unit(); }
+  virtual bool contradiction() const { return ref.contradiction(); }
+  static const polymorphic_restricted_clause_i& factory(char* pointer) {
+    return polymorphic_restricted_clause(*reinterpret_cast<T*>(pointer));
+  }
+protected:
+  std::ostream& to_ostream(std::ostream& o) const { return o << ref; }
+};
+
+struct eager_restricted_clause {
   const proof_clause* source;
   int satisfied;
-};
-std::ostream& operator << (std::ostream& o, const clause_pointer& c);
-
-struct eager_restricted_clause : clause_pointer {
   std::vector<literal> literals;
   eager_restricted_clause(const proof_clause& c) :
-  clause_pointer({&c,0}), literals(c.begin(), c.end()) {}
+    source(&c), satisfied(0), literals(c.begin(), c.end()) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
   void assert_unit(const std::vector<int>& assignment) const {
     assert(unit());
@@ -34,12 +61,14 @@ struct eager_restricted_clause : clause_pointer {
 };
 std::ostream& operator << (std::ostream& o, const eager_restricted_clause& c);
 
-struct lazy_restricted_clause : clause_pointer {
+struct lazy_restricted_clause {
+  const proof_clause* source;
+  bool satisfied;
   literal satisfied_literal;
   int unassigned;
   boost::dynamic_bitset<> literals;
   lazy_restricted_clause(const proof_clause& c) :
-  clause_pointer({&c,0}), satisfied_literal(0,false),
+    source(&c), satisfied(false), satisfied_literal(literal::from_raw(0)),
     unassigned(source->c.width()), literals(unassigned) {
       assert(std::is_sorted(source->begin(), source->end()));
       literals.set();
@@ -68,12 +97,16 @@ struct clause_database_i {
   virtual void insert(const proof_clause& c)=0;
   virtual void insert(const proof_clause& c, const std::vector<int>& assignment)=0;
 
-  struct it_t : public boost::iterator_facade<it_t,clause_pointer,std::random_access_iterator_tag> {
+  struct it_t : public boost::iterator_facade<it_t,polymorphic_restricted_clause_i,std::random_access_iterator_tag> {
     const size_t stride;
     char* pointer;
+    std::function<const polymorphic_restricted_clause_i&(char*)> factory;
     template<typename T>
-      it_t(T it) : stride(sizeof(typename std::iterator_traits<T>::value_type)), pointer(const_cast<char*>(reinterpret_cast<const char*>((&(*it))))) {}
-    reference dereference() const { return *reinterpret_cast<clause_pointer*>(pointer); }
+    it_t(T it) :
+      stride(sizeof(typename std::iterator_traits<T>::value_type)),
+      pointer(const_cast<char*>(reinterpret_cast<const char*>((&(*it))))),
+      factory(polymorphic_restricted_clause<T>::factory) {}
+    reference dereference() const { return *reinterpret_cast<polymorphic_restricted_clause_i*>(pointer); }
     bool equal(const it_t& other) const { return pointer==other.pointer; }
     void increment() { pointer+=stride; }
     void decrement() { pointer-=stride; }
@@ -145,13 +178,15 @@ typedef reference_clause_database<lazy_restricted_clause> lazy_clause_database;
 
 
 
-struct watched_clause : clause_pointer {
+struct watched_clause {
+  const proof_clause* source;
+  int satisfied;
   std::vector<literal> literals;
   size_t literals_visible_size;
   int unassigned;
 
   watched_clause(const proof_clause& c) :
-  clause_pointer({&c,0}),
+    source(&c), satisfied(0),
     literals(c.begin(), c.end()), literals_visible_size(literals.size()),
     unassigned(std::min(2,int(literals_visible_size))) {}
 

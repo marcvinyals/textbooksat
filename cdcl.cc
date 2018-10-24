@@ -584,7 +584,7 @@ void cdcl::forget_if(const function<bool(clause)>& predicate) {
     if (predicate(it->source->c)
         and busy.count(it->source) == 0) {
       LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
-      //it = working_clauses.erase(it); // FIXME
+      it = working_clauses.erase(it);
     }
     else {
       ++it;
@@ -634,12 +634,12 @@ void cdcl::forget(unsigned int m) {
   assert (m<working_clauses.size());
   auto it = working_clauses.begin()+m;
   const auto& target = *it;
-  LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
+  LOG(LOG_ACTIONS) << "Forgetting " << *target.source << endl;
   for (const auto& branch : branching_seq) {
     if (branch.reason == target.source) {
-      LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
+      LOG(LOG_ACTIONS) << *target.source << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
       return;
     }
   }
-  // working_clauses.erase(it); // FIXME
+  working_clauses.erase(it);
 }

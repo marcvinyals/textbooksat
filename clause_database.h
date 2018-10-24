@@ -68,7 +68,9 @@ struct clause_database_i {
   virtual void insert(const proof_clause& c)=0;
   virtual void insert(const proof_clause& c, const std::vector<int>& assignment)=0;
 
-
+  virtual cast_iterator<clause_pointer> begin() const =0;
+  virtual cast_iterator<clause_pointer> end() const =0;
+  virtual cast_iterator<clause_pointer> erase(cast_iterator<clause_pointer>)=0;
 };
 
 template<typename T>
@@ -98,13 +100,15 @@ public:
   }
   virtual void fill_propagation_queue();
 
-  cast_iterator<clause_pointer> begin() const { return working_clauses.begin(); }
-  cast_iterator<clause_pointer> end() const { return working_clauses.end(); }
+  virtual cast_iterator<clause_pointer> begin() const { return working_clauses.begin(); }
+  virtual cast_iterator<clause_pointer> end() const { return working_clauses.end(); }
   auto& back() { return working_clauses.back(); }
   size_t size() const { return working_clauses.size(); }
-  /*auto erase(it_t it) {
-    return working_clauses.erase(it); // FIXME
-  }*/
+  cast_iterator<clause_pointer> erase(cast_iterator<clause_pointer> it) {
+    std::swap(working_clauses.back(),it.dereference_as<T>());
+    working_clauses.pop_back();
+    return it;
+  }
 };
 
 template<typename T>

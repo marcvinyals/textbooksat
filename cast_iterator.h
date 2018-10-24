@@ -11,7 +11,14 @@ cast_iterator<S>,S,std::random_access_iterator_tag> {
   template<typename T> cast_iterator(T it) :
     stride(sizeof(typename std::iterator_traits<T>::value_type)),
     pointer(const_cast<char*>(reinterpret_cast<const char*>((&(*it))))) {}
-  S& dereference() const { return *reinterpret_cast<S*>(pointer); }
+  template<typename T> T& dereference_as() const {
+    return *reinterpret_cast<T*>(pointer);
+  }
+  cast_iterator& operator = (const cast_iterator& other) {
+    assert(stride == other.stride);
+    pointer=other.pointer;
+  }
+  S& dereference() const { return dereference_as<S>(); }
   bool equal(const cast_iterator<S>& other) const {
     return pointer==other.pointer;
   }

@@ -9,7 +9,9 @@
 
 using namespace std;
 
+#ifndef NO_VIZ
 void visualizer_nothing(const vector<int>&, const vector<restricted_clause>&) {}
+#endif
 
 proof cdcl_solver::solve(const cnf& f) {
   pretty = pretty_(f);

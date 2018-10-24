@@ -9,7 +9,8 @@
 #include <memory>
 #include <unordered_set>
 
-#include "clause_database.h"
+#include "reference_clause_database.h"
+#include "watched_clause_database.h"
 #include "data_structures.h"
 #include "propagation_queue.h"
 

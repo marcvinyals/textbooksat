@@ -3,8 +3,8 @@
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
-#include <boost/iterator/iterator_facade.hpp>
 
+#include "cast_iterator.h"
 #include "data_structures.h"
 
 struct clause_pointer {
@@ -68,18 +68,6 @@ struct clause_database_i {
   virtual void insert(const proof_clause& c)=0;
   virtual void insert(const proof_clause& c, const std::vector<int>& assignment)=0;
 
-  struct it_t : public boost::iterator_facade<it_t,clause_pointer,std::random_access_iterator_tag> {
-    const size_t stride;
-    char* pointer;
-    template<typename T>
-      it_t(T it) : stride(sizeof(typename std::iterator_traits<T>::value_type)), pointer(const_cast<char*>(reinterpret_cast<const char*>((&(*it))))) {}
-    reference dereference() const { return *reinterpret_cast<clause_pointer*>(pointer); }
-    bool equal(const it_t& other) const { return pointer==other.pointer; }
-    void increment() { pointer+=stride; }
-    void decrement() { pointer-=stride; }
-    void advance(ptrdiff_t n) { pointer+=(n*stride); }
-    ptrdiff_t distance_to(const it_t& other) const { return (other.pointer-pointer)/stride; }
-  };
 
 };
 
@@ -110,8 +98,8 @@ public:
   }
   virtual void fill_propagation_queue();
 
-  it_t begin() const { return it_t(working_clauses.begin()); }
-  it_t end() const { return working_clauses.end(); }
+  cast_iterator<clause_pointer> begin() const { return working_clauses.begin(); }
+  cast_iterator<clause_pointer> end() const { return working_clauses.end(); }
   auto& back() { return working_clauses.back(); }
   size_t size() const { return working_clauses.size(); }
   /*auto erase(it_t it) {

@@ -57,7 +57,7 @@ bool cdcl::consistent() const {
     assert(not assignment[v]);
   }
   for (auto& c : working_clauses) {
-    assert(not c.contradiction());
+    // assert(not c.contradiction());    // TODO: re-add
   }
   assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
   return true;
@@ -386,7 +386,7 @@ void cdcl::learn() {
   assert(not config_backjump or
          find_if(working_clauses.begin(), working_clauses.end(),
                  [&learnt_clause] (const auto& i) {
-                   return i.source()->c == learnt_clause.c;
+                   return i.source->c == learnt_clause.c;
                  }) == working_clauses.end());
   
   if (solved) {
@@ -581,9 +581,9 @@ void cdcl::forget_if(const function<bool(clause)>& predicate) {
   unordered_set<const proof_clause*> busy;
   for (auto branch : branching_seq) busy.insert(branch.reason);
   for (auto it = working_clauses.begin() + formula.size(); it!=working_clauses.end(); ) {
-    if (predicate(it->source()->c)
-        and busy.count(it->source()) == 0) {
-      LOG(LOG_ACTIONS) << "Forgetting " << *it->source() << endl;
+    if (predicate(it->source->c)
+        and busy.count(it->source) == 0) {
+      LOG(LOG_ACTIONS) << "Forgetting " << *it->source << endl;
       //it = working_clauses.erase(it); // FIXME
     }
     else {
@@ -636,7 +636,7 @@ void cdcl::forget(unsigned int m) {
   const auto& target = *it;
   LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
   for (const auto& branch : branching_seq) {
-    if (branch.reason == target.source()) {
+    if (branch.reason == target.source) {
       LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
       return;
     }

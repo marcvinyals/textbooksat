@@ -9,6 +9,12 @@
 
 using namespace std;
 
+ostream& operator << (ostream& o, const clause_pointer& c) {
+  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  for (auto l:*c.source) o << l;
+  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  return o;
+}
 ostream& operator << (ostream& o, const eager_restricted_clause& c) {
   if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
   for (auto l:c.literals) o << l;

@@ -4,22 +4,33 @@
 
 #include "data_structures.h"
 
+struct clause_pointer {
+  const proof_clause* source;
+};
+
 template<typename T>
 class clause_database {
 protected:
   std::vector<T> working_clauses;
   std::vector<const proof_clause*>& conflicts;
   struct propagation_queue& propagation_queue;
+  const std::vector<int>& assignment;
+  const std::vector<int>& decision_level;
 public:
   clause_database(std::vector<const proof_clause*>& conflicts,
-                  struct propagation_queue& propagation_queue) :
+                  struct propagation_queue& propagation_queue,
+		  const std::vector<int>& assignment,
+		  const std::vector<int>& decision_level) :
     conflicts(conflicts),
-    propagation_queue(propagation_queue) {}
+    propagation_queue(propagation_queue),
+    assignment(assignment),
+    decision_level(decision_level) {}
   virtual ~clause_database() {}
   
   virtual void assign(literal l)=0;
   virtual void unassign(literal l)=0;
   virtual void reset()=0;
+  virtual void fill_propagation_queue();
 
   virtual void set_variables(size_t variables) {}
   virtual void insert(const proof_clause& c) { working_clauses.push_back(c); }

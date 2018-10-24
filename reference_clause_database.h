@@ -4,12 +4,11 @@
 
 #include "clause_database.h"
 
-struct eager_restricted_clause {
+struct eager_restricted_clause : clause_pointer {
   std::vector<literal> literals;
-  const proof_clause* source;
   int satisfied;
   eager_restricted_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), satisfied(0) {}
+    clause_pointer({&c}), literals(c.begin(), c.end()), satisfied(0) {}
   bool unit() const { return not satisfied and literals.size() == 1; }
   void assert_unit(const std::vector<int>& assignment) const {
     assert(unit());
@@ -27,14 +26,13 @@ struct eager_restricted_clause {
 };
 std::ostream& operator << (std::ostream& o, const eager_restricted_clause& c);
 
-struct lazy_restricted_clause {
-  const proof_clause* source;
+struct lazy_restricted_clause : clause_pointer {
   bool satisfied;
   literal satisfied_literal;
   int unassigned;
   boost::dynamic_bitset<> literals;
   lazy_restricted_clause(const proof_clause& c) :
-    source(&c), satisfied(false), satisfied_literal(0,false),
+    clause_pointer({&c}), satisfied(false), satisfied_literal(0,false),
     unassigned(source->c.width()), literals(unassigned) {
       assert(std::is_sorted(source->begin(), source->end()));
       literals.set();
@@ -60,7 +58,7 @@ public:
                             struct propagation_queue& propagation_queue,
                             std::vector<int>& assignment,
                             std::vector<int>& decision_level) :
-    clause_database<T>(conflicts, propagation_queue) {}
+    clause_database<T>(conflicts, propagation_queue, assignment, decision_level) {}
   virtual ~reference_clause_database() {}
   virtual void assign(literal l);
   virtual void unassign(literal l);

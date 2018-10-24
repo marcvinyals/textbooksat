@@ -4,15 +4,14 @@
 
 #include "reference_clause_database.h"
 
-struct watched_clause {
+struct watched_clause : clause_pointer {
   std::vector<literal> literals;
-  const proof_clause* source;
   size_t literals_visible_size;
   int unassigned;
   int satisfied;
 
   watched_clause(const proof_clause& c) :
-    literals(c.begin(), c.end()), source(&c), literals_visible_size(literals.size()),
+    clause_pointer({&c}), literals(c.begin(), c.end()), literals_visible_size(literals.size()),
     unassigned(std::min(2,int(literals_visible_size))), satisfied(0) {}
 
   bool unit() const { return not satisfied and unassigned == 1; }
@@ -43,16 +42,12 @@ std::ostream& operator << (std::ostream& o, const watched_clause& c);
 class watched_clause_database : public clause_database<watched_clause> {
 private:
   std::vector<std::vector<size_t>> watches;
-  const std::vector<int>& assignment;
-  const std::vector<int>& decision_level;
 public:
   watched_clause_database(std::vector<const proof_clause*>& conflicts,
                           struct propagation_queue& propagation_queue,
                           const std::vector<int>& assignment,
                           const std::vector<int>& decision_level) :
-    clause_database(conflicts, propagation_queue),
-    assignment(assignment),
-    decision_level(decision_level) {}
+    clause_database(conflicts, propagation_queue, assignment, decision_level) {}
   virtual ~watched_clause_database() {}
   virtual void assign(literal l);
   virtual void unassign(literal l);

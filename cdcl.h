@@ -15,9 +15,12 @@
 
 class cdcl {
  public:
-  cdcl() : working_clauses(conflicts, propagation_queue, assignment, decision_level) {}
+  template<typename T>
+    cdcl(T*) : working_clauses(*(new T(conflicts, propagation_queue, assignment, decision_level))) {}
   cdcl(const cdcl&) = delete;
+  cdcl(cdcl&&) = default;
   cdcl& operator = (const cdcl&) = delete;
+  ~cdcl() {} // FIXME: delete working_clauses
   
   proof solve(const cnf& f);
 
@@ -96,11 +99,7 @@ private:
   // they should not be erased or reallocated.
   std::list<proof_clause> learnt_clauses;
   // Clauses restricted to the current assignment.
-#ifdef WATCHED
-  watched_clause_database working_clauses;
-#else
-  lazy_clause_database working_clauses;
-#endif
+  clause_database_i& working_clauses;
 
   // List of unit propagations, in chronological order.
   branching_sequence branching_seq;

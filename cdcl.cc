@@ -8,6 +8,7 @@
 
 #include <boost/function_output_iterator.hpp>
 
+#include "reference_clause_database.h"
 #include "formatting.h"
 #include "color.h"
 #include "log.h"

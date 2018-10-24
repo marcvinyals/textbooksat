@@ -4,7 +4,7 @@ LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
-SOURCES = solver.cc cdcl.cc clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
+SOURCES = solver.cc cdcl.cc clause_database.cc reference_clause_database.cc watched_clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
 
 BUILD := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),debug)
 ifeq ($(BUILD),debug)

@@ -10,7 +10,7 @@
 
 #include "cdcl.h"
 #include "formatting.h"
-#include "clause_database.h"
+#include "reference_clause_database.h"
 
 using std::cout;
 using std::cin;
@@ -34,6 +34,7 @@ std::ostream& operator << (std::ostream& o, const clause_database_i& v) {
     if (it->satisfied) o << std::setw(35+8);
     else o << std::setw(35);
     std::stringstream ss;
+    // FIXME: allow generic restricted clause types
     ss << it.dereference_as<eager_restricted_clause>();
     o << ss.str();
     o << " | " << it->source->c << std::endl;

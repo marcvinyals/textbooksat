@@ -13,10 +13,26 @@ using namespace std;
 void visualizer_nothing(const vector<int>&, const vector<restricted_clause>&) {}
 #endif
 
+cdcl solver_factory(const string& watcher) {
+  if (watcher == "reference") {
+    return (reference_clause_database<eager_restricted_clause>*)nullptr;
+  }
+  else if (watcher == "2wl") {
+    return cdcl((watched_clause_database*)nullptr);
+  }
+  else {
+    cerr << "Invalid clause watcher" << endl;
+    exit(1);
+  }
+}
+
 proof cdcl_solver::solve(const cnf& f) {
+  if (decide == "ask" and watcher == "2wl") {
+    cerr << "Warning: 2wl in interactive mode. Printing the state will crash." << endl;
+  }
   pretty = pretty_(f);
   pretty.mode = pretty.TERMINAL;
-  cdcl solver;
+  cdcl solver(solver_factory(watcher));
   class ui ui (solver);
   if (decide == "ask") {
     solver.decide_plugin = bind(&ui::get_decision, ref(ui));

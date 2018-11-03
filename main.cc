@@ -24,6 +24,8 @@ static argp_option options[] = {
    "Use the specified learning schema (default: 1uip)"},
   {"forget", 'f', "{nothing,everything,wide}", 0,
    "Use the specified forgetting schema (default: nothing)"},
+  {"watch", 'w', "{reference,2wl}", 0,
+   "Use the specified clause watcher (default: reference)"},
   {"decay", 6, "DOUBLE", 0,
    "Variable activity decay factor (default: 0.96875)"},
   {"bump", 7, "{learnt,conflict}", 0,
@@ -67,6 +69,7 @@ struct arguments {
   string restart;
   string learn;
   string forget;
+  string watcher;
   double decay;
   string bump;
   bool backjump;
@@ -99,6 +102,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     break;
   case 'f':
     arguments->forget = arg;
+    break;
+  case 'w':
+    arguments->watcher = arg;
     break;
   case 'b':
     arguments->backjump = atoi(arg);
@@ -158,6 +164,7 @@ int main(int argc, char** argv) {
   arguments.restart = "none";
   arguments.learn = "1uip";
   arguments.forget = "nothing";
+  arguments.watcher = "reference";
   arguments.decay = 1.-1./32.;
   arguments.bump = "conflict";
   arguments.backjump = true;
@@ -189,6 +196,7 @@ int main(int argc, char** argv) {
   solver.restart = arguments.restart;
   solver.learn = arguments.learn;
   solver.forget = arguments.forget;
+  solver.watcher = arguments.watcher;
   solver.bump = arguments.bump;
   solver.decay = arguments.decay;
   solver.backjump = arguments.backjump;

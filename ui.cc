@@ -27,15 +27,16 @@ using qi::lit;
 using qi::_1;
 using ph::ref;
 
-template<typename T>
-std::ostream& operator << (std::ostream& o, const clause_database<T>& v) {
+std::ostream& operator << (std::ostream& o, const clause_database_i& v) {
   size_t i = 0;
   for (auto it=v.begin(); it!=v.end(); ++it, ++i) {
     o << std::setw(5) << i << ":";
-    if (it->satisfied) o << std::setw(35+8);
+    // FIXME: allow generic restricted clause types
+    eager_restricted_clause& c = it.dereference_as<eager_restricted_clause>();
+    if (c.satisfied) o << std::setw(35+8);
     else o << std::setw(35);
     std::stringstream ss;
-    ss << *it;
+    ss << c;
     o << ss.str();
     o << " | " << it->source->c << std::endl;
   }

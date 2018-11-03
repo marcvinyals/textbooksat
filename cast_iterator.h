@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include <boost/iterator/iterator_facade.hpp>
 
 template<typename S>
@@ -17,6 +19,7 @@ cast_iterator<S>,S,std::random_access_iterator_tag> {
   cast_iterator& operator = (const cast_iterator& other) {
     assert(stride == other.stride);
     pointer=other.pointer;
+    return *this;
   }
   S& dereference() const { return dereference_as<S>(); }
   bool equal(const cast_iterator<S>& other) const {

@@ -56,9 +56,7 @@ bool cdcl::consistent() const {
   for (auto v:decision_order) {
     assert(not assignment[v]);
   }
-  for (auto& c : working_clauses) {
-    assert(not c.contradiction());
-  }
+  assert(working_clauses.consistent());
   assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
   return true;
 }
@@ -634,10 +632,10 @@ void cdcl::forget(unsigned int m) {
   assert (m<working_clauses.size());
   auto it = working_clauses.begin()+m;
   const auto& target = *it;
-  LOG(LOG_ACTIONS) << "Forgetting " << target << endl;
+  LOG(LOG_ACTIONS) << "Forgetting " << *target.source << endl;
   for (const auto& branch : branching_seq) {
     if (branch.reason == target.source) {
-      LOG(LOG_ACTIONS) << target << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
+      LOG(LOG_ACTIONS) << *target.source << " is used to propagate " << branch.to << "; refusing to forget it." << endl;
       return;
     }
   }

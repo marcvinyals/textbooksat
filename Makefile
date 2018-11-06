@@ -72,7 +72,7 @@ all: debug
 -include $(addprefix $(BUILD)/,$(SOURCES:.cc=.d))
 
 $(BUILD)/%.o: src/%.cc $(HEADERS)
-	@-mkdir -p $(BUILD)
+	@-mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
 	$(CXX) $(CPPFLAGS) -MM $< -MT $@ > $(BUILD)/$*.d
 

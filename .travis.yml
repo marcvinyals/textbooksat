@@ -6,7 +6,6 @@ language: cpp
 script: make test
 env:
   - CPPFLAGS='-std=c++14'
-  - CPPFLAGS='-std=c++14 -DWATCHED'
 
 # Dependencies
 before_install:

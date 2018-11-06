@@ -1,6 +1,6 @@
-#include "data_structures.h"
-#include "solver.h"
-#include "dimacs.h"
+#include "../data_structures.h"
+#include "../solver.h"
+#include "../dimacs.h"
 
 #include <gtest/gtest.h>
 

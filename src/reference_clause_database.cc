@@ -3,24 +3,24 @@
 #include <iostream>
 
 #include "formatting.h"
-#include "color.h"
+#include "colour.h"
 #include "log.h"
 #include "propagation_queue.h"
 
 using namespace std;
 
 ostream& operator << (ostream& o, const eager_restricted_clause& c) {
-  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  if (c.satisfied) o << Colour::Modifier(Colour::TY_CROSSED);
   for (auto l:c.literals) o << l;
-  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  if (c.satisfied) o << Colour::Modifier(Colour::DEFAULT);
   return o;
 }
 ostream& operator << (ostream& o, const lazy_restricted_clause& c) {
-  if (c.satisfied) o << Color::Modifier(Color::TY_CROSSED);
+  if (c.satisfied) o << Colour::Modifier(Colour::TY_CROSSED);
   for (auto it = c.source->begin(); it!=c.source->end(); ++it) {
     if (c.literals[it-c.source->begin()]) o << *it;
   }
-  if (c.satisfied) o << Color::Modifier(Color::DEFAULT);
+  if (c.satisfied) o << Colour::Modifier(Colour::DEFAULT);
   return o;
 }
 

@@ -9,7 +9,7 @@
 #include <boost/function_output_iterator.hpp>
 
 #include "formatting.h"
-#include "color.h"
+#include "colour.h"
 #include "log.h"
 #include "ui.h"
 
@@ -300,7 +300,7 @@ proof_clause cdcl::learn_decision(const branching_sequence::reverse_iterator& fi
 // Clause minimization. Try eliminating literals from the clause by
 // resolving them with a reason.
 void cdcl::minimize(proof_clause& c) const {
-  LOG(LOG_DETAIL) << Color::Modifier(Color::FG_RED) << "Minimize:" << Color::Modifier(Color::FG_DEFAULT) << endl;
+  LOG(LOG_DETAIL) << Colour::Modifier(Colour::FG_RED) << "Minimize:" << Colour::Modifier(Colour::FG_DEFAULT) << endl;
   eager_restricted_clause d(c.c);
   d.restrict(assignment);
   if (d.contradiction()) return;
@@ -315,7 +315,7 @@ void cdcl::minimize(proof_clause& c) const {
       if (e->c.subsumes(c.c, ~l)) {
         int i=it-c.begin();
         c.resolve(*e, variable(l));
-        LOG(LOG_DETAIL) << Color::Modifier(Color::FG_GREEN) << "Minimize!" << Color::Modifier(Color::FG_DEFAULT) << endl;
+        LOG(LOG_DETAIL) << Colour::Modifier(Colour::FG_GREEN) << "Minimize!" << Colour::Modifier(Colour::FG_DEFAULT) << endl;
         it=c.c.begin()+i;
         goto nextliteral;
       }
@@ -341,11 +341,11 @@ void cdcl::backjump(const proof_clause& learnt_clause,
   LOG(LOG_STATE_SUMMARY) << "Backjump: ";
   for (auto it=branching_seq.begin(); it!=branching_seq.end(); ++it) {
     if (it == backtrack_limit.base()) {
-      LOG(LOG_STATE_SUMMARY) << "|   " << Color::Modifier(Color::TY_FAINT);
+      LOG(LOG_STATE_SUMMARY) << "|   " << Colour::Modifier(Colour::TY_FAINT);
     }
     LOG(LOG_STATE_SUMMARY) << *it;
   }
-  LOG(LOG_STATE_SUMMARY) << Color::Modifier(Color::DEFAULT) << endl;
+  LOG(LOG_STATE_SUMMARY) << Colour::Modifier(Colour::DEFAULT) << endl;
   
   // Actually backtrack
   for (auto it=first_decision+1; it!=backtrack_limit; ++it) {
@@ -373,7 +373,7 @@ void cdcl::learn() {
 
   if (config_minimize) minimize(learnt_clause);
 
-  LOG(LOG_EFFECTS) << Color::Modifier(Color::FG_GREEN) << "Learnt: " << Color::Modifier(Color::FG_DEFAULT) << learnt_clause << endl;
+  LOG(LOG_EFFECTS) << Colour::Modifier(Colour::FG_GREEN) << "Learnt: " << Colour::Modifier(Colour::FG_DEFAULT) << learnt_clause << endl;
   if(trace) *trace << "# learnt:" << learnt_clause << endl;
   clause d = learnt_clause.derivation.front()->c;
   for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {

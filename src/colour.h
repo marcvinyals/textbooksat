@@ -1,5 +1,5 @@
 #include <ostream>
-namespace Color {
+namespace Colour {
     enum Code {
         DEFAULT  = 0,
         TY_BOLD     = 1,

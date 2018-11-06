@@ -71,7 +71,7 @@ all: debug
 
 -include $(addprefix $(BUILD)/,$(SOURCES:.cc=.d))
 
-$(BUILD)/%.o : %.cc $(HEADERS)
+$(BUILD)/%.o: src/%.cc $(HEADERS)
 	@-mkdir -p $(BUILD)
 	$(CXX) $(CPPFLAGS) -g -c -o $@ $<
 	$(CXX) $(CPPFLAGS) -MM $< -MT $@ > $(BUILD)/$*.d
@@ -83,7 +83,7 @@ clean:
 	rm -f sat *.o satr release/*.o *.d
 	rm -fr debug/ release/
 
-$(BUILD)/gtest: $(BUILD)/test.o $(TOBJS)
+$(BUILD)/gtest: $(BUILD)/test/test.o $(TOBJS)
 	$(CXX) $(LDFLAGS) -o $@ $+ -lgtest -lpthread
 	$(BUILD)/gtest
 

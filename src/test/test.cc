@@ -62,6 +62,7 @@ protected:
     solver.restart = "none";
     solver.learn = "1uip";
     solver.forget = "nothing";
+    solver.watcher = "reference";
     solver.bump = "learnt";
     solver.backjump = true;
     solver.minimize = false;
@@ -99,6 +100,7 @@ typedef tuple<const char*, // decide
               const char*, // restart
               const char*, // learn
               const char*, // forget
+              const char*, // watcher
               const char*, // bump
               bool,        // backjump
               bool,        // minimize
@@ -113,6 +115,7 @@ protected:
              solver.restart,
              solver.learn,
              solver.forget,
+             solver.watcher,
              solver.bump,
              solver.backjump,
              solver.minimize,
@@ -134,6 +137,7 @@ INSTANTIATE_TEST_CASE_P(ParametersTest,
                                 Values("none","always","luby"),
                                 Values("1uip","1uip-all","lastuip","decision"),
                                 Values("nothing","everything","wide"),
+                                Values("reference","2wl"),
                                 Values("learnt","conflict"),
                                 Values(true),
                                 Bool(),

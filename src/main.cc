@@ -231,6 +231,7 @@ int main(int argc, char** argv) {
     else if (endswith(arguments.dag, ".beamer.tex")) tikz(dag, proof, true);
     else if (endswith(arguments.dag, ".tex")) tikz(dag, proof);
     else if (endswith(arguments.dag, ".asy")) asy(dag, proof);
+    else if (endswith(arguments.dag, ".rup")) rup(dag, proof);
     else {
       cerr << "Unknown output format" << endl;
       exit(1);

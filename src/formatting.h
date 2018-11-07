@@ -14,7 +14,7 @@ struct pretty_ {
   enum {
     TERMINAL,
     LATEX,
-    UGLY,
+    DIMACS,
   } mode;
   std::string lor;
   std::string bot;
@@ -33,7 +33,7 @@ struct pretty_ {
   }
   std::ostream& operator << (variable x) {
     assert(x<variable_names.size());
-    if (mode == UGLY) return (*o) << x;
+    if (mode == DIMACS) return (*o) << (x+1);
     return (*o) << variable_names[x];
   }
   std::ostream& operator << (literal l) {
@@ -42,6 +42,10 @@ struct pretty_ {
       if (not l.polarity()) (*o) << "\\overline{";
       (*this) << variable(l);
       if (not l.polarity()) (*o) << "}";
+    }
+    else if (mode == DIMACS) {
+      (*o) << (l.polarity()?' ':'-');
+      (*this) << variable(l);
     }
     else {
       (*o) << (l.polarity()?' ':'~');
@@ -69,6 +73,7 @@ inline std::ostream& operator << (std::ostream& o, const clause& c) {
   }
   if (first) o << pretty.bot;
   if (pretty.mode == pretty.LATEX) o << '$';
+  if (pretty.mode == pretty.DIMACS) o << " 0";
   return o;
 }
 inline std::ostream& operator << (std::ostream& o, const cnf& f) {

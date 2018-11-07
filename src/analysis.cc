@@ -372,3 +372,10 @@ public:
 void asy(std::ostream& out, const proof& proof) {
   asy_drawer(out, proof).draw();
 }
+
+void rup(std::ostream& out, const proof& proof) {
+  pretty.mode = pretty.DIMACS;
+  for (const proof_clause& c : proof.resolution) {
+    out << c.c << endl;
+  }
+}

@@ -30,6 +30,8 @@ static argp_option options[] = {
    "Variable activity decay factor (default: 0.96875)"},
   {"bump", 7, "{learnt,conflict}", 0,
    "Use the specified bump plugin (default: conflict)"},
+  {"clause-decay", 8, "DOUBLE", 0,
+   "Clause activity decay factor (default: 0.99951171875)"},
   {"backjump", 'b', "BOOL", 0,
    "On a conflict, backtrack deeper than the decision level as long as the "
    "learnt clause is unit (default: 1)\nNote that disabling backjumps may "
@@ -72,6 +74,7 @@ struct arguments {
   string watcher;
   double decay;
   string bump;
+  double clause_decay;
   bool backjump;
   bool minimize;
   bool phase_saving;
@@ -142,6 +145,9 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
   case 7:
     arguments->bump = arg;
     break;
+  case 8:
+    arguments->clause_decay = atof(arg);
+    break;
   case 'v':
     arguments->verbose = atoi(arg);
     break;
@@ -167,6 +173,7 @@ int main(int argc, char** argv) {
   arguments.watcher = "reference";
   arguments.decay = 1.-1./32.;
   arguments.bump = "conflict";
+  arguments.clause_decay = 1.-1./2048.;
   arguments.backjump = true;
   arguments.minimize = false;
   arguments.phase_saving = true;
@@ -199,6 +206,7 @@ int main(int argc, char** argv) {
   solver.watcher = arguments.watcher;
   solver.bump = arguments.bump;
   solver.decay = arguments.decay;
+  solver.clause_decay = arguments.clause_decay;
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
   solver.phase_saving = arguments.phase_saving;

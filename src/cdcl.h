@@ -39,6 +39,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
   bool config_minimize;
   bool config_phase_saving;
   double config_activity_decay;
+  double config_clause_decay;
 
   literal decide_fixed();
   literal decide_random();
@@ -87,6 +88,7 @@ private:
                 branching_sequence::reverse_iterator& backtrack_limit);
   void minimize(proof_clause& c) const;
   void bump_activity(const proof_clause& c);
+  void bump_clause_activity(const proof_clause& c);
   std::vector<double> initial_variable_activity(const cnf& f);
 
   bool consistent() const;
@@ -125,7 +127,12 @@ private:
   // Value a decided variable should be set to, indexed by variable
   // number.
   std::vector<bool> decision_polarity;
+  // Exponential moving average of each variable appearing in a conflict.
   std::vector<double> variable_activity;
+  double variable_activity_bump = 1;
+  // Exponential moving average of each clause appearing in a conflict.
+  std::unordered_map<const proof_clause*, double> clause_activity;
+  double clause_activity_bump = 1;
 };
 
 std::ostream& operator << (std::ostream& o, const std::list<proof_clause>& v);

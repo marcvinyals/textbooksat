@@ -403,7 +403,8 @@ void cdcl::learn() {
   branching_seq.erase(backtrack_limit.base(),branching_seq.end());
 
   bump_activity(learnt_clause);
-  
+  bump_clause_activity(learnt_clause);
+
   // Add the learnt clause to working clauses and immediately start
   // propagating
   working_clauses.insert(learnt_clauses.back(), assignment);
@@ -422,6 +423,8 @@ void cdcl::learn() {
  * Activity
  */
 
+const double ACTIVITY_LIMIT=pow(2.,256);
+
 unordered_set<variable> cdcl::bump_learnt(const proof_clause& c) {
   return unordered_set<variable>(c.c.dom_begin(), c.c.dom_end());
 }
@@ -435,17 +438,22 @@ unordered_set<variable> cdcl::bump_conflict(const proof_clause& c) {
 }
 
 void cdcl::bump_activity(const proof_clause& c) {
-  for (auto& x : variable_activity) x *= config_activity_decay;
+  variable_activity_bump/=config_activity_decay;
+  bool rescale = false;
   vector<int> attach;
-  for (auto v : bump_plugin(c)) {
+  for (variable v : bump_plugin(c)) {
     auto it = decision_order.find(v);
     if (it != decision_order.end()) {
       attach.push_back(*it);
       decision_order.erase(it);
     }
-    variable_activity[v] ++;
+    variable_activity[v]+=variable_activity_bump;
   }
   decision_order.insert(attach.begin(), attach.end());
+  if (rescale) {
+    for (double& x : variable_activity) x/=ACTIVITY_LIMIT;
+    variable_activity_bump/=ACTIVITY_LIMIT;
+  }
 }
 
 // Used in Minisat
@@ -478,7 +486,18 @@ vector<double> cdcl::initial_variable_activity(const cnf& f) {
   return variable_activity_none(f);
 }
 
-
+void cdcl::bump_clause_activity(const proof_clause& c) {
+  clause_activity_bump/=config_clause_decay;
+  bool rescale = false;
+  for (const proof_clause* d : c.derivation) {
+    clause_activity[d]+=clause_activity_bump;
+    rescale &= (clause_activity[d] >= ACTIVITY_LIMIT);
+  }
+  if (rescale) {
+    for (auto& it : clause_activity) it.second/=ACTIVITY_LIMIT;
+    clause_activity_bump/=ACTIVITY_LIMIT;
+  }
+}
 
 /*
  * Decision

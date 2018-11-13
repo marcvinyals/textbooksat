@@ -21,9 +21,11 @@ struct clause_database_i {
   virtual void insert(const proof_clause& c)=0;
   virtual void insert(const proof_clause& c, const std::vector<int>& assignment)=0;
 
-  virtual cast_iterator<clause_pointer> begin() const =0;
-  virtual cast_iterator<clause_pointer> end() const =0;
-  virtual cast_iterator<clause_pointer> erase(cast_iterator<clause_pointer>)=0;
+  typedef cast_iterator<clause_pointer> clause_iterator;
+
+  virtual clause_iterator begin() const =0;
+  virtual clause_iterator end() const =0;
+  virtual clause_iterator erase(clause_iterator)=0;
   const clause_pointer& back() const { return *(end()-1); }
   size_t size() const { return end()-begin(); }
 
@@ -58,17 +60,15 @@ public:
   }
   virtual void fill_propagation_queue();
 
-  virtual cast_iterator<clause_pointer> begin() const { return working_clauses.begin(); }
-  virtual cast_iterator<clause_pointer> end() const { return working_clauses.end(); }
+  virtual clause_iterator begin() const { return working_clauses.begin(); }
+  virtual clause_iterator end() const { return working_clauses.end(); }
 
-  auto& back() { return working_clauses.back(); }
-  size_t size() const { return working_clauses.size(); }
-  cast_iterator<clause_pointer> erase(cast_iterator<clause_pointer> it) {
+  virtual clause_iterator erase(clause_iterator it) {
     std::swap(working_clauses.back(),it.dereference_as<T>());
     working_clauses.pop_back();
     return it;
   }
-  bool consistent() const {
+  virtual bool consistent() const {
     for (auto& c : working_clauses) {
       assert(not c.contradiction());
     }

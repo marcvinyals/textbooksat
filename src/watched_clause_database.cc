@@ -111,6 +111,7 @@ void watched_clause::reset() {
 }
 
 void watched_clause_database::assign(literal l) {
+  assert (not dirty);
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
     c.satisfy();
@@ -142,6 +143,7 @@ void watched_clause_database::assign(literal l) {
 }
 
 void watched_clause_database::unassign(literal l) {
+  assert (not dirty);
   for (size_t i : watches[l.l]) {
     watched_clause& c = working_clauses[i];
     c.loosen_satisfied(l);
@@ -165,7 +167,8 @@ void watched_clause_database::unassign(literal l) {
 
 void watched_clause_database::reset() {
   for (auto& w : watches) w.clear();
-  for (size_t i=0; i< working_clauses.size(); ++i) {
+  dirty = false;
+  for (size_t i=0; i<working_clauses.size(); ++i) {
     watched_clause& c = working_clauses[i];
     c.reset();
     if(c.literals.size()>=1) watches[c.literals[0].l].push_back(i);

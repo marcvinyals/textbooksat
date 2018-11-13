@@ -42,6 +42,7 @@ std::ostream& operator << (std::ostream& o, const watched_clause& c);
 class watched_clause_database : public clause_database<watched_clause> {
 private:
   std::vector<std::vector<size_t>> watches;
+  bool dirty = true;
 public:
   watched_clause_database(std::vector<const proof_clause*>& conflicts,
                           struct propagation_queue& propagation_queue,
@@ -56,4 +57,8 @@ public:
   virtual void set_variables(size_t variables) { watches.resize(2*variables); }
   virtual void insert(const proof_clause& c);
   virtual void insert(const proof_clause& c, const std::vector<int>& assignment);
+  virtual clause_iterator erase(clause_iterator it) {
+    dirty = true;
+    return clause_database::erase(it);
+  }
 };

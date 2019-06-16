@@ -51,6 +51,8 @@ void parser::parse_header() {
 void parser::parse_body() {
   string s;
   for (; getline(in, s); ++lineno) {
+    if (s.empty()) continue;
+    if (s[0]=='c') continue;
     istringstream ss(s);
     set<literal> c;
     int x;

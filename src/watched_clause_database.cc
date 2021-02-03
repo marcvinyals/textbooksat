@@ -178,17 +178,17 @@ void watched_clause_database::reset() {
 }
 
 void watched_clause_database::insert(const proof_clause& c, const std::vector<int>& assignment) {
-  working_clauses.push_back(c);
+  insert(c);
   watched_clause& cc = working_clauses.back();
   cc.restrict_to_unit(assignment, decision_level);
   cc.assert_unit(assignment);
-
-  size_t i = working_clauses.size()-1;
-  for (literal l : cc.literals) {
-    watches[l.l].push_back(i);
-  }
 }
 
 void watched_clause_database::insert(const proof_clause& c) {
+  size_t i = working_clauses.size();
   working_clauses.push_back(c);
+  const watched_clause& cc = working_clauses.back();
+  for (literal l : cc.literals) {
+    watches[l.l].push_back(i);
+  }
 }

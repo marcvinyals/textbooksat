@@ -11,6 +11,7 @@
 #include "cdcl.h"
 #include "formatting.h"
 #include "clause_database.h"
+#include "log.h"
 
 using std::cout;
 using std::cin;
@@ -71,6 +72,7 @@ void ui::usage() {
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
     cout << " * batch {0,1}" << endl;
+    cout << " * verbose {-1..6}" << endl;
   }
 }
 
@@ -101,7 +103,7 @@ ui::answer ui::ask() {
     if (line.empty()) return solver.decide_fixed();
     string action, file;
     unsigned int m, polarity, w = 2;
-    int dimacs;
+    int dimacs, verbose;
     variable var;
     std::vector<variable> domain;
     auto it = line.begin();
@@ -111,6 +113,7 @@ ui::answer ui::ask() {
       | qi::string("state")[ph::ref(action) = _1]
       | qi::string("save")[ph::ref(action) = _1] >> token[ph::ref(file) = _1]
       | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
+      | qi::string("verbose")[ph::ref(action) = _1] >> int_[ref(verbose) = _1]
       | qi::string("restart")[ph::ref(action) = _1]
       | qi::string("forget")[ph::ref(action) = _1] >> int_[ref(m) = _1]
       | qi::string("forget wide")[ph::ref(action) = _1] >> -int_[ref(w) = _1]
@@ -182,7 +185,18 @@ ui::answer ui::ask() {
       for (const auto& history_line : history) out << history_line << endl;
       continue;
     }
-    else if (action == "batch") return solver.decide_plugin(solver);
+    else if (action == "batch") {
+      return solver.decide_plugin(solver);
+    }
+    else if (action=="verbose") {
+      if (verbose < -1 or verbose > 6) {
+        cerr << "Verbosity should be between -1 and 6" << endl;
+      }
+      else {
+        max_log_level = static_cast<log_level>(verbose);
+      }
+      continue;
+    }
     else assert(false);
     history.push_back(line);
     break;

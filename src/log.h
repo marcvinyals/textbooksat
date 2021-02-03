@@ -1,7 +1,8 @@
 #pragma once
 
 enum log_level {
-  LOG_NOTHING = 0,
+  LOG_NOTHING = -1,
+  LOG_RESULTS,
   LOG_EFFECTS,
   LOG_DECISIONS,
   LOG_ACTIONS,

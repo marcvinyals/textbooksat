@@ -93,6 +93,7 @@ private:
   std::vector<double> initial_variable_activity(const cnf& f);
 
   bool consistent() const;
+  void display_stats() const;
   
   bool solved; // Done
   std::vector<const proof_clause*> conflicts;
@@ -134,6 +135,11 @@ private:
   // Exponential moving average of each clause appearing in a conflict.
   std::unordered_map<const proof_clause*, double> clause_activity;
   double clause_activity_bump = 1;
+
+  struct stats {
+    int decisions, propagations, conflicts, restarts;
+    stats() : decisions(0), propagations(0), conflicts(0), restarts(0) {}
+  } stats;
 };
 
 std::ostream& operator << (std::ostream& o, const std::list<proof_clause>& v);

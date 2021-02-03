@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stack>
 #include <iostream>
+#include <numeric>
 
 using namespace std;
 
@@ -31,12 +32,12 @@ ostream& operator << (ostream& o, const unordered_map<const proof_clause*,T>& di
 void measure(const proof& proof) {
   unordered_set<const proof_clause*> axioms;
   for (const proof_clause& c:proof.formula) axioms.insert(&c);
-  int length=0;
   unordered_map<const proof_clause*, int> last_used;
   unordered_map<const proof_clause*, int> out_degree;
+  vector<uint> input_steps;
   int t=0;
   for (const proof_clause& c:proof.resolution) {
-    length+=c.derivation.size();
+    input_steps.push_back(c.derivation.size());
     for (auto d:c.derivation) {
       last_used[d]=t;
       if (not axioms.count(d)) out_degree[d]+=1;
@@ -56,11 +57,13 @@ void measure(const proof& proof) {
     ++t;
   }
   assert(in_use==0);
+  int length = accumulate(input_steps.begin(), input_steps.end(), 0);
   auto out_degree_sequence = count_values(out_degree);
   cerr << "Length " << length << endl;
   cerr << "Space " << space << endl;
-  cerr << "Conflicts " << proof.resolution.size() << endl;
+  cerr << "Lemmas " << proof.resolution.size() << endl;
   cerr << "Out degree " << out_degree_sequence << endl;
+  cerr << "Input steps"; for (uint x : input_steps) cerr << ' ' << x; cerr << endl;
 }
 
 class drawer {

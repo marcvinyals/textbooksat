@@ -61,6 +61,12 @@ bool cdcl::consistent() const {
   return true;
 }
 
+void cdcl::display_stats() const {
+  LOG(LOG_RESULTS) << "Decisions: " << stats.decisions << endl;
+  LOG(LOG_RESULTS) << "Propagations: " << stats.propagations << endl;
+  LOG(LOG_RESULTS) << "Conflicts: " << stats.conflicts << endl;
+  LOG(LOG_RESULTS) << "Restarts: " << stats.restarts << endl;
+}
 
 
 /*
@@ -92,7 +98,7 @@ proof cdcl::solve(const cnf& f) {
 
   // Main loop
   solved = false;
-  while(not solved) {
+  while(true) {
     conflicts.clear();
     assert(consistent());
     while(not propagation_queue.empty()) {
@@ -103,7 +109,8 @@ proof cdcl::solve(const cnf& f) {
         visualizer_plugin(assignment, working_clauses);
 #endif
         if (solved) {
-          LOG(LOG_EFFECTS) << "UNSAT" << endl;
+          LOG(LOG_RESULTS) << "UNSAT" << endl;
+          display_stats();
           return proof(std::move(formula), std::move(learnt_clauses));
         }
       }
@@ -115,7 +122,8 @@ proof cdcl::solve(const cnf& f) {
     decide();
     if (solved) {
       LOG(LOG_EFFECTS) << "This is a satisfying assignment:" << endl << assignment << endl;
-      LOG(LOG_EFFECTS) << "SAT" << endl;
+      LOG(LOG_RESULTS) << "SAT" << endl;
+      display_stats();
       exit(0);
     }
   }
@@ -160,6 +168,7 @@ void cdcl::unit_propagate() {
   LOG(LOG_STATE_SUMMARY) << "Branching " << branching_seq << endl;
 
   assign(l);
+  stats.propagations++;
 }
 
 void cdcl::assign(literal l) {
@@ -415,6 +424,7 @@ void cdcl::learn() {
   working_clauses.fill_propagation_queue();
 
   conflicts.clear();
+  stats.conflicts++;
 }
 
 
@@ -515,6 +525,7 @@ void cdcl::decide() {
     " with activity " << variable_activity[variable(decision)] << endl;
   if(trace) *trace << "assign " << pretty << variable(decision) << ' ' << decision.polarity() << endl;
   propagation_queue.decide(decision);
+  stats.decisions++;
 }
 
 literal cdcl::decide_random() {
@@ -574,6 +585,7 @@ void cdcl::restart() {
   propagation_queue.clear();
 
   working_clauses.reset();
+  stats.restarts++;
 }
 
 

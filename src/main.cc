@@ -41,9 +41,8 @@ static argp_option options[] = {
   {"minimize", 'm', "BOOL", 0,
    "Try to subsume the learnt clause by resolving it with some other "
    "clause in the database (default: 0)"},
-  {"phase-saving", 's', "BOOL", 0,
-   "When deciding a variable, set it to the polarity it was last assigned "
-   "to. (default: 1)"},
+  {"phase", 's', "{save,0,1}", 0,
+   "When deciding a variable, set it to the specified polarity. (default:save)"},
   {"proof-dag", 'p', "FILE", 0,
    "Output the proof dag to FILE (default: null)"},
   {"trace", 't', "FILE", 0,
@@ -77,7 +76,7 @@ struct arguments {
   double clause_decay;
   bool backjump;
   bool minimize;
-  bool phase_saving;
+  string phase;
   string dag;
   string trace;
   string pebbling_graph;
@@ -116,7 +115,7 @@ static error_t parse_opt (int key, char *arg, argp_state *state) {
     arguments->minimize = atoi(arg);
     break;
   case 's':
-    arguments->phase_saving = atoi(arg);
+    arguments->phase = arg;
     break;
   case 'p':
     arguments->dag = arg;
@@ -176,7 +175,7 @@ int main(int argc, char** argv) {
   arguments.clause_decay = 1.-1./2048.;
   arguments.backjump = true;
   arguments.minimize = false;
-  arguments.phase_saving = true;
+  arguments.phase = "save";
   arguments.dag = "";
   arguments.pebbling_graph = "";
   arguments.substitution_fn = "xor";
@@ -209,7 +208,7 @@ int main(int argc, char** argv) {
   solver.clause_decay = arguments.clause_decay;
   solver.backjump = arguments.backjump;
   solver.minimize = arguments.minimize;
-  solver.phase_saving = arguments.phase_saving;
+  solver.phase = arguments.phase;
 
   if (not arguments.trace.empty()) {
     solver.trace = shared_ptr<ostream>(new ofstream(arguments.trace));

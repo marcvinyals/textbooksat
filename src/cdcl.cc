@@ -74,7 +74,7 @@ proof cdcl::solve(const cnf& f) {
   formula.reserve(f.clauses.size());
   for (const auto& c : f.clauses) formula.push_back(c);
   
-  decision_polarity.assign(f.variables,false);
+  decision_polarity.assign(f.variables, config_default_polarity);
   variable_activity = initial_variable_activity(f);
   decision_order = set<variable, variable_cmp>
     (bind(variable_order_plugin,

@@ -1,5 +1,5 @@
 CXX ?= g++
-CPPFLAGS ?= -std=c++14 -Wall
+CPPFLAGS ?= -std=c++17 -Wall
 LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread

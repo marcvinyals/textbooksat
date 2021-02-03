@@ -96,7 +96,14 @@ proof cdcl_solver::solve(const cnf& f) {
   }
   solver.config_backjump = backjump;
   solver.config_minimize = minimize;
-  solver.config_phase_saving = phase_saving;
+  if (phase == "save") {
+    solver.config_default_polarity = false;
+    solver.config_phase_saving = true;
+  }
+  else {
+    solver.config_phase_saving = false;
+    solver.config_default_polarity = atoi(phase.c_str());
+  }
   solver.config_activity_decay = decay;
   solver.config_clause_decay = clause_decay;
   solver.trace = trace;

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <argp.h>
+#include <sstream>
 
 #include "dimacs.h"
 #include "solver.h"
@@ -162,6 +163,10 @@ bool endswith(string s, string t) {
   return mismatch(t.rbegin(), t.rend(), s.rbegin()).first == t.rend();
 }
 
+int kcliquek;
+int kcliquek_;
+int kcliquen_;
+
 int main(int argc, char** argv) {
   arguments arguments;
   arguments.in = "-";
@@ -195,6 +200,17 @@ int main(int argc, char** argv) {
   else {
     LOG(LOG_ACTIONS) << "Parsing from stdin" << endl;
     f = parse_dimacs(cin);
+  }
+
+  {
+    char _;
+    stringstream ss(arguments.in);
+    ss >> _ >> _ >> _ >> _ >> _ >> _ >> _ >> _;
+    ss >> kcliquek;
+    ss >> _;
+    ss >> kcliquek_;
+    ss >> _ >> _ >> _ >> _ >> _ >> _ >> _;
+    ss >> kcliquen_;
   }
 
   cdcl_solver solver;

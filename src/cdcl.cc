@@ -520,7 +520,7 @@ void cdcl::decide() {
   }
   bool should_restart = restart_plugin(*this);
   if (should_restart) return restart();
-  literal decision = decide_plugin(*this);
+  literal decision = decide_kclique();//decide_plugin(*this);
   LOG(LOG_DECISIONS) << "Deciding " << decision <<
     " with activity " << variable_activity[variable(decision)] << endl;
   if(trace) *trace << "assign " << pretty << variable(decision) << ' ' << decision.polarity() << endl;
@@ -541,6 +541,31 @@ literal cdcl::decide_fixed() {
   int decision_variable = *decision_order.begin();
   decision_order.erase(decision_order.begin());
   return literal(decision_variable,decision_polarity[decision_variable]);
+}
+
+extern int kcliquek;
+extern int kcliquek_;
+extern int kcliquen_;
+
+literal cdcl::decide_kclique() {
+  int k=kcliquek;
+  int n=kcliquen_*kcliquek_;
+  static vector<int> branchcount(n,0);
+  vector<int> t = branchcount;
+  for (int i_=0;i_<n;++i_) {
+    auto it = min_element(t.begin(), t.end());
+    int i=it-t.begin();
+    //cerr << "Attempting " << i << endl;
+    for (int j=0;j<k;++j) {
+      int var=j*n+i;
+      //cerr << "   var " << var << endl;
+      if (assignment[var]) continue;
+      ++branchcount[i];
+      return literal(var, 1);
+    }
+    t[i]+=1000000;
+  }
+  abort();
 }
 
 bool cdcl::restart_none() {

@@ -44,6 +44,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
 
   literal decide_fixed();
   literal decide_random();
+  literal decide_kclique();
 
   bool restart_none();
   bool restart_always();

@@ -53,7 +53,7 @@ std::ostream& operator << (std::ostream& o, const std::vector<double>& v) {
 
 void ui::show_state() {
   cout << "Branching sequence: " << solver.branching_seq << endl;
-  cout << "Learnt clauses:" << endl << solver.learnt_clauses << endl;
+  cout << "Learned clauses:" << endl << solver.learnt_clauses << endl;
   cout << "Restricted clauses:" << endl << solver.working_clauses << endl;
   cout << "Activity:" << solver.variable_activity << endl;
 }

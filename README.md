@@ -17,20 +17,23 @@ Dependencies:
 
 Optional dependencies (disable with `$ NO_VIZ=NO_VIZ make sat`):
 
-* >=graphviz-2.30
+* \>=graphviz-2.30
 * cimg
 
 ## Usage
 
-Use `sat < input.cnf` to run with default settings.
-Use `sat --help` for information about command line flags.
+Use `sat < input.cnf` to run with default settings (which are not what
+you would expect from a standard implementation). Use `sat -d vsids -r
+luby -w 2wl -v 0 < input.cnf` to run with a more usual set of
+heuristics. Use `sat --help` for information about command line flags.
 
 ### Interactive use
 
 Use `sat -i input.cnf -d ask` to run textbooksat in interactive
 mode. In this mode, the solver will output the steps it takes, stop
-every time it reaches the default state, and ask for user input. Use
-`help` for information about the available commands.
+every time it reaches the default state, and ask for user input. Type
+`help` in interactive mode for information about the available
+interactive commands.
 
 To save and resume a session:
 ```
@@ -45,6 +48,16 @@ To have a history of commands:
 ```
 $ rlwrap ./sat -d ask
 ```
+
+It can be convenient to work with human-readable variable names
+instead of DIMACS literals. If the CNF input contains a map from
+DIMACS variable numbers to variable names of the form
+```
+c varname <dimacs> <name>
+```
+then textbooksat will use these names for input/output. There is a
+[CNFgen patch](https://github.com/marcvinyals/cnfgen/tree/varnames) to
+generate such a mapping.
 
 ### Resolution proof logging
 

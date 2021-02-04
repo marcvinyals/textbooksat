@@ -382,7 +382,7 @@ void cdcl::learn() {
 
   if (config_minimize) minimize(learnt_clause);
 
-  LOG(LOG_EFFECTS) << Colour::Modifier(Colour::FG_GREEN) << "Learnt: " << Colour::Modifier(Colour::FG_DEFAULT) << learnt_clause << endl;
+  LOG(LOG_EFFECTS) << Colour::Modifier(Colour::FG_GREEN) << "Learned: " << Colour::Modifier(Colour::FG_DEFAULT) << learnt_clause << endl;
   if(trace) *trace << "# learnt:" << learnt_clause << endl;
   clause d = learnt_clause.derivation.front()->c;
   for (auto it=++learnt_clause.derivation.begin();it!=learnt_clause.derivation.end();++it) {

@@ -1,5 +1,6 @@
 #include "analysis.h"
 #include "formatting.h"
+#include "log.h"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -59,11 +60,15 @@ void measure(const proof& proof) {
   assert(in_use==0);
   int length = accumulate(input_steps.begin(), input_steps.end(), 0);
   auto out_degree_sequence = count_values(out_degree);
-  cerr << "Length " << length << endl;
-  cerr << "Space " << space << endl;
-  cerr << "Lemmas " << proof.resolution.size() << endl;
-  cerr << "Out degree " << out_degree_sequence << endl;
-  cerr << "Input steps"; for (uint x : input_steps) cerr << ' ' << x; cerr << endl;
+  LOG(LOG_RESULTS) << "Length " << length << endl;
+  LOG(LOG_RESULTS) << "Space " << space << endl;
+  LOG(LOG_RESULTS) << "Lemmas " << proof.resolution.size() << endl;
+  LOG(LOG_RESULTS) << "Out degree " << out_degree_sequence << endl;
+  if (input_steps.size() <1000) {
+    LOG(LOG_RESULTS) << "Input steps";
+    for (uint x : input_steps) LOG(LOG_RESULTS) << ' ' << x;
+    LOG(LOG_RESULTS) << endl;
+  }
 }
 
 class drawer {

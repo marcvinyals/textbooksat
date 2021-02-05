@@ -59,12 +59,18 @@ then textbooksat will use these names for input/output. There is a
 [CNFgen patch](https://github.com/marcvinyals/cnfgen/tree/varnames) to
 generate such a mapping.
 
-### Resolution proof logging
+### Proof logging
 
-Use `sat -i input.cnf -p proof.ext` to obtain a graphical representation
-of the resolution proof the solver found. This is only intended for
-small proofs (at most tens of conflicts); otherwise the picture will
-be too large to handle. The output format gets chosen from the extension among:
+Use `sat -i input.cnf -p proof.ext` to obtain a representation of the proof in some other format, which gets chosen from the extension.
+
+#### Verification
+
+* `.rup`: Verifiable with [DRAT-trim](https://www.cs.utexas.edu/~marijn/drat-trim/).
+
+#### Graphical
+
+This is only intended for small proofs (at most tens of conflicts); otherwise the picture will
+be too large to handle.
 
 * `.tex`: Standalone tikz. Compile with `pdflatex proof.tex`.
 * `.beamer.tex`: Beamer slides. Compile with `pdflatex proof.tex`.

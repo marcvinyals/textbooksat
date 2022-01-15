@@ -57,7 +57,14 @@ bool cdcl::consistent() const {
     assert(not assignment[v]);
   }
   assert(working_clauses.consistent());
-  assert(assignment.size() <= branching_seq.size() + propagation_queue.q.size() + decision_order.size());
+  return true;
+}
+
+bool cdcl::stable() const {
+  assert(consistent());
+  assert(assignment.size() == branching_seq.size() + decision_order.size());
+  assert(propagation_queue.q.empty());
+  assert(conflicts.empty());
   return true;
 }
 
@@ -99,8 +106,6 @@ proof cdcl::solve(const cnf& f) {
   // Main loop
   solved = false;
   while(true) {
-    conflicts.clear();
-    assert(consistent());
     while(not propagation_queue.empty()) {
       unit_propagate();
       if (not conflicts.empty()) {
@@ -115,6 +120,7 @@ proof cdcl::solve(const cnf& f) {
         }
       }
     }
+    assert(stable());
     forget_plugin(*this);
 #ifndef NO_VIZ
     visualizer_plugin(assignment, working_clauses);
@@ -458,6 +464,7 @@ void cdcl::bump_activity(const proof_clause& c) {
       decision_order.erase(it);
     }
     variable_activity[v]+=variable_activity_bump;
+    rescale |= (variable_activity[v] >= ACTIVITY_LIMIT);
   }
   decision_order.insert(attach.begin(), attach.end());
   if (rescale) {
@@ -501,7 +508,7 @@ void cdcl::bump_clause_activity(const proof_clause& c) {
   bool rescale = false;
   for (const proof_clause* d : c.derivation) {
     clause_activity[d]+=clause_activity_bump;
-    rescale &= (clause_activity[d] >= ACTIVITY_LIMIT);
+    rescale |= (clause_activity[d] >= ACTIVITY_LIMIT);
   }
   if (rescale) {
     for (auto& it : clause_activity) it.second/=ACTIVITY_LIMIT;

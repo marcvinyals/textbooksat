@@ -93,6 +93,7 @@ private:
   std::vector<double> initial_variable_activity(const cnf& f);
 
   bool consistent() const;
+  bool stable() const;
   void display_stats() const;
   
   bool solved; // Done

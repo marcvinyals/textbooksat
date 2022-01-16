@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <argp.h>
+#include <signal.h>
 
 #include "dimacs.h"
 #include "solver.h"
@@ -162,7 +163,10 @@ bool endswith(string s, string t) {
   return mismatch(t.rbegin(), t.rend(), s.rbegin()).first == t.rend();
 }
 
+void backtrace_handler(int);
+
 int main(int argc, char** argv) {
+  signal(SIGABRT, backtrace_handler);
   arguments arguments;
   arguments.in = "-";
   arguments.decide = "fixed";

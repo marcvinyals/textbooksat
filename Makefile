@@ -1,14 +1,15 @@
 CXX ?= g++
-CPPFLAGS ?= -std=c++17 -Wall
+CPPFLAGS = -std=c++17 -Wall
 LDFLAGS ?=
 GRAPHVIZ_LIBS = -lgvc -lcgraph -lcdt
 CIMG_LIBS = -lX11 -lpthread
 LIBS =
-SOURCES = solver.cc cdcl.cc clause_database.cc reference_clause_database.cc watched_clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc
+SOURCES = solver.cc cdcl.cc clause_database.cc reference_clause_database.cc watched_clause_database.cc dimacs.cc data_structures.cc formatting.cc analysis.cc log.cc ui.cc pebble_util.cc backtrace.cc
 
 BUILD := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),debug)
 ifeq ($(BUILD),debug)
 CPPFLAGS += -g -Og -DDEBUG
+LDFLAGS += -rdynamic
 else ifeq ($(BUILD),release)
 CPPFLAGS += -O2 -DNDEBUG -march=native
 else ifeq ($(BUILD),hpc2n)

@@ -9,7 +9,6 @@ SOURCES = solver.cc cdcl.cc clause_database.cc reference_clause_database.cc watc
 BUILD := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),debug)
 ifeq ($(BUILD),debug)
 CPPFLAGS += -g -Og -DDEBUG
-LDFLAGS += -rdynamic
 else ifeq ($(BUILD),release)
 CPPFLAGS += -O2 -DNDEBUG -march=native
 else ifeq ($(BUILD),hpc2n)
@@ -24,6 +23,14 @@ else ifeq ($(BUILD),coverage)
 CPPFLAGS += -g -Og -DDEBUG --coverage
 LDFLAGS += --coverage
 endif
+
+BACKTRACE ?=
+ifeq ($(BACKTRACE),backtrace)
+CPPFLAGS += -g -Og -DBACKTRACE
+LDFLAGS += -rdynamic
+LIBS += -ldl -lbacktrace
+endif
+
 
 # Visualization only on Marc machines by default
 ifeq ($(shell hostname -s),wille)

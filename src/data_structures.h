@@ -51,6 +51,7 @@ struct clause {
   // Sorted vector
   clause() {}
   clause(std::vector<literal> from_literals) : literals(from_literals) {}
+  static clause from_dimacs(std::initializer_list<int> x);
   bool subsumes(const clause& c) const;
   bool subsumes(const clause& c, literal l) const;
   bool operator == (const clause& c) const { return literals == c.literals; }

@@ -5,6 +5,13 @@
 #include <set>
 using namespace std;
 
+clause clause::from_dimacs(std::initializer_list<int> x) {
+  clause ret;
+  transform(x.begin(), x.end(), back_inserter(ret.literals), literal::from_dimacs);
+  sort(ret.literals.begin(), ret.literals.end());
+  return ret;
+}
+
 bool clause::subsumes(const clause& c) const {
   assert(is_sorted(literals.begin(), literals.end()));
   assert(is_sorted(c.literals.begin(), c.literals.end()));

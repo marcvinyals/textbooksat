@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix.hpp>
+#include <boost/phoenix.hpp>
 
 #include "cdcl.h"
 #include "formatting.h"

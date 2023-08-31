@@ -71,6 +71,7 @@ void ui::usage() {
     cout << " * forget touches any <variable>*" << endl;
     cout << " * state" << endl;
     cout << " * save <file>" << endl;
+    cout << " * writedb <file>" << endl;
     cout << " * batch {0,1}" << endl;
     cout << " * verbose {-1..6}" << endl;
   }
@@ -112,6 +113,7 @@ ui::answer ui::ask() {
         qi::string("#")[ph::ref(action) = _1]
       | qi::string("state")[ph::ref(action) = _1]
       | qi::string("save")[ph::ref(action) = _1] >> token[ph::ref(file) = _1]
+      | qi::string("writedb")[ph::ref(action) = _1] >> token[ph::ref(file) = _1]
       | qi::string("batch")[ph::ref(action) = _1] >> int_[ref(batch) = _1]
       | qi::string("verbose")[ph::ref(action) = _1] >> int_[ref(verbose) = _1]
       | qi::string("restart")[ph::ref(action) = _1]
@@ -183,6 +185,20 @@ ui::answer ui::ask() {
     else if (action == "save") {
       std::ofstream out(file);
       for (const auto& history_line : history) out << history_line << endl;
+      continue;
+    }
+    else if (action == "writedb") {
+      std::ofstream out(file);
+      auto old_mode = pretty.mode;
+      pretty.mode = pretty.DIMACS;
+      out << "p cnf" << endl;
+      for (const clause_pointer& C : solver.working_clauses) {
+        eager_restricted_clause CC(*C.source);
+        CC.restrict(solver.assignment);
+        if (CC.satisfied) continue;
+        out << clause(CC.literals) << endl;
+      }
+      pretty.mode = old_mode;
       continue;
     }
     else if (action == "batch") {

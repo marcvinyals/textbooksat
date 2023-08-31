@@ -44,7 +44,7 @@ struct pretty_ {
       if (not l.polarity()) (*o) << "}";
     }
     else if (mode == DIMACS) {
-      (*o) << (l.polarity()?' ':'-');
+      (*o) << (l.polarity()?" ":" -");
       (*this) << variable(l);
     }
     else {

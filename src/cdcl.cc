@@ -118,6 +118,10 @@ proof cdcl::solve(const cnf& f) {
           display_stats();
           return proof(std::move(formula), std::move(learnt_clauses));
         }
+        // learn() has already backjumped and queued the asserting literal.
+        // Restarting clears the remaining trail and the propagation queue, so
+        // the learnt clause only propagates if it is unit at level 0.
+        if (config_restart_after_conflict) restart();
       }
     }
     assert(stable());

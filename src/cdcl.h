@@ -37,6 +37,7 @@ std::function<proof_clause(cdcl&, const branching_sequence::reverse_iterator&)> 
 
   bool config_backjump;
   bool config_minimize;
+  bool config_restart_after_conflict = false;
   bool config_phase_saving;
   bool config_default_polarity;
   double config_activity_decay;

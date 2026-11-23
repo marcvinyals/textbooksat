@@ -59,6 +59,10 @@ proof cdcl_solver::solve(const cnf& f) {
   else if (restart == "none") solver.restart_plugin = &cdcl::restart_none;
   else if (restart == "always") solver.restart_plugin = &cdcl::restart_always;
   else if (restart == "luby") solver.restart_plugin = &cdcl::restart_luby;
+  else if (restart == "conflict") {
+    solver.restart_plugin = &cdcl::restart_none;
+    solver.config_restart_after_conflict = true;
+  }
   else {
     cerr << "Invalid restart interval" << endl;
     exit(1);

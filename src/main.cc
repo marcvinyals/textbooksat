@@ -19,8 +19,11 @@ static argp_option options[] = {
    "Read formula in dimacs format from FILE (default: stdin)"},
   {"decide", 'd', "{fixed,reverse,vsids,random,ask}", 0,
    "Use the specified decision procedure (default: fixed)"},
-  {"restart", 'r', "{none,always,luby}", 0,
-   "Use the specified restart interval (default: none)"},
+  {"restart", 'r', "{none,always,conflict,luby}", 0,
+   "Use the specified restart interval (default: none). `always' restarts at "
+   "the first decision after a conflict, so a cascade of conflicts during "
+   "propagation gives a single restart; `conflict' restarts immediately after "
+   "every conflict"},
   {"learn", 'l', "{1uip,1uip-all,lastuip,decision}", 0,
    "Use the specified learning schema (default: 1uip)"},
   {"forget", 'f', "{nothing,everything,wide}", 0,
